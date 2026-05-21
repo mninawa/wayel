@@ -1,0 +1,29 @@
+{
+  "name": "weyell",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WeYell Phase 1 — customer portal (desktop web), shared lib, dev mock API.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n MOCK,PORTAL -c blue,cyan \"npm:dev:mock\" \"npm:dev:portal\"",
+    "dev:mock": "node tools/platform-mock-api/server.mjs",
+    "dev:portal": "npm --workspace apps/customer-portal run start",
+    "dev:portal:bff": "npm --workspace apps/customer-portal run start:bff",
+    "dev:portal:bff:docker": "npm --workspace apps/customer-portal run start:bff:docker",
+    "build": "npm run build --workspaces --if-present",
+    "build:portal": "npm --workspace apps/customer-portal run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^22.19.17",
+    "concurrently": "^9.1.2",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.9"
+  }
+}

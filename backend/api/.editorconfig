@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,md,csproj,props,targets}]
+indent_size = 2
+
+[*.cs]
+csharp_new_line_before_open_brace = all
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+dotnet_diagnostic.CA1716.severity = none      # type names that match VB keywords (we are C#-only)
+dotnet_diagnostic.CA1873.severity = none      # logger.IsEnabled checks add noise; structured args are deferred
+dotnet_diagnostic.CA1062.severity = none      # nullable handles this
+dotnet_diagnostic.CA1848.severity = none      # LoggerMessage source-gen is overkill here
+dotnet_diagnostic.CA2007.severity = none      # ConfigureAwait noise in app code
+dotnet_diagnostic.IDE0005.severity = warning  # remove unused usings
+dotnet_diagnostic.IDE0290.severity = none     # primary constructor preference

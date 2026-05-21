@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+#
+# Client BFF only (no bundled SPA). Matches local :8083 behaviour.
+# Build from repository root:
+#   docker build -f deploy/render/Dockerfile.bff-client-edge .
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS bff-build
+WORKDIR /src
+COPY backend/api ./backend/api
+RUN dotnet publish backend/api/src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj -c Release -o /out/publish \
+    /p:UseAppHost=false /p:DebugType=none /p:DebugSymbols=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends nginx gettext-base \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -f /etc/nginx/sites-enabled/default
+
+WORKDIR /app
+COPY --from=bff-build /out/publish /app/bff
+COPY deploy/render/nginx.client-bff.conf.template /etc/nginx/templates/nginx.conf.template
+COPY deploy/render/start-edge.sh /start-edge.sh
+RUN chmod +x /start-edge.sh
+
+ENV BFF_ASSEMBLY=Wayel.Bff.Customer.dll
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+CMD ["/start-edge.sh"]

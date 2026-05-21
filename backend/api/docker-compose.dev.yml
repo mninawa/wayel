@@ -1,0 +1,212 @@
+# docker-compose.dev.yml
+# -----------------------------------------------------------------------------
+# Local development stack for the Wayel platform: Wayel.Api + the three
+# per-audience BFF hosts (admin / client / external).
+#
+# MongoDB is **not** included — this stack expects a managed MongoDB Atlas
+# cluster (or any reachable Mongo URL). Drop your connection string in a
+# .env file next to this compose file (see .env.example) and compose will
+# inject it into the API container.
+#
+# This file uses the dedicated per-host Dockerfiles (Dockerfile.Api,
+# Dockerfile.Bff.Admin, etc.) and the readiness/liveness split exposed by
+# both Wayel.Api and Wayel.Bff.Shared. `depends_on` waits on the *ready*
+# state of upstream services, so spinning the whole stack with
+#
+#   docker compose -f docker-compose.dev.yml up
+#
+# gives you a topologically correct boot order: API (waits on Atlas) → BFFs.
+#
+# Port matrix (locked in across compose, BFFs, and SPA dev servers):
+#
+#   Service        | Container | Host
+#   ---------------+-----------+------
+#   Wayel.Api      | 8080      | 5099
+#   REMOVED    | 8080  | 5199    (admin SPA expects http://localhost:5199)
+#   Wayel.Bff.Customer   | 8080  | 5299    (client SPA expects http://localhost:5299)
+#   REMOVED | 8080  | 5399    (external SPA expects http://localhost:5399)
+#
+# To enable Google SSO, set GoogleAuth__ClientIds__0 on the api and
+# GoogleOidc__ClientId / GoogleOidc__ClientSecret on each BFF. Without
+# those values the stack still boots; SSO calls just return 4xx.
+# -----------------------------------------------------------------------------
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.Api
+    container_name: wayel-api
+    ports:
+      - "5099:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # MongoDB Atlas — values come from .env (see .env.example).
+      # Atlas SRV connection strings (mongodb+srv://...) work as-is; the
+      # driver does the DNS lookup, so no extra container wiring needed.
+      # Fails fast at `compose up` if unset — avoids a silent exit-0 container with no logs.
+      Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:?Set MONGO_CONNECTION_STRING in backend/api/.env — see .env.example}
+      Mongo__DatabaseName: ${MONGO_DATABASE_NAME:-wayel}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-compose-only-signing-key-must-be-at-least-32-chars-long}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      AuthSession__RefreshTokenLifetimeMinutes: "20160"
+      # Google SSO — accepted client ids (one per BFF audience + mobile).
+      # Real values come from backend/api/.env (gitignored).
+      # Canonical reference: .secrets.local/wayel-api-config.md.
+      GoogleAuth__ClientIds__0: ${GOOGLEAUTH__CLIENTIDS__0:?Set GOOGLEAUTH__CLIENTIDS__0 in backend/api/.env — see .secrets.local/wayel-api-config.md}
+      GoogleAuth__ClientIds__1: ${GOOGLEAUTH__CLIENTIDS__1:?Set GOOGLEAUTH__CLIENTIDS__1 in backend/api/.env}
+      GoogleAuth__ClientIds__2: ${GOOGLEAUTH__CLIENTIDS__2:?Set GOOGLEAUTH__CLIENTIDS__2 in backend/api/.env}
+      GoogleAuth__ClientIds__3: ${GOOGLEAUTH__CLIENTIDS__3:-}
+      # CORS — the Caddy-fronted Docker stack serves each SPA on a different
+      # port (8081 admin, 8082 external, 8083 client), so the API needs to
+      # allow those as additional origins alongside the raw ng-serve ports
+      # that appsettings.json already lists.
+      Cors__AllowedOrigins__4: "http://localhost:8081"
+      Cors__AllowedOrigins__5: "http://localhost:8082"
+      Cors__AllowedOrigins__6: "http://localhost:8083"
+
+      # ─── Email transport (Postmark by default; flip to "resend" /
+      # "ses" via Notifications__Provider for the legacy paths) ─────
+      # Provider tokens live in backend/api/.env (gitignored) — never
+      # commit. Only the active provider's secret has to be set; the
+      # others can stay blank.
+      Notifications__Provider: ${NOTIFICATIONS_PROVIDER:-postmark}
+      Notifications__Postmark__ServerToken: ${POSTMARK_SERVER_TOKEN:-}
+      Notifications__Postmark__MessageStream: ${POSTMARK_MESSAGE_STREAM:-outbound}
+      Notifications__Resend__ApiKey: ${RESEND_API_KEY:-}
+      Notifications__Email__FromAddress: ${NOTIFICATIONS_FROM_ADDRESS:-mninawa@felidaen.co}
+      Notifications__Email__FromDisplayName: ${NOTIFICATIONS_FROM_DISPLAY_NAME:-Wayel}
+
+      # ─── AWS credentials (S3 media + optional SES fallback) ───────
+      # Still required for the S3MediaStorage path. Only consulted by
+      # the SES email transport when Notifications__Provider=ses.
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_REGION: ${AWS_REGION:-eu-west-1}
+
+      # ─── Media storage (S3) ───────────────────────────────────────
+      MediaStorage__Provider: ${MEDIA_STORAGE_PROVIDER:-s3}
+      MediaStorage__Region: ${MEDIA_STORAGE_REGION:-eu-west-1}
+      MediaStorage__BucketName: ${MEDIA_STORAGE_BUCKET:-}
+      MediaStorage__CdnHost: ${MEDIA_STORAGE_CDN_HOST:-}
+      MediaStorage__Environment: ${MEDIA_STORAGE_ENVIRONMENT:-dev}
+
+      # ─── Payments (Paystack) ──────────────────────────────────────
+      # SecretKey lives in backend/api/.env (gitignored). Defaults to
+      # blank so the API still boots when an op is iterating on a
+      # branch that doesn't talk to billing yet — the adapter
+      # surfaces a typed `payment_gateway.misconfigured` per call.
+      Billing__Paystack__Enabled: ${PAYSTACK_ENABLED:-true}
+      Billing__Paystack__SecretKey: ${PAYSTACK_SECRET_KEY:-}
+      Billing__Paystack__PublicKey: ${PAYSTACK_PUBLIC_KEY:-}
+      Billing__Paystack__ApiBaseUrl: ${PAYSTACK_API_BASE_URL:-https://api.paystack.co}
+      Billing__Paystack__Currency: ${PAYSTACK_CURRENCY:-ZAR}
+      Billing__Paystack__VerifyChargeMinorUnits: ${PAYSTACK_VERIFY_MINOR_UNITS:-100}
+      Billing__Paystack__CallbackUrl: ${PAYSTACK_CALLBACK_URL:-http://localhost:8082/parent/profile/payment-methods/added}
+      Billing__Paystack__RefundVerifyCharge: ${PAYSTACK_REFUND_VERIFY_CHARGE:-true}
+    healthcheck:
+      # mcr.microsoft.com/dotnet/aspnet:10.0 has no curl/wget, so we probe the
+      # listening TCP socket via bash's /dev/tcp pseudo-device. If the port
+      # accepts a connection the host has bound and is past startup.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  bff-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.Bff.Admin
+    container_name: wayel-bff-admin
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5199:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__Audience: admin
+      Bff__SpaBaseUri: "http://localhost:4200"
+      Bff__ApiBaseUri: "http://api:8080"
+      Bff__SessionLifetimeMinutes: "20160"
+      Bff__RequireHttpsCookie: "false"
+      Bff__CookieName: ".REMOVED"
+      # Same Jwt block the API container reads — the BFF re-validates
+      # bearer tokens locally so password-login SPAs (no OIDC, no cookie)
+      # authenticate against /api/* end-to-end.
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-compose-only-signing-key-must-be-at-least-32-chars-long}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      # Google OIDC — real values come from backend/api/.env (gitignored).
+      # Canonical reference: .secrets.local/google-oidc.md.
+      GoogleOidc__ClientId: ${BFF_ADMIN__GOOGLEOIDC__CLIENTID:?Set BFF_ADMIN__GOOGLEOIDC__CLIENTID in backend/api/.env — see .secrets.local/google-oidc.md}
+      GoogleOidc__ClientSecret: ${BFF_ADMIN__GOOGLEOIDC__CLIENTSECRET:?Set BFF_ADMIN__GOOGLEOIDC__CLIENTSECRET in backend/api/.env}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  bff-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.Bff.Customer
+    container_name: wayel-bff-customer
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5299:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__Audience: client
+      Bff__SpaBaseUri: "http://localhost:4202"
+      Bff__ApiBaseUri: "http://api:8080"
+      Bff__SessionLifetimeMinutes: "20160"
+      Bff__RequireHttpsCookie: "false"
+      Bff__CookieName: ".Wayel.Bff.Customer"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-compose-only-signing-key-must-be-at-least-32-chars-long}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      GoogleOidc__ClientId: ${BFF_CLIENT__GOOGLEOIDC__CLIENTID:?Set BFF_CLIENT__GOOGLEOIDC__CLIENTID in backend/api/.env — see .secrets.local/google-oidc.md}
+      GoogleOidc__ClientSecret: ${BFF_CLIENT__GOOGLEOIDC__CLIENTSECRET:?Set BFF_CLIENT__GOOGLEOIDC__CLIENTSECRET in backend/api/.env}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  bff-external:
+    build:
+      context: .
+      dockerfile: Dockerfile.Bff.External
+    container_name: wayel-bff-external
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5399:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__Audience: external
+      Bff__SpaBaseUri: "http://localhost:4203"
+      Bff__ApiBaseUri: "http://api:8080"
+      Bff__SessionLifetimeMinutes: "20160"
+      Bff__RequireHttpsCookie: "false"
+      Bff__CookieName: ".REMOVED"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-compose-only-signing-key-must-be-at-least-32-chars-long}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      GoogleOidc__ClientId: ${BFF_EXTERNAL__GOOGLEOIDC__CLIENTID:?Set BFF_EXTERNAL__GOOGLEOIDC__CLIENTID in backend/api/.env — see .secrets.local/google-oidc.md}
+      GoogleOidc__ClientSecret: ${BFF_EXTERNAL__GOOGLEOIDC__CLIENTSECRET:?Set BFF_EXTERNAL__GOOGLEOIDC__CLIENTSECRET in backend/api/.env}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s

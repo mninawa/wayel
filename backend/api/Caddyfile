@@ -1,0 +1,92 @@
+# Wayel local-dev reverse proxy (HTTP only).
+# -----------------------------------------------------------------------------
+# Serves admin / external / client / api on *.wayel.local over plain HTTP :80.
+# TLS is intentionally off for simpler local dev (no cert trust step).
+#
+# Upstreams (docker-compose.proxy.yml):
+#   - bff-admin:8080, bff-external:8080, bff-client:8080
+#   - api:8080
+#   - spa-admin:80, spa-external:80
+#
+# Hosts: add 127.0.0.1 entries via ./scripts/setup-dev-domains.sh hosts
+# -----------------------------------------------------------------------------
+{
+	# No automatic HTTPS or redirects to :443.
+	auto_https off
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
+
+# -----------------------------------------------------------------------------
+# admin.wayel.local — super-admin / platform portal
+# -----------------------------------------------------------------------------
+http://admin.wayel.local {
+	encode zstd gzip
+
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-admin:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-admin:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	reverse_proxy spa-admin:80 {
+		header_up X-Forwarded-Proto http
+	}
+}
+
+# -----------------------------------------------------------------------------
+# external.wayel.local — public parent / contractor self-serve
+# -----------------------------------------------------------------------------
+http://external.wayel.local {
+	encode zstd gzip
+
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-external:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-external:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	reverse_proxy spa-external:80 {
+		header_up X-Forwarded-Proto http
+	}
+}
+
+# -----------------------------------------------------------------------------
+# client.wayel.local — per-tenant staff/parent shell (SPA TBD)
+# -----------------------------------------------------------------------------
+http://client.wayel.local {
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-client:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-client:8080 {
+		header_up X-Forwarded-Proto http
+	}
+
+	respond / "client-portal SPA not yet bootstrapped. /bff/* and /api/* are live." 200
+}
+
+# -----------------------------------------------------------------------------
+# api.wayel.local — raw API
+# -----------------------------------------------------------------------------
+http://api.wayel.local {
+	encode zstd gzip
+
+	reverse_proxy api:8080 {
+		header_up X-Forwarded-Proto http
+	}
+}

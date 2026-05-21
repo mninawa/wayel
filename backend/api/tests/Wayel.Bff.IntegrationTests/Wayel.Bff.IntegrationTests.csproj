@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Wayel.Bff.IntegrationTests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.MongoDb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Wayel.Api\Wayel.Api.csproj">
+      <Aliases>WayelApi</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Wayel.Bff.Customer\Wayel.Bff.Customer.csproj">
+      <Aliases>WayelBffCustomer</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Wayel.Bff.Shared\Wayel.Bff.Shared.csproj" />
+  </ItemGroup>
+</Project>

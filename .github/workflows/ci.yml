@@ -1,0 +1,96 @@
+name: CI
+
+# WeYell Phase 1 — customer portal only (no mobile, no admin SPA).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  DOTNET_VERSION: '10.0.x'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  frontend-unit:
+    name: Frontend — build & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest suite
+        run: npm test
+
+      - name: Build customer-portal
+        run: npm run build:portal
+
+  backend-build-test:
+    name: Backend — build & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore Wayel.Api.slnx
+
+      - name: Build (warnings = errors)
+        run: dotnet build Wayel.Api.slnx --no-restore --configuration Release
+
+      - name: Unit tests
+        run: dotnet test tests/Wayel.Application.Tests/Wayel.Application.Tests.csproj --no-build --configuration Release --logger "trx;LogFileName=application-tests.trx"
+
+      - name: Integration tests
+        run: dotnet test tests/Wayel.Api.IntegrationTests/Wayel.Api.IntegrationTests.csproj --no-build --configuration Release --logger "trx;LogFileName=integration-tests.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/api/**/TestResults/*.trx
+          retention-days: 7
+
+  docker-build:
+    name: Docker — build images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build API and BFF
+        run: docker compose build api bff-customer
+
+      - name: Build customer portal
+        run: docker compose --profile portal build portal

@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+#
+# Dedicated Dockerfile for the Wayel.Bff.Customer host (staff + parent SPA).
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY Directory.Build.props Directory.Packages.props global.json ./
+COPY src/Wayel.Bff.Shared/Wayel.Bff.Shared.csproj src/Wayel.Bff.Shared/
+COPY src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj src/Wayel.Bff.Customer/
+RUN dotnet restore src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj
+
+COPY src/Wayel.Bff.Shared src/Wayel.Bff.Shared
+COPY src/Wayel.Bff.Customer src/Wayel.Bff.Customer
+RUN dotnet publish src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj -c Release -o /app/publish \
+    /p:UseAppHost=false /p:DebugType=none /p:DebugSymbols=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+RUN groupadd --gid 10001 wayel \
+ && useradd --uid 10001 --gid wayel --shell /usr/sbin/nologin --no-create-home wayel \
+ && chown -R wayel:wayel /app
+USER wayel
+
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_EnableDiagnostics=0
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+  CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' || exit 1
+
+ENTRYPOINT ["dotnet", "Wayel.Bff.Customer.dll"]

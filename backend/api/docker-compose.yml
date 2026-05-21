@@ -1,0 +1,67 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PROJECT: src/Wayel.Api/Wayel.Api.csproj
+        ASSEMBLY: Wayel.Api.dll
+    container_name: wayel-api
+    ports:
+      - "5099:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:?Set MONGO_CONNECTION_STRING in backend/api/.env — see .env.example}
+      Mongo__DatabaseName: ${MONGO_DATABASE_NAME:-borderbox}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-compose-only-signing-key-must-be-at-least-32-chars-long}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      AuthSession__RefreshTokenLifetimeMinutes: "20160"
+      GoogleAuth__ClientIds__0: ${GOOGLEAUTH__CLIENTIDS__0:?Set GOOGLEAUTH__CLIENTIDS__0 in backend/api/.env}
+      GoogleAuth__ClientIds__1: ${GOOGLEAUTH__CLIENTIDS__1:-}
+      GoogleAuth__ClientIds__2: ${GOOGLEAUTH__CLIENTIDS__2:-}
+      GoogleAuth__ClientIds__3: ${GOOGLEAUTH__CLIENTIDS__3:-}
+      MediaStorage__Provider: ${MEDIA_STORAGE_PROVIDER:-s3}
+      MediaStorage__Region: ${MEDIA_STORAGE_REGION:-}
+      MediaStorage__BucketName: ${MEDIA_STORAGE_BUCKET:-}
+      MediaStorage__CdnHost: ${MEDIA_STORAGE_CDN_HOST:-}
+      MediaStorage__Environment: ${MEDIA_STORAGE_ENVIRONMENT:-dev}
+      MediaStorage__ServiceUrlOverride: ${MEDIA_STORAGE_SERVICE_URL:-}
+      MediaStorage__ForcePathStyle: ${MEDIA_STORAGE_FORCE_PATH_STYLE:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_REGION: ${AWS_REGION:-${MEDIA_STORAGE_REGION:-}}
+      Notifications__Ses__Enabled: "true"
+      Notifications__Ses__Region: ${AWS_REGION:-eu-west-1}
+      Notifications__Ses__FromAddress: ${NOTIFICATIONS__SES__FROM:-}
+      Notifications__WaSender__Enabled: ${NOTIFICATIONS__WASENDER__ENABLED:-false}
+      Notifications__WaSender__ApiKey: ${NOTIFICATIONS__WASENDER__APIKEY:-}
+      Notifications__WaSender__BaseUrl: ${NOTIFICATIONS__WASENDER__BASEURL:-https://wasenderapi.com}
+      Notifications__WaSender__Allowlist__0: ${NOTIFICATIONS__WASENDER__ALLOWLIST__0:-}
+      Notifications__Webhooks__WaSenderSecret: ${NOTIFICATIONS__WEBHOOKS__WASENDERSECRET:-}
+      Firebase__ProjectId: ${FIREBASE__PROJECTID:-}
+      Firebase__ServiceAccountEmail: ${FIREBASE__SERVICEACCOUNTEMAIL:-}
+      Firebase__PrivateKey: ${FIREBASE__PRIVATEKEY:-}
+
+  bff-customer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PROJECT: src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj
+        ASSEMBLY: Wayel.Bff.Customer.dll
+    container_name: wayel-bff-customer
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "5299:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__Audience: customer
+      Bff__SpaBaseUri: "http://localhost:4200"
+      Bff__ApiBaseUri: "http://api:8080"
+      Bff__SessionLifetimeMinutes: "20160"
+      Bff__RequireHttpsCookie: "false"
+      Bff__CookieName: ".Wayel.Bff.Customer"

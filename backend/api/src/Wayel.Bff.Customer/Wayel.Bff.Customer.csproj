@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Wayel.Bff.Customer</RootNamespace>
+    <UserSecretsId>wayel-bff-customer-dev</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wayel.Bff.Shared\Wayel.Bff.Shared.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,120 @@
+# docker-compose.proxy.yml — overlay that puts the dev stack behind Caddy
+# with friendly *.wayel.local hostnames over **plain HTTP :80** (no TLS).
+#
+# Use it together with the base file:
+#
+#   docker compose -f docker-compose.dev.yml -f docker-compose.proxy.yml up --build
+#
+# This stack runs **everything in Docker**: API, BFFs, built Angular SPAs
+# (nginx), and Caddy.
+#
+# Prerequisites:
+#   sudo ./scripts/setup-dev-domains.sh hosts
+#
+# Open (examples):
+#   http://admin.wayel.local
+#   http://external.wayel.local
+#   http://client.wayel.local
+#   http://api.wayel.local
+#
+# BFF cookies use RequireHttpsCookie=false so session cookies work on http://.
+# For Google SSO, register redirect URIs as http://admin.wayel.local/signin-oidc
+# (and the other hosts as needed).
+
+services:
+  spa-admin:
+    build:
+      context: ../../frontend
+      dockerfile: apps/REMOVED/Dockerfile
+    container_name: wayel-spa-admin
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  spa-external:
+    build:
+      context: ../../frontend
+      dockerfile: apps/customer-portal/Dockerfile
+    container_name: wayel-spa-external
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: wayel-caddy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      bff-admin:
+        condition: service_healthy
+      bff-client:
+        condition: service_healthy
+      bff-external:
+        condition: service_healthy
+      spa-admin:
+        condition: service_healthy
+      spa-external:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    healthcheck:
+      # Hit vhost routing on IPv4 (:80 needs a Host header; admin :2019
+      # is often IPv4-only while `localhost`→::1 flakes as connection refused).
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "--header",
+          "Host: api.wayel.local",
+          "http://127.0.0.1/",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  api:
+    environment:
+      PublicBaseUri: "http://api.wayel.local"
+
+  bff-admin:
+    environment:
+      Bff__SpaBaseUri: "http://admin.wayel.local"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+  bff-client:
+    environment:
+      Bff__SpaBaseUri: "http://client.wayel.local"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+  bff-external:
+    environment:
+      Bff__SpaBaseUri: "http://external.wayel.local"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+volumes:
+  caddy-data:
+  caddy-config:

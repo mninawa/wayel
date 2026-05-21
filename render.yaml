@@ -1,0 +1,5 @@
+# WeYell Phase 1 — Render Blueprint stub.
+# The previous multi-BFF / multi-SPA blueprint is preserved in render.legacy.yaml.
+# Update this file when deploying: wayel-api + wayel-bff-customer + customer-portal static site.
+
+services: []

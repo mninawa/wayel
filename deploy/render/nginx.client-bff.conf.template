@@ -1,0 +1,60 @@
+# Client BFF only (no SPA). Same proxy rules as nginx.edge.conf.template.
+
+map $http_x_forwarded_proto $forwarded_proto {
+    "~^https?$" $http_x_forwarded_proto;
+    default $scheme;
+}
+
+map $http_x_forwarded_host $forwarded_host {
+    default $http_x_forwarded_host;
+    '' $host;
+}
+
+server {
+    listen ${PORT};
+    server_name _;
+
+    client_header_buffer_size 16k;
+    large_client_header_buffers 8 32k;
+
+    location /bff/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+    }
+
+    location ~ ^/(signin-oidc|signout-callback-oidc)(/.*)?$ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+    }
+
+    location / {
+        default_type text/plain;
+        return 200 "Wayel client BFF — /bff and /api are routed to the BFF. Client SPA is not bundled in this image yet.";
+    }
+}

@@ -1,0 +1,343 @@
+# Render Blueprint: connect this repo in the Render dashboard (Blueprint → New Blueprint Instance).
+# Service names fix your *.onrender.com URLs. If you rename a service, update the matching
+# Bff__ApiBaseUri / Notifications / CORS values below (or override in the dashboard).
+#
+# Secrets strategy
+# ────────────────
+# Every `sync: false` entry is a value the Render dashboard will prompt you for
+# at first deploy. Canonical values for dev/staging are kept in this repo at
+# `.secrets.local/` (gitignored). See `.secrets.local/render-deploy.md` for the
+# paste-in order. Rotate these before taking the deployment to real users.
+#
+# Before first deploy
+#   1. Create a MongoDB Atlas cluster and add Render's static outbound IP range
+#      to Network Access (or 0.0.0.0/0 for a playground cluster).
+#   2. Create or pick an AWS IAM user with PutObject/GetObject on the target
+#      S3 bucket + SES:SendEmail on the verified identity.
+#   3. Firebase Console → Project Settings → Service accounts → Generate new
+#      private key. Keep the PEM exactly as it appears (literal `\n` escapes
+#      are fine — the API unescapes them at startup).
+#   4. Google Cloud Console → Credentials → create/keep one OAuth Web client
+#      per BFF audience plus the existing mobile client id. Redirect URIs
+#      must be added AFTER the services exist (see "After deploy" below).
+#
+# After deploy
+#   • For each BFF (admin / client / external), add to its Google OAuth client:
+#       https://<service-name>.onrender.com/signin-oidc
+#     as an Authorized redirect URI, and
+#       https://<service-name>.onrender.com
+#     as an Authorized JavaScript origin.
+#   • Paste the matching client id into GoogleAuth__ClientIds__0..__3 on the API.
+#     Index convention: 0=admin, 1=client, 2=external, 3=mobile.
+
+services:
+  # ─── Core API ─────────────────────────────────────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-api
+    region: oregon
+    plan: standard
+    dockerfilePath: ./backend/api/Dockerfile.Api
+    dockerContext: ./backend/api
+    healthCheckPath: /health/live
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # ─ Mongo Atlas ─────────────────────────────────────────────────
+      - key: Mongo__ConnectionString
+        sync: false
+      - key: Mongo__DatabaseName
+        value: kids_platform
+
+      # ─ JWT signing ─────────────────────────────────────────────────
+      # Render generates a strong random value on first deploy and pins it
+      # forever. Rotating it invalidates every outstanding access token.
+      - key: Jwt__SigningKey
+        generateValue: true
+
+      # ─ Google SSO (admission) ──────────────────────────────────────
+      # Four client ids accepted on POST /api/v1/auth/sso/google:
+      #   __0 admin BFF, __1 client BFF, __2 external BFF, __3 mobile
+      - key: GoogleAuth__ClientIds__0
+        sync: false
+      - key: GoogleAuth__ClientIds__1
+        sync: false
+      - key: GoogleAuth__ClientIds__2
+        sync: false
+      - key: GoogleAuth__ClientIds__3
+        sync: false
+
+      # ─ SSO admission policy ────────────────────────────────────────
+      # Bootstrap super-admin: the first of these emails to sign in via
+      # SSO is auto-promoted to SuperAdmin. Idempotent.
+      - key: Auth__Sso__BootstrapSuperAdmins__0
+        sync: false
+      # Per-email / per-domain allowlist for the admin portal audience.
+      # Leave empty to rely solely on pending invitations.
+      - key: Auth__Sso__AdminPortal__AllowedEmails__0
+        sync: false
+
+      # ─ CORS ────────────────────────────────────────────────────────
+      # In this deployment the API is reached only through the three BFF
+      # edges, so browsers never talk to it directly; keeping the list
+      # tight reduces surface area.
+      - key: Cors__AllowedOrigins__0
+        value: https://wayel-admin.onrender.com
+      - key: Cors__AllowedOrigins__1
+        value: https://wayel-external.onrender.com
+
+      # ─ Invitation email landing pages ──────────────────────────────
+      # The token is appended as `?token=…` by `NotificationOptionsAcceptUrlBuilder`
+      # so each value MUST already include the SPA route (`/invitations/accept`
+      # or `/co-parents/accept`). Bare hosts without the path land the
+      # recipient on the SPA root and silently 404 the token.
+      - key: Notifications__AcceptUrlBaseByRole__SuperAdmin
+        value: https://wayel-admin.onrender.com/invitations/accept
+      - key: Notifications__AcceptUrlBaseByRole__TenantAdmin
+        value: https://wayel-admin.onrender.com/invitations/accept
+      - key: Notifications__AcceptUrlBaseByRole__Staff
+        value: https://wayel-external.onrender.com/invitations/accept
+      - key: Notifications__AcceptUrlBaseByRole__Parent
+        value: https://wayel-external.onrender.com/invitations/accept
+      # Co-parent invitations land on the dedicated /co-parents/accept
+      # page (not /invitations/accept). Without this override the URL
+      # builder falls through to AcceptUrlBase / the Parent override,
+      # neither of which serves the co-parent flow.
+      - key: Notifications__AcceptUrlBaseByRole__CoParent
+        value: https://wayel-external.onrender.com/co-parents/accept
+
+      # ─ Outbound email transport (Postmark) ─────────────────────────
+      # Postmark is the primary provider — verify a Sender Signature
+      # (single address) or DKIM-verify the sending domain in the
+      # Postmark dashboard, then drop the server-scoped token in
+      # `Notifications__Postmark__ServerToken` (sync:false so the
+      # secret never lands in the repo). Provision tokens at
+      # https://account.postmarkapp.com/account/api_tokens.
+      #
+      # Resend and SES blocks below stay registered so flipping
+      # `Notifications__Provider` to "resend" or "ses" rolls forward
+      # without re-deploying — only the active provider's secret has
+      # to be present.
+      - key: Notifications__Provider
+        value: postmark
+      - key: Notifications__Email__Enabled
+        value: "true"
+      - key: Notifications__Email__FromAddress
+        sync: false
+      - key: Notifications__Email__FromDisplayName
+        value: Wayel
+      - key: Notifications__Postmark__ServerToken
+        sync: false
+      - key: Notifications__Postmark__MessageStream
+        value: outbound
+
+      # ─ Resend (legacy fallback) ────────────────────────────────────
+      # Disabled while Postmark is primary. Flip
+      # `Notifications__Provider` back to "resend" to roll over —
+      # the API key below stays sync:false so the Render operator
+      # pastes the value into the dashboard rather than committing it.
+      - key: Notifications__Resend__ApiKey
+        sync: false
+
+      # ─ AWS SES (legacy fallback) ───────────────────────────────────
+      # Disabled while Postmark is the primary transport. To roll back
+      # to SES flip `Notifications__Provider` above — the SES options
+      # below already carry the verified identity.
+      - key: Notifications__Ses__Enabled
+        value: "false"
+      - key: Notifications__Ses__Region
+        value: eu-west-1
+      - key: Notifications__Ses__FromAddress
+        sync: false
+      - key: Notifications__Ses__FromDisplayName
+        value: Wayel
+      - key: Notifications__Ses__ConfigurationSetName
+        sync: false
+
+      # ─ Notification webhook trust ──────────────────────────────────
+      # Leave SNS signature verification on in production — it pins the
+      # signing cert host to *.amazonaws.com. Flip to false only for
+      # replaying captured fixtures in a throwaway environment.
+      - key: Notifications__Webhooks__VerifySnsSignatures
+        value: "true"
+      # WasenderAPI webhook secret (optional until WhatsApp is enabled).
+      # Set this to the value configured as "Webhook Secret" on the
+      # matching Wasender session — the API requires the same value in
+      # the X-Webhook-Signature header on every callback.
+      - key: Notifications__Webhooks__WaSenderSecret
+        sync: false
+
+      # ─ WhatsApp via WasenderAPI (disabled by default) ──────────────
+      # Flip Enabled=true after the Wasender session has been QR-linked
+      # in the dashboard (https://wasenderapi.com) and the per-session
+      # bearer token has been pasted into ApiKey below. There are no
+      # approved templates: every message is rendered as plain text by
+      # the API and sent over the linked WhatsApp account.
+      #
+      # TOS note: this is an unofficial WhatsApp gateway, so keep
+      # outbound volume to recipients-who-expect-us (invitations,
+      # subscription decisions). Bulk cold sends can get the linked
+      # number disconnected by WhatsApp.
+      - key: Notifications__WaSender__Enabled
+        value: "false"
+      - key: Notifications__WaSender__ApiKey
+        sync: false
+      - key: Notifications__WaSender__BaseUrl
+        value: https://wasenderapi.com
+
+      # ─ Payments (Paystack) ─────────────────────────────────────────
+      # SecretKey + PublicKey come from the Paystack dashboard (Test
+      # for staging, Live for prod). Both are sync:false so an
+      # operator pastes them; never commit a `sk_…` key to git.
+      # CallbackUrl is the parent SPA's "card-added" landing page
+      # the provider redirects to after 3DS — keep it in lockstep
+      # with the external BFF host name.
+      - key: Billing__Paystack__Enabled
+        value: "true"
+      - key: Billing__Paystack__SecretKey
+        sync: false
+      - key: Billing__Paystack__PublicKey
+        sync: false
+      - key: Billing__Paystack__ApiBaseUrl
+        value: https://api.paystack.co
+      - key: Billing__Paystack__Currency
+        value: ZAR
+      - key: Billing__Paystack__VerifyChargeMinorUnits
+        value: "100"
+      - key: Billing__Paystack__CallbackUrl
+        value: https://wayel-external.onrender.com/parent/profile/payment-methods/added
+      - key: Billing__Paystack__RefundVerifyCharge
+        value: "true"
+
+      # ─ Media storage (AWS S3 + CloudFront) ─────────────────────────
+      - key: MediaStorage__Provider
+        value: s3
+      - key: MediaStorage__Environment
+        value: prod
+      - key: MediaStorage__Region
+        sync: false
+      - key: MediaStorage__BucketName
+        sync: false
+      - key: MediaStorage__CdnHost
+        sync: false
+
+      # ─ AWS credentials (SDK default chain) ─────────────────────────
+      # Used by S3 (media) and SES (email). A dedicated IAM user with
+      # least-privilege on the target bucket + SES identity is the
+      # recommended shape for Render.
+      - key: AWS_REGION
+        value: eu-west-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # ─ Firebase Cloud Messaging (push notifications) ───────────────
+      # Values come from the service-account JSON (Firebase Console →
+      # Project Settings → Service accounts → Generate new private key).
+      # The PrivateKey is a PEM block; literal `\n` escapes are accepted.
+      - key: Firebase__ProjectId
+        sync: false
+      - key: Firebase__ServiceAccountEmail
+        sync: false
+      - key: Firebase__PrivateKey
+        sync: false
+
+  # ─── Admin BFF edge ───────────────────────────────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-admin
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./deploy/render/Dockerfile.bff-admin-edge
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Bff__RequireHttpsCookie
+        value: "true"
+      # NB: the bare `wayel-api.onrender.com` hostname is taken globally
+      # on Render (a different account's Express app currently serves a
+      # 404 there). The Blueprint sync therefore assigned this account's
+      # API service the suffixed URL below. Keep this in lockstep with
+      # the public URL shown on the `wayel-api` service page in Render.
+      - key: Bff__ApiBaseUri
+        value: https://wayel-api-vtx2.onrender.com
+      # BFF re-validates API-issued JWTs locally — needs the same signing
+      # key as the API. Paste the value Render generated for
+      # `wayel-api` → `Jwt__SigningKey` here.
+      - key: Jwt__SigningKey
+        sync: false
+      - key: Jwt__Issuer
+        value: wayel-api
+      - key: Jwt__Audience
+        value: wayel-clients
+      # start-edge.sh derives SpaBaseUri from RENDER_EXTERNAL_URL at boot.
+      - key: GoogleOidc__ClientId
+        sync: false
+      - key: GoogleOidc__ClientSecret
+        sync: false
+      # Optional GSuite hosted-domain lock (empty = any verified Google account).
+      - key: GoogleOidc__AllowedHostedDomains__0
+        sync: false
+      # Data Protection key ring lives in Mongo so cookie ciphertext
+      # survives container restarts. Paste the SAME values used by the
+      # `wayel-api` service for these keys — the BFF only reads/writes
+      # the `data_protection_keys` collection.
+      - key: MongoOptions__ConnectionString
+        sync: false
+      - key: MongoOptions__DatabaseName
+        sync: false
+
+  # ─── External (parent-facing) BFF edge ────────────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-external
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./deploy/render/Dockerfile.bff-external-edge
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Bff__RequireHttpsCookie
+        value: "true"
+      # See note on the admin BFF above — the bare `wayel-api.onrender.com`
+      # hostname is owned by another Render account, so this account's
+      # API service is reachable at the suffixed URL below. Keep in sync
+      # with the public URL shown on the `wayel-api` service page.
+      - key: Bff__ApiBaseUri
+        value: https://wayel-api-vtx2.onrender.com
+      # BFF re-validates API-issued JWTs locally (for password / mobile
+      # sessions that never see the OIDC cookie), so it needs the same
+      # signing key as the API. Paste the value Render generated for
+      # `wayel-api` → `Jwt__SigningKey` here.
+      - key: Jwt__SigningKey
+        sync: false
+      - key: Jwt__Issuer
+        value: wayel-api
+      - key: Jwt__Audience
+        value: wayel-clients
+      - key: GoogleOidc__ClientId
+        sync: false
+      - key: GoogleOidc__ClientSecret
+        sync: false
+      # Data Protection key ring lives in Mongo so cookie ciphertext
+      # survives container restarts. Paste the SAME values used by the
+      # `wayel-api` service for these keys — the BFF only reads/writes
+      # the `data_protection_keys` collection.
+      - key: MongoOptions__ConnectionString
+        sync: false
+      - key: MongoOptions__DatabaseName
+        sync: false
+
+  # ─── Client (staff portal) BFF edge ───────────────────────────────────
+  # Removed: the staff + parent web surface is served by `wayel-external`
+  # (per docker-compose.yml comment on the bff-client service), and there
+  # is no standalone client-portal Angular app in this repo. The Flutter
+  # mobile app authenticates directly against the API (POST
+  # /api/v1/auth/sso/google) using its own Google client id, so no BFF is
+  # needed for the client audience on Render.

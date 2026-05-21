@@ -1,0 +1,8 @@
+# Shrinks `docker build -f deploy/render/...` context (Render + local).
+**/node_modules
+**/bin
+**/obj
+**/.angular
+**/TestResults
+.git
+**/.git

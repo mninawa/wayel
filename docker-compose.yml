@@ -1,0 +1,90 @@
+# WeYell — local full stack (MongoDB + API + BFF + optional customer portal).
+#
+# Quick start:
+#   cp .env.example .env    # optional — defaults work for local Mongo
+#   docker compose up --build
+#
+# Portal only (after API/BFF are healthy):
+#   docker compose --profile portal up --build
+#
+# API:  http://localhost:5099
+# BFF:  http://localhost:5299
+# SPA:  http://localhost:8080  (profile `portal`)
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: wayel-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+      args:
+        PROJECT: src/Wayel.Api/Wayel.Api.csproj
+        ASSEMBLY: Wayel.Api.dll
+    container_name: wayel-api
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "5099:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:-mongodb://mongo:27017/?directConnection=true}
+      Mongo__DatabaseName: ${MONGO_DATABASE_NAME:-borderbox}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-dev-signing-key-must-be-at-least-32-chars}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      AuthSession__RefreshTokenLifetimeMinutes: "20160"
+      GoogleAuth__ClientIds__0: ${GOOGLEAUTH__CLIENTIDS__0:-000000000000-ci-placeholder.apps.googleusercontent.com}
+      GoogleAuth__ClientIds__1: ${GOOGLEAUTH__CLIENTIDS__1:-}
+      MediaStorage__Provider: ${MEDIA_STORAGE_PROVIDER:-s3}
+      Notifications__Ses__Enabled: "false"
+      Notifications__WaSender__Enabled: "false"
+
+  bff-customer:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+      args:
+        PROJECT: src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj
+        ASSEMBLY: Wayel.Bff.Customer.dll
+    container_name: wayel-bff-customer
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "5299:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__Audience: customer
+      Bff__SpaBaseUri: ${BFF__SPA_BASE_URI:-http://localhost:8080}
+      Bff__ApiBaseUri: http://api:8080
+      Bff__SessionLifetimeMinutes: "20160"
+      Bff__RequireHttpsCookie: "false"
+      Bff__CookieName: ".Wayel.Bff.Customer"
+
+  portal:
+    profiles: ["portal"]
+    build:
+      context: ./frontend
+      dockerfile: apps/customer-portal/Dockerfile
+    container_name: wayel-portal
+    depends_on:
+      - bff-customer
+    ports:
+      - "8080:80"
+
+volumes:
+  mongo-data:

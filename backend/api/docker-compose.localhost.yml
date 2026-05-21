@@ -1,0 +1,109 @@
+# docker-compose.localhost.yml — full stack in Docker on loopback URLs only.
+#
+#   docker compose -f docker-compose.dev.yml -f docker-compose.localhost.yml up --build
+#
+# No /etc/hosts and no *.wayel.local. Open in the browser:
+#   http://localhost:8081  — admin portal (Angular + BFF)
+#   http://localhost:8082  — external client
+#   http://localhost:8083  — client BFF (SPA TBD)
+#   http://localhost:5099  — raw API (from docker-compose.dev.yml)
+#
+# Google OAuth redirect URIs (Web client) must include:
+#   http://localhost:8081/signin-oidc
+#   http://localhost:8082/signin-oidc
+#   http://localhost:8083/signin-oidc
+#
+# Use this file *instead of* docker-compose.proxy.yml (do not combine both
+# Caddy overlays).
+
+services:
+  spa-admin:
+    build:
+      context: ../../frontend
+      dockerfile: apps/REMOVED/Dockerfile
+    container_name: wayel-spa-admin
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  spa-external:
+    build:
+      context: ../../frontend
+      dockerfile: apps/customer-portal/Dockerfile
+    container_name: wayel-spa-external
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: wayel-caddy-localhost
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      bff-admin:
+        condition: service_healthy
+      bff-client:
+        condition: service_healthy
+      bff-external:
+        condition: service_healthy
+      spa-admin:
+        condition: service_healthy
+      spa-external:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+      - "8083:8083"
+    volumes:
+      - ./Caddyfile.localhost:/etc/caddy/Caddyfile:ro
+      - caddy-localhost-data:/data
+      - caddy-localhost-config:/config
+    healthcheck:
+      # Probe the data plane (:8081) on IPv4 loopback — `localhost` often
+      # resolves to ::1 first while Caddy's admin API on :2019 only binds
+      # 127.0.0.1, which manifests as flaky "Connection refused".
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8081/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  api:
+    environment:
+      PublicBaseUri: "http://localhost:5099"
+
+  bff-admin:
+    environment:
+      Bff__SpaBaseUri: "http://localhost:8081"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+  bff-client:
+    environment:
+      Bff__SpaBaseUri: "http://localhost:8083"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+  bff-external:
+    environment:
+      Bff__SpaBaseUri: "http://localhost:8082"
+      Bff__RequireHttpsCookie: "false"
+      Bff__ApiBaseUri: "http://api:8080"
+
+volumes:
+  caddy-localhost-data:
+  caddy-localhost-config:

@@ -1,0 +1,288 @@
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import {
+  MOCK_DASHBOARD_STATS,
+  MOCK_RECENT_ACTIVITY,
+  MOCK_SUITE,
+} from '../../data/borderbox-mock.data';
+import { CustomerAccountService } from '../../services/customer-account.service';
+import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [RouterLink, SuiteExpiredBannerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="bb-page-head">
+      <h1>Welcome back, {{ firstName() }}! 👋</h1>
+      <p>Here's what's happening with your parcels and shipments today.</p>
+    </div>
+
+    <app-suite-expired-banner />
+
+    <section class="stats">
+      @for (s of statCards; track s.title) {
+        <article class="stat bb-card">
+          <div class="stat-icon" [attr.data-color]="s.color">
+            <span class="material-icons-outlined">{{ s.icon }}</span>
+          </div>
+          <div>
+            <p class="stat-val">{{ s.value }}</p>
+            <p class="stat-lbl">{{ s.label }}</p>
+          </div>
+          <a [routerLink]="s.link" class="stat-link">{{ s.cta }} →</a>
+        </article>
+      }
+    </section>
+
+    <div class="grid-3">
+      <section class="bb-card bb-card-pad suite-card">
+        <div class="card-head">
+          <h2 class="bb-card-title">Suite Access</h2>
+          <span class="bb-badge bb-badge-danger">{{ suite.status }}</span>
+        </div>
+        <dl class="kv">
+          <div><dt>Status</dt><dd class="danger">{{ suite.status }}</dd></div>
+          <div><dt>Suite Number</dt><dd>{{ suite.number }}</dd></div>
+          <div><dt>Plan</dt><dd>{{ suite.plan }}</dd></div>
+          <div><dt>Price</dt><dd>{{ suite.priceLabel }}</dd></div>
+          <div><dt>Expired on</dt><dd>{{ suite.expiredOn }}</dd></div>
+          <div><dt>Ship-out</dt><dd class="danger"><span class="material-icons-outlined">lock</span> Locked</dd></div>
+        </dl>
+        <p class="note">Receiving continues — ship-out is disabled until renewal.</p>
+        <div class="btn-row">
+          <a routerLink="/suite-access/checkout" class="bb-btn bb-btn-outline">{{ suite.renewMonthly.label }}</a>
+          <a routerLink="/suite-access/checkout" class="bb-btn bb-btn-primary">{{ suite.renewQuarterly.label }}</a>
+        </div>
+      </section>
+
+      <section class="bb-card bb-card-pad">
+        <h2 class="bb-card-title">🇿🇦 Delivery Address</h2>
+          <p class="addr-title">{{ suiteAddress()?.label }}</p>
+          <p class="addr-line"><strong>{{ suiteAddress()?.recipientName }}</strong></p>
+          <p class="addr-line">{{ suiteAddress()?.warehouseName }}</p>
+          <p class="addr-line">{{ suiteAddress()?.line1 }}</p>
+          @if (suiteAddress()?.line2) {
+            <p class="addr-line">{{ suiteAddress()?.line2 }}</p>
+          }
+          <p class="addr-line">
+            {{ suiteAddress()?.city }}, {{ suiteAddress()?.province }} {{ suiteAddress()?.postalCode }}
+          </p>
+        <p class="info"><span class="material-icons-outlined">info</span> Use suite {{ suite.number }} on all deliveries.</p>
+        <a routerLink="/my-address" [queryParams]="{ tab: 'suite' }" class="bb-link">View full address details →</a>
+      </section>
+
+      <section class="bb-card bb-card-pad">
+        <div class="card-head">
+          <h2 class="bb-card-title">Recent Parcel Activity</h2>
+          <a routerLink="/received-parcels" class="bb-link">View all</a>
+        </div>
+        <ul class="activity">
+          @for (a of activity; track a.tracking) {
+            <li>
+              <div>
+                <strong>{{ a.item }}</strong>
+                <span class="track">{{ a.tracking }}</span>
+              </div>
+              <span class="bb-pill" [class]="pillClass(a.status)">{{ a.status }}</span>
+              <span class="date">{{ a.date }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+
+    <div class="grid-3 bottom">
+      <section class="bb-card bb-card-pad">
+        <h2 class="bb-card-title">Quick Actions</h2>
+        <div class="actions">
+          <a routerLink="/received-parcels" class="action"><span class="material-icons-outlined">upload_file</span> Upload Invoice</a>
+          <a routerLink="/shipping/quote/QUO-24789" class="action"><span class="material-icons-outlined">request_quote</span> View Quotes</a>
+          <a routerLink="/tracking-support" class="action"><span class="material-icons-outlined">timeline</span> Track Shipment</a>
+          <span class="action locked"><span class="material-icons-outlined">lock</span> Request Ship Out</span>
+        </div>
+      </section>
+
+      <section class="bb-card bb-card-pad">
+        <h2 class="bb-card-title">Shipment Status</h2>
+        <ul class="timeline">
+          @for (t of timeline; track t.label) {
+            <li [class.done]="t.done" [class.current]="t.current">
+              <span class="dot"></span>
+              <span>{{ t.label }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="bb-card bb-card-pad help">
+        <h2 class="bb-card-title">Need Help?</h2>
+        <p>Our support team is ready to assist you.</p>
+        <div class="help-btns">
+          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">Live Chat</a>
+          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">WhatsApp</a>
+        </div>
+        <a routerLink="/tracking-support" class="bb-link">Visit Help Center →</a>
+      </section>
+    </div>
+  `,
+  styles: `
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 1100px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.75rem 1rem;
+      padding: 1.1rem 1.2rem;
+      align-items: start;
+    }
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      grid-row: span 2;
+    }
+    .stat-icon[data-color='blue'] { background: var(--bb-primary-soft); color: var(--bb-primary); }
+    .stat-icon[data-color='orange'] { background: var(--bb-warning-soft); color: #b45309; }
+    .stat-icon[data-color='teal'] { background: #e0f2fe; color: #0284c7; }
+    .stat-icon[data-color='green'] { background: var(--bb-success-soft); color: #15803d; }
+    .stat-val { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--bb-text); }
+    .stat-lbl { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--bb-muted); }
+    .stat-link { grid-column: 2; font-size: 0.78rem; font-weight: 600; color: var(--bb-primary); text-decoration: none; }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.15rem;
+      margin-bottom: 1.15rem;
+    }
+    @media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr; } }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .kv { margin: 0 0 1rem; }
+    .kv > div {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.85rem;
+    }
+    .kv dt { color: var(--bb-muted); font-weight: 500; margin: 0; }
+    .kv dd { margin: 0; font-weight: 600; color: var(--bb-text); }
+    .kv .danger { color: var(--bb-danger); display: flex; align-items: center; gap: 0.2rem; }
+    .note { font-size: 0.78rem; color: var(--bb-muted); margin: 0 0 1rem; }
+    .btn-row { display: flex; flex-direction: column; gap: 0.5rem; }
+    .addr-title { font-weight: 700; margin: 0 0 0.35rem; font-size: 0.9rem; }
+    .addr-line { margin: 0 0 0.2rem; font-size: 0.82rem; color: #475569; }
+    .info {
+      display: flex;
+      gap: 0.35rem;
+      align-items: flex-start;
+      margin: 1rem 0;
+      padding: 0.65rem;
+      background: var(--bb-primary-soft);
+      border-radius: var(--bb-radius-sm);
+      font-size: 0.78rem;
+      color: var(--bb-primary);
+    }
+    .info .material-icons-outlined { font-size: 16px !important; }
+    .activity { list-style: none; margin: 0; padding: 0; }
+    .activity li {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.5rem 0.75rem;
+      align-items: center;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.82rem;
+    }
+    .activity strong { display: block; font-size: 0.85rem; }
+    .track { color: var(--bb-muted); font-size: 0.72rem; }
+    .date { color: var(--bb-muted); font-size: 0.72rem; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+    .action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 1rem 0.5rem;
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius-sm);
+      text-decoration: none;
+      color: var(--bb-text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .action.locked { opacity: 0.45; color: var(--bb-muted); }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.5rem 0;
+      font-size: 0.85rem;
+      color: var(--bb-muted);
+    }
+    .timeline li.done { color: var(--bb-success); }
+    .timeline li.current { color: var(--bb-primary); font-weight: 600; }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      flex-shrink: 0;
+    }
+    .timeline li.done .dot { background: var(--bb-success); }
+    .timeline li.current .dot { background: var(--bb-primary); box-shadow: 0 0 0 3px var(--bb-primary-soft); }
+    .help p { margin: 0 0 1rem; font-size: 0.85rem; color: var(--bb-muted); }
+    .help-btns { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+  `,
+})
+export class DashboardComponent implements OnInit {
+  private readonly accountApi = inject(CustomerAccountService);
+
+  readonly suite = MOCK_SUITE;
+  readonly activity = MOCK_RECENT_ACTIVITY;
+  readonly stats = MOCK_DASHBOARD_STATS;
+
+  readonly suiteAddress = () => this.accountApi.account()?.suiteAddress;
+  readonly firstName = () => {
+    const p = this.accountApi.account()?.profile;
+    return p?.firstName ?? p?.displayName.split(' ')[0] ?? 'there';
+  };
+
+  ngOnInit(): void {
+    if (!this.accountApi.account()) {
+      this.accountApi.loadAccount().subscribe();
+    }
+  }
+
+  readonly timeline = [
+    { label: 'Received in South Africa', done: true, current: false },
+    { label: 'In Transit to Eswatini', done: false, current: true },
+    { label: 'Arrived in Eswatini', done: false, current: false },
+    { label: 'Out for Delivery', done: false, current: false },
+  ];
+
+  readonly statCards = [
+    { title: 'Received', value: this.stats.received.value, label: this.stats.received.label, icon: 'inventory_2', color: 'blue', link: '/received-parcels', cta: 'View parcels' },
+    { title: 'Ready', value: this.stats.readyToShip.value, label: this.stats.readyToShip.label, icon: 'local_shipping', color: 'orange', link: '/received-parcels', cta: 'View ready' },
+    { title: 'Transit', value: this.stats.inTransit.value, label: this.stats.inTransit.label, icon: 'flight', color: 'teal', link: '/tracking-support', cta: 'Track' },
+    { title: 'Balance', value: this.stats.outstanding.value, label: this.stats.outstanding.label, icon: 'account_balance_wallet', color: 'green', link: '/suite-access/checkout', cta: 'Pay now' },
+  ];
+
+  pillClass(status: string): string {
+    if (status.includes('Ready')) return 'bb-pill-ready';
+    if (status.includes('Transit')) return 'bb-pill-transit';
+    if (status.includes('Delivered')) return 'bb-pill-received';
+    return 'bb-pill-received';
+  }
+}

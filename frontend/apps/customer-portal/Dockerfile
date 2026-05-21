@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1.7
+#
+# Production build of the WeYell customer portal (nginx SPA).
+# Build from repo frontend root:
+#   docker build -f apps/customer-portal/Dockerfile .
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY apps/customer-portal/package.json apps/customer-portal/
+COPY packages/shared/package.json packages/shared/
+
+RUN npm ci
+
+COPY packages/shared packages/shared
+COPY apps/customer-portal apps/customer-portal
+
+RUN npm run build --workspace @weyell/customer-portal
+
+FROM nginx:1.27-alpine AS runtime
+COPY deploy/nginx-spa.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/customer-portal/dist/customer-portal/browser /usr/share/nginx/html
+
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

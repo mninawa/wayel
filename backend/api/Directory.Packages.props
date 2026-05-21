@@ -1,0 +1,93 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="ASP.NET Core / Web">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.RateLimiting" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.0.0" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="MediatR / FluentValidation / Mapping">
+    <PackageVersion Include="MediatR" Version="12.4.1" />
+    <PackageVersion Include="FluentValidation" Version="11.10.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.10.0" />
+    <PackageVersion Include="Mapster" Version="7.4.0" />
+    <PackageVersion Include="Mapster.DependencyInjection" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="MongoDB">
+    <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
+    <!-- Lift transitive Snappy dependency: MongoDB.Driver pulls 1.0.0; &lt;=1.3.0 is vulnerable (GHSA-pggp-6c3x-2xmx). -->
+    <PackageVersion Include="Snappier" Version="1.3.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="AWS (S3 + CloudFront for media storage)">
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.19.4" />
+    <PackageVersion Include="AWSSDK.CloudFront" Version="4.0.13.5" />
+    <PackageVersion Include="AWSSDK.SimpleEmail" Version="4.0.1.1" />
+    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="4.0.2.29" />
+  </ItemGroup>
+
+  <ItemGroup Label="Logging / Diagnostics">
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Security / Hashing">
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="PDF rendering">
+    <!-- QuestPDF: pure-managed Skia-backed PDF builder used to render
+         parent-facing invoices on demand. Community Edition (MIT) is
+         free for orgs &lt; USD 1m revenue; we declare consent to the
+         Community licence in Wayel.Infrastructure's static settings. -->
+    <PackageVersion Include="QuestPDF" Version="2026.5.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="DI helpers">
+    <PackageVersion Include="Scrutor" Version="6.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Protocols" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.2.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.2" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="Testcontainers.MongoDb" Version="4.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="Transitive lifts (CVE patches)">
+    <!-- Lift transitive SharpCompress dependency: a transitive consumer
+         (Testcontainers / DotNet.Testcontainers / Docker.DotNet image
+         layer extraction) pulls 0.30.1, which is flagged by NU1902 for
+         GHSA-6c8g-7p36-r338 (path traversal / zip-slip in archive
+         extraction, fixed in 0.36.0). 0.40.0 is the current stable. -->
+    <PackageVersion Include="SharpCompress" Version="0.40.0" />
+  </ItemGroup>
+</Project>

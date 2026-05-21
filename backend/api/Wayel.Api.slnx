@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Wayel.Api/Wayel.Api.csproj" />
+    <Project Path="src/Wayel.Application/Wayel.Application.csproj" />
+    <Project Path="src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj" />
+    <Project Path="src/Wayel.Bff.Shared/Wayel.Bff.Shared.csproj" />
+    <Project Path="src/Wayel.Domain/Wayel.Domain.csproj" />
+    <Project Path="src/Wayel.Infrastructure/Wayel.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Wayel.Api.IntegrationTests/Wayel.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Wayel.Application.Tests/Wayel.Application.Tests.csproj" />
+    <Project Path="tests/Wayel.Bff.IntegrationTests/Wayel.Bff.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

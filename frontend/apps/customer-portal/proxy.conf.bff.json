@@ -1,0 +1,14 @@
+{
+  "/bff": {
+    "target": "http://localhost:5197",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  },
+  "/api": {
+    "target": "http://localhost:5197",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  }
+}

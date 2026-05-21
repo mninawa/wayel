@@ -1,0 +1,9 @@
+{
+  "name": "@wayel/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared Angular code (contracts, mock data, api/bridge services, utils, tokens) consumed by apps/REMOVED and apps/client-portal via TS path aliases. No build step — each app's Angular compiler inlines these sources.",
+  "devDependencies": {
+    "@types/google.maps": "3.58.1"
+  }
+}

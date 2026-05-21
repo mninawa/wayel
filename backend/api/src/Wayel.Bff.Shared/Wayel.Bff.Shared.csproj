@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Wayel.Bff.Shared</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lets the BFF integration tests reach into the internal
+         MongoXmlRepository / DataProtectionKeyDocument types so they
+         can drive the key-ring round-trip directly without making
+         those types public. -->
+    <InternalsVisibleTo Include="Wayel.Bff.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Used solely to back the Data Protection key ring with MongoDB
+         (see Sessions/MongoDataProtectionKeys.cs). Without a persisted,
+         shared key ring the cookie ciphertext we mint pre-deploy is
+         unreadable post-deploy and every signed-in user is logged out
+         on every release. -->
+    <PackageReference Include="MongoDB.Driver" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,97 @@
+# Wayel — all Docker, all http://localhost (no custom DNS, no TLS).
+# -----------------------------------------------------------------------------
+# One Caddy listens on three host ports (mapped 1:1 from compose):
+#   :8081  admin portal   (spa-admin + bff-admin)
+#   :8082  external client (spa-external + bff-external)
+#   :8083  client BFF only (no SPA yet)
+#
+# Use with: docker compose -f docker-compose.dev.yml -f docker-compose.localhost.yml
+#
+# Google OAuth: register redirect URIs
+#   http://localhost:8081/signin-oidc
+#   http://localhost:8082/signin-oidc
+#   http://localhost:8083/signin-oidc
+#
+# Preserve Host **and port** from the browser so OIDC redirect_uri matches
+# SpaBaseUri exactly. {http.request.host} strips the port; we use
+# {http.request.hostport} so the BFF sees `Host: localhost:8081` and emits
+# `redirect_uri=http://localhost:8081/signin-oidc`. Google's OAuth client
+# rejects URIs that don't match the registered value byte-for-byte.
+# -----------------------------------------------------------------------------
+{
+	auto_https off
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
+
+# Admin — platform portal
+:8081 {
+	encode zstd gzip
+
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-admin:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-admin:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	reverse_proxy spa-admin:80 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+}
+
+# External — parents / contractors
+:8082 {
+	encode zstd gzip
+
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-external:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-external:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	reverse_proxy spa-external:80 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+}
+
+# Client BFF — staff/parent shell (SPA TBD)
+:8083 {
+	@bff path /bff/* /signin-oidc /signin-oidc/* /signout-callback-oidc /signout-callback-oidc/*
+	reverse_proxy @bff bff-client:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	@api path /api/*
+	reverse_proxy @api bff-client:8080 {
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Host {http.request.hostport}
+		header_up X-Forwarded-Proto http
+	}
+
+	respond / "client-portal SPA not yet bootstrapped. /bff/* and /api/* are live." 200
+}
