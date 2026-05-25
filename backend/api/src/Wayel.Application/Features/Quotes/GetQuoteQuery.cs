@@ -5,6 +5,7 @@ using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.BorderBox;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Common;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Quotes;
@@ -131,7 +132,7 @@ internal sealed class GetQuoteQueryHandler(
             shipmentParcels.Sum(p => p.WeightKg ?? 0m),
             quote.DeliveryMethod,
             shipmentParcels.Count > 1 ? "Yes" : "No",
-            "Midrand, Gauteng",
+            WeYellHubAddress.CityProvince,
             quote.Status.ToString(),
             QuoteStatusRules.ToDisplayLabel(quote.Status),
             quote.StatusReason,

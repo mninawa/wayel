@@ -35,7 +35,7 @@ import { ParcelsService } from '../../services/parcels.service';
           @if (quoteId()) {
             <a [routerLink]="['/quotes', quoteId()]" class="bb-btn bb-btn-primary">View quote</a>
           }
-          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">Tracking &amp; support</a>
+          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">Get support</a>
         </div>
       }
     </div>

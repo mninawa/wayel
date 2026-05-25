@@ -321,7 +321,8 @@ internal sealed class VerifyOpsParcelInvoiceCommandHandler(
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork,
-    IBorderBoxWhatsAppNotifier whatsApp) : ICommandHandler<VerifyOpsParcelInvoiceCommand, VerifyOpsInvoiceResultDto>
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<VerifyOpsParcelInvoiceCommand, VerifyOpsInvoiceResultDto>
 {
     public async Task<Result<VerifyOpsInvoiceResultDto>> Handle(
         VerifyOpsParcelInvoiceCommand request,
@@ -400,6 +401,14 @@ internal sealed class VerifyOpsParcelInvoiceCommandHandler(
                     parcel.ItemName,
                     request.Reason,
                     cancellationToken);
+
+                await inApp.NotifyInvoiceRejectedAsync(
+                    user,
+                    parcel.Id.Value,
+                    parcel.SuiteNumber,
+                    parcel.ItemName,
+                    request.Reason,
+                    cancellationToken);
             }
         }
 
@@ -438,7 +447,8 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork,
-    IBorderBoxWhatsAppNotifier whatsApp) : ICommandHandler<SaveOpsParcelInspectionCommand, SaveOpsInspectionResultDto>
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<SaveOpsParcelInspectionCommand, SaveOpsInspectionResultDto>
 {
     public async Task<Result<SaveOpsInspectionResultDto>> Handle(
         SaveOpsParcelInspectionCommand request,
@@ -510,6 +520,14 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
                 metadata.InspectionNotes,
                 imageUrls,
                 cancellationToken);
+
+            await inApp.NotifyInspectionSavedAsync(
+                user,
+                parcel.Id.Value,
+                parcel.SuiteNumber,
+                parcel.ItemName,
+                metadata.ConditionStatus,
+                cancellationToken);
         }
 
         var invoice = await invoices.GetForParcelAsync(parcelId, cancellationToken);
@@ -532,6 +550,7 @@ internal sealed class SendOpsParcelsToQuoteQueueCommandHandler(
     IParcelOpsActivityRepository activities,
     IUserRepository users,
     IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp,
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork) : ICommandHandler<SendOpsParcelsToQuoteQueueCommand, SendToQuoteQueueResultDto>
@@ -584,6 +603,7 @@ internal sealed class SendOpsParcelsToQuoteQueueCommandHandler(
                     activities,
                     users,
                     whatsApp,
+                    inApp,
                     clock,
                     ops.Actor,
                     cancellationToken);

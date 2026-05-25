@@ -1,8 +1,9 @@
+using Microsoft.Extensions.Options;
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
+using Wayel.Application.Configuration;
 using Wayel.Domain.Common;
-using Wayel.Domain.Parcels;
 using Wayel.Domain.Shipments;
 using Wayel.Domain.Users;
 
@@ -14,10 +15,8 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
     ICurrentUser current,
     IUserRepository users,
     IShipmentRepository shipments,
-    IParcelRepository parcels,
-    ICustomerAddressRepository addresses,
     ISupportTicketRepository tickets,
-    IShipmentTrackingEventRepository trackingEvents) : IQueryHandler<GetTrackingSupportOverviewQuery, TrackingSupportOverviewDto>
+    IOptions<BorderBoxOptions> borderBoxOptions) : IQueryHandler<GetTrackingSupportOverviewQuery, TrackingSupportOverviewDto>
 {
     public async Task<Result<TrackingSupportOverviewDto>> Handle(
         GetTrackingSupportOverviewQuery request,
@@ -37,31 +36,19 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
         var allShipments = await shipments.ListForUserAsync(user.Id, cancellationToken);
         var active = PickActiveShipment(allShipments);
 
-        ShipmentTrackingDto? tracking = null;
-        if (active is not null)
-        {
-            var shipmentParcels = await LoadParcels(active.ParcelIds, cancellationToken);
-            var defaultAddress = (await addresses.ListForUserAsync(user.Id, cancellationToken))
-                .FirstOrDefault(a => a.IsDefault);
-            var to = defaultAddress is null
-                ? "Eswatini"
-                : $"{defaultAddress.City}, Eswatini";
-            var events = await trackingEvents.ListForShipmentAsync(active.Id, cancellationToken);
-            tracking = ShipmentTrackingMapper.Map(active, shipmentParcels, to, events);
-        }
-
         var ticketList = await tickets.ListForUserAsync(user.Id, cancellationToken);
         SupportTicketSummaryDto? recentTicket = ticketList.Count > 0
             ? MapTicket(ticketList[0])
             : null;
 
         return new TrackingSupportOverviewDto(
-            tracking,
-            recentTicket,
-            new NotificationPreferencesDto(
+            ActiveShipmentId: active?.Id.Value,
+            RecentTicket: recentTicket,
+            Notifications: new NotificationPreferencesDto(
                 user.NotifyEmail,
                 user.NotifySms,
-                user.NotifyWhatsApp));
+                user.NotifyWhatsApp),
+            Support: BuildSupportContact(borderBoxOptions.Value));
     }
 
     private static Shipment? PickActiveShipment(IReadOnlyList<Shipment> items) =>
@@ -69,22 +56,28 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
         ?? items.FirstOrDefault(s => s.Status is ShipmentStatus.AwaitingApproval or ShipmentStatus.Paid)
         ?? items.FirstOrDefault(s => s.Status != ShipmentStatus.Draft);
 
-    private async Task<IReadOnlyList<Parcel>> LoadParcels(
-        IReadOnlyList<ParcelId> ids,
-        CancellationToken cancellationToken)
+    private static SupportContactDto BuildSupportContact(BorderBoxOptions options)
     {
-        var list = new List<Parcel>();
-        foreach (var id in ids)
+        var rawWhatsApp = options.SupportWhatsAppE164?.Trim() ?? string.Empty;
+        var digits = new string(rawWhatsApp.Where(char.IsDigit).ToArray());
+        var whatsAppLink = digits.Length >= 8 ? $"https://wa.me/{digits}" : null;
+        var whatsAppDisplay = digits.Length >= 8 ? FormatE164ForDisplay(digits) : null;
+
+        var email = options.SupportEmail?.Trim();
+        if (string.IsNullOrWhiteSpace(email))
         {
-            var p = await parcels.GetByIdAsync(id, cancellationToken);
-            if (p is not null)
-            {
-                list.Add(p);
-            }
+            email = null;
         }
 
-        return list;
+        return new SupportContactDto(whatsAppLink, whatsAppDisplay, email);
     }
+
+    private static string FormatE164ForDisplay(string digits) =>
+        digits.Length switch
+        {
+            >= 10 => "+" + digits,
+            _ => digits,
+        };
 
     private static SupportTicketSummaryDto MapTicket(Domain.SupportTickets.SupportTicket t) =>
         new(

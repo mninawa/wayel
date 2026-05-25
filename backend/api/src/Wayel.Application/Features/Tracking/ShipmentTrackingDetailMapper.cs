@@ -1,4 +1,5 @@
 using System.Globalization;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Addresses;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Shipments;
@@ -21,7 +22,7 @@ internal static class ShipmentTrackingDetailMapper
         DateTime nowUtc,
         IReadOnlyList<ShipmentTrackingEvent> trackingEvents)
     {
-        var origin = "Midrand, South Africa";
+        var origin = WeYellHubAddress.CityCountry;
         var destination = FormatDestination(deliveryAddress);
         var trackingNumber = BuildTrackingNumber(shipment, parcels);
         var totalWeight = parcels.Sum(p => p.WeightKg ?? 0m);
@@ -232,7 +233,7 @@ internal static class ShipmentTrackingDetailMapper
             var (location, details, tone) = m.Label switch
             {
                 "Shipment Created" => (origin, "Shipment registered at WeYell hub", "success"),
-                "Dispatched" => ("Midrand, South Africa", "Collected from WeYell facility", "success"),
+                "Dispatched" => (WeYellHubAddress.CityCountry, "Collected from WeYell facility", "success"),
                 "In Transit" => ("Johannesburg, South Africa", "Departed from transit facility", "info"),
                 "Arrived in Country" => (destination, "Shipment arrived in destination country", "info"),
                 "Ready for Pickup" => (destination, "Available for pickup at branch", "success"),

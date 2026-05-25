@@ -2,6 +2,7 @@ using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Application.Features.Tracking;
 using Wayel.Domain.Common;
 using Wayel.Domain.Shipments;
@@ -319,7 +320,7 @@ internal sealed class CreateOpsConsolidationDispatchBatchCommandHandler(
             await trackingWriter.RecordOpsStatusTransitionAsync(
                 shipment,
                 ShipmentStatus.InTransit,
-                location: "Midrand, South Africa",
+                location: WeYellHubAddress.CityCountry,
                 details: courierRef is null
                     ? "Dispatched from WeYell warehouse"
                     : $"Dispatched — courier ref {courierRef}",

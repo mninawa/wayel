@@ -1,3 +1,4 @@
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Shipments;
 
@@ -22,7 +23,7 @@ internal static class ShipmentTrackingMapper
             shipment.Status.ToString(),
             ToStatusLabel(shipment.Status),
             primary,
-            "Midrand, Gauteng, South Africa",
+            WeYellHubAddress.CityProvinceCountry,
             toLabel,
             shipment.DeliveryMethod,
             $"{weight:0.00} kg",

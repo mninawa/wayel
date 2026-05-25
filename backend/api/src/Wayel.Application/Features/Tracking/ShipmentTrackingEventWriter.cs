@@ -1,5 +1,6 @@
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Time;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Shipments;
 
@@ -9,7 +10,7 @@ public sealed class ShipmentTrackingEventWriter(
     IShipmentTrackingEventRepository events,
     IClock clock)
 {
-    private const string Origin = "Midrand, South Africa";
+    private const string Origin = WeYellHubAddress.CityCountry;
 
     public async Task RecordCheckoutCompletedAsync(
         Shipment shipment,

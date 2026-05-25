@@ -22,7 +22,7 @@ internal sealed class WarehouseLocationSeeder(
             return;
         }
 
-        logger.LogInformation("Seeding Midrand warehouse locations...");
+        logger.LogInformation("Seeding Sandton warehouse locations...");
         var now = DateTime.UtcNow;
         var seeds = new List<WarehouseLocationRecord>
         {

@@ -19,6 +19,7 @@ internal sealed class ProcessAutoQuoteQueueCommandHandler(
     IParcelOpsActivityRepository activities,
     IUserRepository users,
     IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp,
     IUnitOfWork unitOfWork,
     IClock clock,
     IOptions<QuoteQueueAutoProcessorOptions> options) : ICommandHandler<ProcessAutoQuoteQueueCommand, ProcessAutoQuoteQueueResultDto>
@@ -62,6 +63,7 @@ internal sealed class ProcessAutoQuoteQueueCommandHandler(
                     activities,
                     users,
                     whatsApp,
+                    inApp,
                     clock,
                     actor: "system",
                     cancellationToken);

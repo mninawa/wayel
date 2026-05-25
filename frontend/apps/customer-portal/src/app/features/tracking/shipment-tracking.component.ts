@@ -220,7 +220,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
 
             <p class="support-hint">
               Need help?
-              <a routerLink="/tracking-support">Contact tracking &amp; support</a>
+              <a routerLink="/tracking-support">Contact support</a>
             </p>
           </section>
         </div>
@@ -590,7 +590,7 @@ export class ShipmentTrackingComponent implements OnInit {
     if (shipmentId === 'active') {
       this.api.getTrackingSupport().subscribe({
         next: (o) => {
-          const id = o.activeShipment?.shipmentId;
+          const id = o.activeShipmentId;
           if (!id) {
             this.loadError.set('No active shipment to track right now.');
             this.loading.set(false);

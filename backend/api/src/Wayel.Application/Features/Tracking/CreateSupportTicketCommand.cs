@@ -19,7 +19,8 @@ internal sealed class CreateSupportTicketCommandHandler(
     ISupportTicketRepository tickets,
     IUnitOfWork unitOfWork,
     IClock clock,
-    IBorderBoxWhatsAppNotifier whatsApp) : ICommandHandler<CreateSupportTicketCommand, SupportTicketSummaryDto>
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<CreateSupportTicketCommand, SupportTicketSummaryDto>
 {
     public async Task<Result<SupportTicketSummaryDto>> Handle(
         CreateSupportTicketCommand request,
@@ -56,6 +57,7 @@ internal sealed class CreateSupportTicketCommandHandler(
             ticket.Body,
             cancellationToken);
         await whatsApp.NotifySupportTicketOpenedAsync(user, ticketRef, ticket.Subject, cancellationToken);
+        await inApp.NotifySupportTicketOpenedAsync(user, ticketRef, ticket.Subject, cancellationToken);
 
         return new SupportTicketSummaryDto(
             ticket.Id.Value,

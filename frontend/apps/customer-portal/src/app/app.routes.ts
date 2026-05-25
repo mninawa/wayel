@@ -187,7 +187,7 @@ export const routes: Routes = [
       {
         path: 'tracking-support',
         canActivate: [portalReadyGuard],
-        title: 'Tracking & Support',
+        title: 'Support',
         loadComponent: () =>
           import('./features/tracking/tracking-support.component').then(
             (m) => m.TrackingSupportComponent,

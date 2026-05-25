@@ -561,10 +561,17 @@ export interface SupportTicketSummaryDto {
   createdAtUtc: string;
 }
 
+export interface SupportContactDto {
+  whatsAppLink: string | null;
+  whatsAppDisplay: string | null;
+  emailAddress: string | null;
+}
+
 export interface TrackingSupportOverviewDto {
-  activeShipment: ShipmentTrackingDto | null;
+  activeShipmentId: string | null;
   recentTicket: SupportTicketSummaryDto | null;
   notifications: { email: boolean; sms: boolean; whatsApp: boolean };
+  support: SupportContactDto;
 }
 
 export interface ShipmentTrackingMilestoneDto {

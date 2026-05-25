@@ -18,6 +18,7 @@ internal static class CollectionStatusTransitions
         IUserRepository users,
         IBorderBoxWhatsAppNotifier whatsApp,
         IBorderBoxEmailNotifier email,
+        IBorderBoxInAppNotifier inApp,
         ShipmentTrackingEventWriter trackingEvents,
         IClock clock,
         IShipmentCollectionRepository collections,
@@ -83,6 +84,13 @@ internal static class CollectionStatusTransitions
                 updated.HubCity,
                 cancellationToken);
             await email.NotifyReadyForCollectionAsync(
+                user,
+                record.ShipmentId,
+                record.ShipmentDisplayId,
+                updated.HubName,
+                updated.HubCity,
+                cancellationToken);
+            await inApp.NotifyReadyForCollectionAsync(
                 user,
                 record.ShipmentId,
                 record.ShipmentDisplayId,

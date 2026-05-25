@@ -36,6 +36,7 @@ internal sealed class CompleteQuoteCheckoutCommandHandler(
     IUnitOfWork unitOfWork,
     IClock clock,
     IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp,
     ShipmentTrackingEventWriter trackingEvents,
     IParcelOpsMetadataRepository opsMetadata,
     IPickTaskRepository pickTasks,
@@ -220,9 +221,17 @@ internal sealed class CompleteQuoteCheckoutCommandHandler(
             invoiceStorage,
             cancellationToken);
 
+        var quoteDisplayNumber = $"QUO-{quote.Id.Value.ToString("N")[..8].ToUpperInvariant()}";
         await whatsApp.NotifyQuotePaidAsync(
             user,
-            $"QUO-{quote.Id.Value.ToString("N")[..8].ToUpperInvariant()}",
+            quoteDisplayNumber,
+            quote.TotalLandedCost,
+            cancellationToken);
+
+        await inApp.NotifyQuotePaidAsync(
+            user,
+            quote.Id.Value,
+            quoteDisplayNumber,
             quote.TotalLandedCost,
             cancellationToken);
 

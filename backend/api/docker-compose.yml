@@ -40,6 +40,9 @@ services:
       Notifications__WaSender__BaseUrl: ${NOTIFICATIONS__WASENDER__BASEURL:-https://wasenderapi.com}
       Notifications__WaSender__Allowlist__0: ${NOTIFICATIONS__WASENDER__ALLOWLIST__0:-}
       Notifications__Webhooks__WaSenderSecret: ${NOTIFICATIONS__WEBHOOKS__WASENDERSECRET:-}
+      BorderBox__CustomerPortalBaseUrl: ${BORDERBOX__CUSTOMERPORTALBASEURL:-http://localhost:8080}
+      BorderBox__SupportWhatsAppE164: ${BORDERBOX__SUPPORTWHATSAPPE164:-}
+      BorderBox__SupportEmail: ${BORDERBOX__SUPPORTEMAIL:-support@weyell.com}
       Firebase__ProjectId: ${FIREBASE__PROJECTID:-}
       Firebase__ServiceAccountEmail: ${FIREBASE__SERVICEACCOUNTEMAIL:-}
       Firebase__PrivateKey: ${FIREBASE__PRIVATEKEY:-}

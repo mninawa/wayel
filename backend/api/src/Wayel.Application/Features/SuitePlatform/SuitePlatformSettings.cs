@@ -29,13 +29,13 @@ public sealed record SuitePlatformSettings(
     {
         var region = SuitePlatformRegions.Normalize(regionCode);
         var sharedAddress = (
-            WarehouseName: "WeYell Sandton Warehouse",
-            AddressLine1: "2 meerlust place,hurlingham manor",
-            AddressLine2: (string?)null,
-            City: "Sandton",
-            Province: "Gauteng",
-            PostalCode: "2192",
-            CountryCode: "ZA");
+            WarehouseName: WeYellHubAddress.WarehouseName,
+            AddressLine1: WeYellHubAddress.AddressLine1,
+            AddressLine2: WeYellHubAddress.AddressLine2,
+            City: WeYellHubAddress.City,
+            Province: WeYellHubAddress.Province,
+            PostalCode: WeYellHubAddress.PostalCode,
+            CountryCode: WeYellHubAddress.CountryCode);
 
         return region switch
         {

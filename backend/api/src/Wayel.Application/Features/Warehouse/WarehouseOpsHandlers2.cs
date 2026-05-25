@@ -4,6 +4,7 @@ using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.Features.Collection;
 using Wayel.Application.Features.Parcels;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Application.Features.Tracking;
 using Wayel.Domain.Common;
 using Wayel.Domain.Shipments;
@@ -462,7 +463,7 @@ internal sealed class ConfirmOpsManifestHandoverCommandHandler(
             await trackingEvents.RecordOpsStatusTransitionAsync(
                 shipment,
                 ShipmentStatus.InTransit,
-                "Midrand, South Africa",
+                WeYellHubAddress.CityCountry,
                 $"Manifest {manifest.DisplayId} handed to {manifest.Courier}",
                 cancellationToken);
         }
@@ -525,7 +526,7 @@ internal sealed class DispatchOpsShipmentCommandHandler(
         await trackingEvents.RecordOpsStatusTransitionAsync(
             shipment,
             ShipmentStatus.InTransit,
-            "Midrand, South Africa",
+            WeYellHubAddress.CityCountry,
             "Dispatched from WeYell warehouse",
             cancellationToken);
         await packingTasks.UpdateAsync(

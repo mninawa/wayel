@@ -26,7 +26,26 @@ public sealed record SupportTicketSummaryDto(
 
 public sealed record NotificationPreferencesDto(bool Email, bool Sms, bool WhatsApp);
 
+/// <summary>
+/// Customer-facing channels surfaced on the Support page so customers
+/// can launch directly into WhatsApp or email. Either or both fields
+/// may be empty when an operator has not configured the channel; the
+/// UI hides any launcher that is missing.
+/// </summary>
+public sealed record SupportContactDto(
+    string? WhatsAppLink,
+    string? WhatsAppDisplay,
+    string? EmailAddress);
+
+/// <summary>
+/// Slim payload backing the Support page (formerly Tracking &amp;
+/// Support). The full active-shipment tracking timeline lives on
+/// <c>/shipments/&lt;id&gt;/track</c>; we only return the active
+/// shipment id here so the legacy <c>/shipments/active</c> alias keeps
+/// resolving without a separate round-trip.
+/// </summary>
 public sealed record TrackingSupportOverviewDto(
-    ShipmentTrackingDto? ActiveShipment,
+    Guid? ActiveShipmentId,
     SupportTicketSummaryDto? RecentTicket,
-    NotificationPreferencesDto Notifications);
+    NotificationPreferencesDto Notifications,
+    SupportContactDto Support);

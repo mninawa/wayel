@@ -254,6 +254,7 @@ internal sealed class ScanOpsCollectionArrivalCommandHandler(
     IPickupBranchRepository pickupBranches,
     IBorderBoxWhatsAppNotifier whatsApp,
     IBorderBoxEmailNotifier email,
+    IBorderBoxInAppNotifier inApp,
     ShipmentTrackingEventWriter trackingEvents,
     IOpsCallerContext ops,
     IClock clock,
@@ -351,6 +352,13 @@ internal sealed class ScanOpsCollectionArrivalCommandHandler(
                 updated.HubCity,
                 cancellationToken);
             await email.NotifyReadyForCollectionAsync(
+                user,
+                record.ShipmentId,
+                record.ShipmentDisplayId,
+                updated.HubName,
+                updated.HubCity,
+                cancellationToken);
+            await inApp.NotifyReadyForCollectionAsync(
                 user,
                 record.ShipmentId,
                 record.ShipmentDisplayId,

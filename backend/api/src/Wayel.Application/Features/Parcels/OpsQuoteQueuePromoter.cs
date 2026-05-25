@@ -16,6 +16,7 @@ internal static class OpsQuoteQueuePromoter
         IParcelOpsActivityRepository activities,
         IUserRepository users,
         IBorderBoxWhatsAppNotifier whatsApp,
+        IBorderBoxInAppNotifier inApp,
         IClock clock,
         string actor,
         CancellationToken cancellationToken)
@@ -42,6 +43,14 @@ internal static class OpsQuoteQueuePromoter
         if (user is not null)
         {
             await whatsApp.NotifyParcelReadyForQuoteAsync(
+                user,
+                parcel.Id.Value,
+                parcel.SuiteNumber,
+                parcel.ItemName,
+                parcel.TrackingNumber,
+                cancellationToken);
+
+            await inApp.NotifyParcelReadyForQuoteAsync(
                 user,
                 parcel.Id.Value,
                 parcel.SuiteNumber,

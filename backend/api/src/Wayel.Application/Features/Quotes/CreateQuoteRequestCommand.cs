@@ -37,7 +37,8 @@ internal sealed class CreateQuoteRequestCommandHandler(
     IClock clock,
     IBorderBoxPricingConfigRepository pricingConfig,
     IOptions<BorderBoxPricingOptions> pricingOptions,
-    IBorderBoxWhatsAppNotifier whatsApp) : ICommandHandler<CreateQuoteRequestCommand, CreateQuoteRequestResultDto>
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<CreateQuoteRequestCommand, CreateQuoteRequestResultDto>
 {
     public async Task<Result<CreateQuoteRequestResultDto>> Handle(
         CreateQuoteRequestCommand request,
@@ -138,6 +139,14 @@ internal sealed class CreateQuoteRequestCommandHandler(
 
         var displayNumber = FormatDisplayNumber(quote.Id.Value);
         await whatsApp.NotifyQuoteReadyAsync(
+            user,
+            quote.Id.Value,
+            displayNumber,
+            quote.TotalLandedCost,
+            quote.ValidUntil,
+            cancellationToken);
+
+        await inApp.NotifyQuoteReadyAsync(
             user,
             quote.Id.Value,
             displayNumber,

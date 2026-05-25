@@ -40,7 +40,8 @@ internal sealed class ReceiveParcelCommandHandler(
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork,
-    IBorderBoxWhatsAppNotifier whatsApp) : ICommandHandler<ReceiveParcelCommand, ReceiveParcelResultDto>
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<ReceiveParcelCommand, ReceiveParcelResultDto>
 {
     public async Task<Result<ReceiveParcelResultDto>> Handle(
         ReceiveParcelCommand request,
@@ -135,6 +136,14 @@ internal sealed class ReceiveParcelCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await whatsApp.NotifyParcelReceivedUploadInvoiceAsync(
+            user,
+            parcel.Id.Value,
+            parcel.SuiteNumber,
+            parcel.ItemName,
+            parcel.TrackingNumber,
+            cancellationToken);
+
+        await inApp.NotifyParcelReceivedUploadInvoiceAsync(
             user,
             parcel.Id.Value,
             parcel.SuiteNumber,

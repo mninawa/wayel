@@ -2,8 +2,12 @@ namespace Wayel.Domain.Warehouse;
 
 public static class WarehouseConstants
 {
+    // WH-MID-001 is a stable foreign key already referenced by every existing
+    // WarehouseLocationRecord in Mongo. Renaming it would orphan every row;
+    // we therefore keep the legacy identifier and only rebrand the display
+    // name so the ops UI shows the current hub location.
     public const string DefaultWarehouseId = "WH-MID-001";
-    public const string DefaultWarehouseName = "Midrand Warehouse";
+    public const string DefaultWarehouseName = "Sandton Warehouse";
     public const string ReceivingBayLocationId = "RECEIVING-BAY-01";
     public const string PickingAreaLocationId = "PICKING-AREA-01";
     public const string PackingAreaLocationId = "PACKING-AREA-01";

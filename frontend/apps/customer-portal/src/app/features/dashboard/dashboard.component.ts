@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CustomerAccountService } from '../../services/customer-account.service';
-import { BorderboxApiService, type TrackingSupportOverviewDto } from '../../services/borderbox-api.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
@@ -100,48 +99,6 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
         }
       </section>
     </div>
-
-    <div class="grid-3 bottom">
-      <section class="bb-card bb-card-pad">
-        <h2 class="bb-card-title">Quick Actions</h2>
-        <div class="actions">
-          <a routerLink="/received-parcels" class="action"><span class="material-icons-outlined">upload_file</span> Upload Invoice</a>
-          <a routerLink="/quotes/list" class="action"><span class="material-icons-outlined">request_quote</span> View Quotes</a>
-          @if (trackShipmentLink(); as trackLink) {
-            <a [routerLink]="trackLink" class="action"><span class="material-icons-outlined">timeline</span> Track Shipment</a>
-          } @else {
-            <a routerLink="/tracking-support" class="action"><span class="material-icons-outlined">timeline</span> Tracking &amp; Support</a>
-          }
-          @if (suiteAccess().shipOutLocked) {
-            <span class="action locked"><span class="material-icons-outlined">lock</span> Ship out locked</span>
-          } @else {
-            <a routerLink="/quotes/request" class="action"><span class="material-icons-outlined">local_shipping</span> Request ship out</a>
-          }
-        </div>
-      </section>
-
-      <section class="bb-card bb-card-pad">
-        <h2 class="bb-card-title">Shipment Status</h2>
-        <ul class="timeline">
-          @for (t of shipmentTimeline(); track t.label) {
-            <li [class.done]="t.done" [class.current]="t.current">
-              <span class="dot"></span>
-              <span>{{ t.label }}</span>
-            </li>
-          }
-        </ul>
-      </section>
-
-      <section class="bb-card bb-card-pad help">
-        <h2 class="bb-card-title">Need Help?</h2>
-        <p>Our support team is ready to assist you.</p>
-        <div class="help-btns">
-          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">Live Chat</a>
-          <a routerLink="/tracking-support" class="bb-btn bb-btn-outline">WhatsApp</a>
-        </div>
-        <a routerLink="/tracking-support" class="bb-link">Visit Help Center →</a>
-      </section>
-    </div>
   `,
   styles: `
     .stats {
@@ -222,53 +179,12 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .activity strong { display: block; font-size: 0.85rem; }
     .track { color: var(--bb-muted); font-size: 0.72rem; }
     .date { color: var(--bb-muted); font-size: 0.72rem; }
-    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
-    .action {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 1rem 0.5rem;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius-sm);
-      text-decoration: none;
-      color: var(--bb-text);
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-align: center;
-    }
-    .action.locked { opacity: 0.45; color: var(--bb-muted); }
-    .timeline { list-style: none; margin: 0; padding: 0; }
-    .timeline li {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      padding: 0.5rem 0;
-      font-size: 0.85rem;
-      color: var(--bb-muted);
-    }
-    .timeline li.done { color: var(--bb-success); }
-    .timeline li.current { color: var(--bb-primary); font-weight: 600; }
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #cbd5e1;
-      flex-shrink: 0;
-    }
-    .timeline li.done .dot { background: var(--bb-success); }
-    .timeline li.current .dot { background: var(--bb-primary); box-shadow: 0 0 0 3px var(--bb-primary-soft); }
-    .help p { margin: 0 0 1rem; font-size: 0.85rem; color: var(--bb-muted); }
-    .help-btns { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
     .empty-activity { margin: 0; font-size: 0.85rem; color: var(--bb-muted); }
   `,
 })
 export class DashboardComponent implements OnInit {
   private readonly accountApi = inject(CustomerAccountService);
   private readonly parcelsApi = inject(ParcelsService);
-  private readonly borderboxApi = inject(BorderboxApiService);
-
-  readonly trackingOverview = signal<TrackingSupportOverviewDto | null>(null);
 
   readonly suiteAccess = computed(
     () =>
@@ -317,33 +233,6 @@ export class DashboardComponent implements OnInit {
     })),
   );
 
-  readonly trackShipmentLink = computed((): string[] | null => {
-    const ship = this.trackingOverview()?.activeShipment;
-    if (ship?.shipmentId) {
-      return ['/shipments', ship.shipmentId, 'track'];
-    }
-    const withShipment = this.parcelsApi.parcels().find((p) => p.shipmentId);
-    if (withShipment?.shipmentId) {
-      return ['/shipments', withShipment.shipmentId, 'track'];
-    }
-    return null;
-  });
-
-  readonly shipmentTimeline = computed(() => {
-    const steps = this.trackingOverview()?.activeShipment?.timeline;
-    if (steps?.length) {
-      return steps.map((s) => ({
-        label: s.label,
-        done: s.done,
-        current: s.current,
-      }));
-    }
-    return [
-      { label: 'Received in South Africa', done: true, current: false },
-      { label: 'Awaiting shipment', done: false, current: true },
-    ];
-  });
-
   readonly statCards = computed(() => {
     const s = this.parcelsApi.summary();
     const dash = this.parcelsApi.dashboard();
@@ -369,10 +258,6 @@ export class DashboardComponent implements OnInit {
     }
     this.parcelsApi.loadDashboard().subscribe();
     this.parcelsApi.loadParcels().subscribe();
-    this.borderboxApi.getTrackingSupport().subscribe({
-      next: (o) => this.trackingOverview.set(o),
-      error: () => this.trackingOverview.set(null),
-    });
   }
 
   pillClass(status: string): string {

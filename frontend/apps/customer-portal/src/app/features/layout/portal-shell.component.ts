@@ -30,7 +30,7 @@ function buildNav(): NavItem[] {
     { path: '/received-parcels', label: 'Parcels', icon: 'inventory_2' },
     { path: '/quotes/list', label: 'Quotes', icon: 'request_quote' },
     { path: '/suite-access/checkout', label: 'Payments', icon: 'payments' },
-    { path: '/tracking-support', label: 'Tracking & Support', icon: 'headset_mic' },
+    { path: '/tracking-support', label: 'Support', icon: 'support_agent' },
   ];
 }
 

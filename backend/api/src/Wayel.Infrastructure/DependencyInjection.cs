@@ -178,6 +178,7 @@ public static class DependencyInjection
         services.AddHostedService<WarehouseLocationSeeder>();
         services.AddHostedService<SuiteLocationSyncSeeder>();
         services.AddHostedService<ShipmentTrackingEventBackfillSeeder>();
+        services.AddHostedService<LegacyOriginRebrandMigrator>();
         services.AddHostedService<KycVerifiedSubmissionBackfillSeeder>();
 
         services.AddScoped<IUserRepository, MongoUserRepository>();
@@ -234,6 +235,7 @@ public static class DependencyInjection
         });
         services.AddSingleton<IBorderBoxWhatsAppNotifier, BorderBoxWhatsAppNotifier>();
         services.AddScoped<IBorderBoxEmailNotifier, BorderBoxEmailNotifier>();
+        services.AddScoped<IBorderBoxInAppNotifier, BorderBoxInAppNotifier>();
 
         var outboxEnabled = configuration.GetValue($"{OutboxOptions.SectionName}:Enabled", true);
         if (outboxEnabled)
