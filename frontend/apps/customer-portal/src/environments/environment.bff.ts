@@ -17,12 +17,12 @@ export const environment = {
   useBffAuth: true,
   platformApiUrl: '',
   /**
-   * Default `true` so the BFF-mode dev loop keeps the password form
-   * available (the API in Development auto-enables password sign-in).
-   * Flip to `false` to test the SSO-only posture locally against a
-   * Production-mode API.
+   * Customer portal is Google-SSO-only. The API still accepts
+   * email/password (Auth:EnablePasswordSignIn=true in docker-compose) for
+   * integration tests and demo personas, but the SPA hides the form so
+   * customers see a single clear path to authenticate.
    */
-  passwordSignInEnabled: true,
+  passwordSignInEnabled: false,
   enableKycOpsReview: true,
   enableParcelReceive: true,
 };

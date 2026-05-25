@@ -8,5 +8,5 @@ public static class QuotePaymentInvoicePaths
         $"{ParcelInvoiceStoragePaths.SanitizeSuiteFolder(suiteNumber)}/payment-invoices/{quoteId:D}/invoice.html";
 
     public static string BuildFileName(string displayNumber) =>
-        $"BorderBox-Payment-{displayNumber}.html";
+        $"WeYell-Payment-{displayNumber}.html";
 }

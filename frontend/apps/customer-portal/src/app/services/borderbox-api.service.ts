@@ -37,6 +37,29 @@ export interface InitiateSuiteCheckoutDto {
   publicKey: string | null;
 }
 
+export interface PaymentProviderOptionDto {
+  provider: string;
+  displayName: string;
+  isConfigured: boolean;
+  isRecommended: boolean;
+}
+
+export interface PaymentStatusDto {
+  reference: string;
+  provider: string;
+  /** "success" | "pending" | "failed" */
+  status: string;
+  amountMinorUnits: number;
+  currency: string;
+}
+
+export interface MomoMsisdnValidationDto {
+  isValid: boolean;
+  /** Digits-only MSISDN that MTN was queried with (no leading +). */
+  msisdn: string;
+  reason: string | null;
+}
+
 export interface SuitePaymentsOverviewDto {
   currentPlan: SuitePaymentsCurrentPlanDto | null;
   subscription: SuitePaymentsSubscriptionDto | null;
@@ -322,10 +345,19 @@ export class BorderboxApiService {
     return this.http.post(`${this.base}/borderbox/suite-access/checkout`, { planId });
   }
 
-  initiateSuiteCheckout(planId: string, callbackUrl: string): Observable<InitiateSuiteCheckoutDto> {
+  initiateSuiteCheckout(
+    planId: string,
+    callbackUrl: string,
+    options?: { provider?: string; payerMsisdn?: string },
+  ): Observable<InitiateSuiteCheckoutDto> {
     return this.http.post<InitiateSuiteCheckoutDto>(
       `${this.base}/borderbox/suite-access/checkout/initiate`,
-      { planId, callbackUrl },
+      {
+        planId,
+        callbackUrl,
+        provider: options?.provider ?? null,
+        payerMsisdn: options?.payerMsisdn ?? null,
+      },
     );
   }
 
@@ -333,6 +365,28 @@ export class BorderboxApiService {
     return this.http.post(`${this.base}/borderbox/suite-access/checkout/complete`, {
       reference,
     });
+  }
+
+  listPaymentProviders(msisdn?: string): Observable<PaymentProviderOptionDto[]> {
+    const params: Record<string, string> = {};
+    if (msisdn) params['msisdn'] = msisdn;
+    return this.http.get<PaymentProviderOptionDto[]>(
+      `${this.base}/borderbox/payments/providers`,
+      { params },
+    );
+  }
+
+  getPaymentStatus(reference: string): Observable<PaymentStatusDto> {
+    return this.http.get<PaymentStatusDto>(
+      `${this.base}/borderbox/payments/${encodeURIComponent(reference)}/status`,
+    );
+  }
+
+  validateMomoMsisdn(msisdn: string): Observable<MomoMsisdnValidationDto> {
+    return this.http.post<MomoMsisdnValidationDto>(
+      `${this.base}/borderbox/payments/momo/validate`,
+      { msisdn },
+    );
   }
 
   seedShippableTestParcels(dataset: 'catalog-a' | 'catalog-b' = 'catalog-a'): Observable<{
@@ -419,10 +473,18 @@ export class BorderboxApiService {
     return this.http.post<QuoteApprovalDto>(`${this.base}/borderbox/quotes/${id}/cancel`, {});
   }
 
-  initiateQuoteCheckout(quoteId: string, callbackUrl: string): Observable<InitiateQuoteCheckoutDto> {
+  initiateQuoteCheckout(
+    quoteId: string,
+    callbackUrl: string,
+    options?: { provider?: string; payerMsisdn?: string },
+  ): Observable<InitiateQuoteCheckoutDto> {
     return this.http.post<InitiateQuoteCheckoutDto>(
       `${this.base}/borderbox/quotes/${quoteId}/checkout/initiate`,
-      { callbackUrl },
+      {
+        callbackUrl,
+        provider: options?.provider ?? null,
+        payerMsisdn: options?.payerMsisdn ?? null,
+      },
     );
   }
 
@@ -435,6 +497,13 @@ export class BorderboxApiService {
   quotePaymentInvoiceDownloadUrl(quoteId: string, download = false): string {
     const q = download ? '?download' : '';
     return `${this.base}/borderbox/quotes/${quoteId}/payment-invoice/download${q}`;
+  }
+
+  suitePaymentInvoiceDownloadUrl(reference: string, download = false): string {
+    const q = download ? '?download' : '';
+    return `${this.base}/borderbox/account/suite-payments/${encodeURIComponent(
+      reference,
+    )}/invoice/download${q}`;
   }
 
   getTrackingSupport(): Observable<TrackingSupportOverviewDto> {

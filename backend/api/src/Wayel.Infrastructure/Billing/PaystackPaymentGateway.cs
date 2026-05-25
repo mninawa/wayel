@@ -13,9 +13,11 @@ internal sealed class PaystackPaymentGateway(
 {
     private readonly PaystackOptions _opts = options.Value;
 
+    public string ProviderName => PaymentProviders.Paystack;
+    public string DisplayName => "Card / EFT (Paystack)";
+
     public bool IsConfigured =>
-        _opts.Enabled
-        && (!string.IsNullOrWhiteSpace(_opts.SecretKey) || _opts.AllowSimulatedPayments);
+        _opts.Enabled && !string.IsNullOrWhiteSpace(_opts.SecretKey);
 
     public string? PublicKey =>
         string.IsNullOrWhiteSpace(_opts.PublicKey) ? null : _opts.PublicKey.Trim();
@@ -25,14 +27,6 @@ internal sealed class PaystackPaymentGateway(
         CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
-
-        if (string.IsNullOrWhiteSpace(_opts.SecretKey))
-        {
-            var simRef = request.Reference;
-            var separator = request.CallbackUrl.Contains('?') ? '&' : '?';
-            var url = $"{request.CallbackUrl}{separator}reference={Uri.EscapeDataString(simRef)}&trxref={Uri.EscapeDataString(simRef)}";
-            return new PaymentInitializeResult(simRef, url, "simulated");
-        }
 
         var payload = new
         {
@@ -68,11 +62,6 @@ internal sealed class PaystackPaymentGateway(
     {
         EnsureConfigured();
 
-        if (string.IsNullOrWhiteSpace(_opts.SecretKey))
-        {
-            return new PaymentVerifyResult(reference, "success", 0, _opts.Currency);
-        }
-
         using var client = CreateClient();
         using var response = await client.GetAsync(
             $"transaction/verify/{Uri.EscapeDataString(reference)}",
@@ -99,7 +88,7 @@ internal sealed class PaystackPaymentGateway(
         if (!IsConfigured)
         {
             throw new InvalidOperationException(
-                "Paystack is not configured. Set Billing:Paystack:SecretKey or enable AllowSimulatedPayments.");
+                "Paystack is not configured. Set Billing:Paystack:SecretKey (PAYSTACK_SECRET_KEY in .env).");
         }
     }
 

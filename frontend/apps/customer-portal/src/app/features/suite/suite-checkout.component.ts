@@ -6,10 +6,12 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   BorderboxApiService,
+  type InitiateSuiteCheckoutDto,
   type SuiteAccessSummary,
   type SuitePaymentsOverviewDto,
   type SuitePlanDto,
@@ -17,8 +19,11 @@ import {
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { PaystackCheckoutService } from '../../services/paystack-checkout.service';
-
-type PayMethod = 'card' | 'eft';
+import { MomoPendingComponent } from '../payments/momo-pending.component';
+import {
+  PaymentMethodPickerComponent,
+  type PaymentMethodChoice,
+} from '../payments/payment-method-picker.component';
 
 type StatusFilter = 'all' | 'successful' | 'failed' | 'pending';
 
@@ -31,7 +36,7 @@ const PLAN_FEATURES = [
 @Component({
   selector: 'app-suite-checkout',
   standalone: true,
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, MomoPendingComponent, PaymentMethodPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="page-head">
@@ -159,15 +164,36 @@ const PLAN_FEATURES = [
                     <td>
                       <span class="badge" [class]="statusBadgeTone(row.status)">{{ row.status }}</span>
                     </td>
-                    <td><a class="invoice-link" href="javascript:void(0)">{{ row.invoiceNumber }}</a></td>
+                    <td>
+                      @if (row.status === 'Successful') {
+                        <a
+                          class="invoice-link"
+                          [href]="invoiceViewUrl(row.reference)"
+                          target="_blank"
+                          rel="noopener"
+                          title="Open receipt in a new tab"
+                        >{{ row.invoiceNumber }}</a>
+                      } @else {
+                        <span class="invoice-link is-muted" [title]="row.status === 'Failed' ? 'Available once payment succeeds' : 'Available once payment completes'">{{ row.invoiceNumber }}</span>
+                      }
+                    </td>
                     <td class="num">
                       @if (row.status === 'Failed') {
                         <button type="button" class="icon-btn" title="Retry payment" (click)="scrollToRenew()">
                           <span class="material-icons-outlined">refresh</span>
                         </button>
-                      } @else {
-                        <button type="button" class="icon-btn" title="Download invoice">
+                      } @else if (row.status === 'Successful') {
+                        <a
+                          class="icon-btn"
+                          [href]="invoiceDownloadUrl(row.reference)"
+                          [attr.download]="row.invoiceNumber + '.html'"
+                          title="Download receipt"
+                        >
                           <span class="material-icons-outlined">download</span>
+                        </a>
+                      } @else {
+                        <button type="button" class="icon-btn" disabled title="Available once payment completes">
+                          <span class="material-icons-outlined">hourglass_empty</span>
                         </button>
                       }
                     </td>
@@ -316,55 +342,32 @@ const PLAN_FEATURES = [
           <section class="panel">
             <h3 class="panel-title">2. Choose Payment Method</h3>
             <p class="panel-sub">All payments are secure and encrypted.</p>
-            <div class="pay-row">
-              <label class="pay-option" [class.selected]="payMethod() === 'card'">
-                <input
-                  type="radio"
-                  name="pay"
-                  class="pay-radio"
-                  [checked]="payMethod() === 'card'"
-                  (change)="payMethod.set('card')"
-                />
-                <div class="pay-body">
-                  <div class="pay-top">
-                    <span class="pay-name">Card Payment</span>
-                    <span class="card-brands" aria-hidden="true">
-                      <span class="brand visa">VISA</span>
-                      <span class="brand mc">MC</span>
-                    </span>
-                  </div>
-                  <p class="pay-desc">Pay securely using your debit or credit card.</p>
-                </div>
-              </label>
-
-              <label class="pay-option" [class.selected]="payMethod() === 'eft'">
-                <input
-                  type="radio"
-                  name="pay"
-                  class="pay-radio"
-                  [checked]="payMethod() === 'eft'"
-                  (change)="payMethod.set('eft')"
-                />
-                <div class="pay-body">
-                  <div class="pay-top">
-                    <span class="pay-name">EFT / Bank Transfer</span>
-                    <span class="material-icons-outlined pay-bank">account_balance</span>
-                  </div>
-                  <p class="pay-desc">Make a direct payment from your bank account.</p>
-                </div>
-              </label>
-            </div>
+            <app-payment-method-picker
+              [defaultMsisdn]="defaultPayerMsisdn()"
+              (choiceChange)="paymentChoice.set($event)"
+            />
           </section>
 
-          <button
-            type="button"
-            class="pay-cta"
-            (click)="pay()"
-            [disabled]="busy() || !selectedPlan() || payMethod() === 'eft' || suiteStillActive()"
-          >
-            <span class="material-icons-outlined">lock</span>
-            {{ busy() ? 'Redirecting to Paystack…' : 'Pay R' + amount() + ' Securely' }}
-          </button>
+          @if (momoPending(); as momo) {
+            <app-momo-pending
+              [reference]="momo.reference"
+              [payerMsisdn]="momo.payerMsisdn"
+              [amountLabel]="momo.amountLabel"
+              (succeeded)="onMomoSucceeded($event)"
+              (failed)="onMomoFailed($event)"
+              (cancelled)="onMomoCancelled()"
+            />
+          } @else {
+            <button
+              type="button"
+              class="pay-cta"
+              (click)="pay()"
+              [disabled]="busy() || !selectedPlan() || !paymentChoice() || suiteStillActive()"
+            >
+              <span class="material-icons-outlined">lock</span>
+              {{ busy() ? 'Starting checkout…' : 'Pay R' + amount() + ' Securely' }}
+            </button>
+          }
 
           <p class="legal">
             By proceeding, you agree to our
@@ -615,6 +618,10 @@ const PLAN_FEATURES = [
     }
     .method-pill .material-icons-outlined { font-size: 0.95rem !important; }
 
+    .invoice-link.is-muted {
+      color: var(--bb-muted, #94a3b8);
+      cursor: not-allowed;
+    }
     .invoice-link {
       color: var(--bb-primary);
       font-weight: 600;
@@ -1102,7 +1109,23 @@ export class SuiteCheckoutComponent implements OnInit {
   readonly planFeatures = PLAN_FEATURES;
   readonly plans = signal<SuitePlanDto[]>([]);
   readonly selectedPlan = signal<SuitePlanDto | null>(null);
-  readonly payMethod = signal<PayMethod>('card');
+  readonly paymentChoice = signal<PaymentMethodChoice | null>(null);
+  readonly picker = viewChild(PaymentMethodPickerComponent);
+  /**
+   * Picks the phone we should pre-fill on the MoMo picker, in priority order:
+   *   1. Default delivery address phone (set via /my-address).
+   *   2. Any delivery address phone.
+   *   3. Account profile phone.
+   */
+  readonly defaultPayerMsisdn = computed((): string | null => {
+    const acc = this.accountApi.account();
+    if (!acc) return null;
+    const defaultAddr = acc.deliveryAddresses.find((a) => a.isDefault && a.phone?.trim());
+    if (defaultAddr?.phone) return defaultAddr.phone;
+    const anyAddr = acc.deliveryAddresses.find((a) => a.phone?.trim());
+    if (anyAddr?.phone) return anyAddr.phone;
+    return acc.profile.phone?.trim() || null;
+  });
   readonly busy = signal(false);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -1255,6 +1278,20 @@ export class SuiteCheckoutComponent implements OnInit {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  /**
+   * Open the suite-access receipt inline in a new tab. The receipt is
+   * generated on demand from the payment record + plan + subscription so
+   * customers always see an up-to-date document.
+   */
+  invoiceViewUrl(reference: string): string {
+    return this.borderboxApi.suitePaymentInvoiceDownloadUrl(reference);
+  }
+
+  /** Same endpoint, but with ?download so the browser saves the HTML file. */
+  invoiceDownloadUrl(reference: string): string {
+    return this.borderboxApi.suitePaymentInvoiceDownloadUrl(reference, true);
+  }
+
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap.get('plan');
     this.accountApi.ensureAccountLoaded().subscribe();
@@ -1294,25 +1331,94 @@ export class SuiteCheckoutComponent implements OnInit {
     this.error.set(null);
   }
 
-  pay(): void {
+  /** Active MoMo push details when the backend chose MoMo as the gateway. */
+  readonly momoPending = signal<{
+    reference: string;
+    payerMsisdn: string;
+    amountLabel: string;
+  } | null>(null);
+
+  async pay(): Promise<void> {
     const plan = this.selectedPlan();
-    if (!plan || this.payMethod() !== 'card' || this.suiteStillActive()) return;
+    if (!plan || this.suiteStillActive()) return;
+
+    const picker = this.picker();
+    const ready = picker ? await picker.validate() : false;
+    if (!ready) return;
+    const choice = this.paymentChoice();
+    if (!choice) return;
 
     const callbackUrl = `${window.location.origin}/suite-access/checkout/complete`;
+    const msisdn = choice.payerMsisdn ?? this.defaultPayerMsisdn() ?? undefined;
+
     this.busy.set(true);
     this.error.set(null);
-    this.borderboxApi.initiateSuiteCheckout(plan.id, callbackUrl).subscribe({
-      next: (res) => {
-        this.busy.set(false);
-        void this.paystack.start(res).catch(() => {
-          window.location.href = res.authorizationUrl;
-        });
-      },
-      error: (err: Error) => {
-        this.busy.set(false);
-        this.error.set(err?.message ?? 'Could not start Paystack checkout.');
-      },
+    this.momoPending.set(null);
+
+    this.borderboxApi
+      .initiateSuiteCheckout(plan.id, callbackUrl, {
+        provider: choice.provider,
+        payerMsisdn: msisdn,
+      })
+      .subscribe({
+        next: (res) => {
+          this.busy.set(false);
+          if (res.provider === 'momo') {
+            this.momoPending.set({
+              reference: res.reference,
+              payerMsisdn: msisdn ?? 'your phone',
+              amountLabel: `R ${res.amountZar.toFixed(2)}`,
+            });
+            return;
+          }
+          this.onPaystackInitiated(res);
+        },
+        error: (err: Error) => {
+          this.busy.set(false);
+          this.error.set(err?.message ?? 'Could not start checkout.');
+        },
+      });
+  }
+
+  onMomoSucceeded(reference: string): void {
+    this.momoPending.set(null);
+    // Trigger the same complete-checkout path Paystack takes on redirect.
+    this.borderboxApi.completeSuiteCheckout(reference).subscribe({
+      next: () => this.router.navigateByUrl('/suite-access/checkout/complete?provider=momo'),
+      error: (err: Error) => this.error.set(err?.message ?? 'Could not finalise MoMo payment.'),
     });
+  }
+
+  onMomoFailed(message: string): void {
+    this.momoPending.set(null);
+    this.error.set(message);
+  }
+
+  onMomoCancelled(): void {
+    this.momoPending.set(null);
+  }
+
+  private onPaystackInitiated(res: InitiateSuiteCheckoutDto): void {
+    this.paystack
+      .start(res)
+      .then((outcome) => {
+        if (outcome.status === 'success') {
+          // Hand off to /suite-access/checkout/complete which verifies the
+          // transaction with Paystack server-side and activates the suite.
+          this.router.navigateByUrl(
+            `/suite-access/checkout/complete?reference=${encodeURIComponent(outcome.reference)}`,
+          );
+          return;
+        }
+        if (outcome.status === 'error') {
+          this.error.set(outcome.message);
+        }
+        // 'cancelled' → user closed the popup, leave them on this page so
+        // they can retry without losing their plan / payment selection.
+      })
+      .catch(() => {
+        window.location.href = res.authorizationUrl;
+      });
   }
 
   private formatDate(d: Date): string {

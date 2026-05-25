@@ -21,7 +21,7 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
     IWarehouseLocationRepository locations,
     ISuitePlatformConfigRepository platformConfig,
     ISuiteNumberAllocator suiteNumbers,
-    IPaymentGateway paymentGateway,
+    IPaymentGatewayResolver paymentGatewayResolver,
     IUnitOfWork unitOfWork,
     IClock clock) : ICommandHandler<CompleteSuiteCheckoutCommand, SuiteSubscriptionDto>
 {
@@ -40,13 +40,6 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
             return Error.Validation("checkout.missing_reference", "Payment reference is required.");
         }
 
-        if (!paymentGateway.IsConfigured)
-        {
-            return Error.Validation(
-                "payment_gateway.misconfigured",
-                "Paystack is not configured.");
-        }
-
         var payment = await checkoutPayments.GetByReferenceAsync(reference, cancellationToken);
         if (payment is null)
         {
@@ -56,6 +49,16 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
         if (payment.UserId != current.UserId)
         {
             return Error.Forbidden("checkout.forbidden", "This payment belongs to another account.");
+        }
+
+        IPaymentGateway paymentGateway;
+        try
+        {
+            paymentGateway = paymentGatewayResolver.Resolve(payment.Provider);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.misconfigured", ex.Message);
         }
 
         if (string.Equals(payment.Status, "Completed", StringComparison.OrdinalIgnoreCase))

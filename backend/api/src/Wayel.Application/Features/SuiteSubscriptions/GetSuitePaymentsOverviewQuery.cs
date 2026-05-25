@@ -1,4 +1,3 @@
-using System.Globalization;
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
@@ -276,7 +275,7 @@ internal static class SuitePaymentsOverviewProjector
 
         return new SuitePaymentHistoryRowDto(
             payment.Reference,
-            BuildInvoiceNumber(payment),
+            SuitePaymentInvoiceNumbering.BuildInvoiceNumber(payment),
             payment.CreatedAtUtc,
             payment.CompletedAtUtc,
             planName,
@@ -292,15 +291,6 @@ internal static class SuitePaymentsOverviewProjector
             "failed" => "Failed",
             _ => "Pending",
         };
-
-    private static string BuildInvoiceNumber(SuiteCheckoutPaymentRecord payment)
-    {
-        var when = payment.CompletedAtUtc ?? payment.CreatedAtUtc;
-        var hash = Math.Abs(payment.Reference.GetHashCode()) % 10000;
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"INV-{when:yyyy}-{hash:D4}");
-    }
 
     private static decimal MinorToMajor(int amountMinor) =>
         Math.Round(amountMinor / 100m, 2);

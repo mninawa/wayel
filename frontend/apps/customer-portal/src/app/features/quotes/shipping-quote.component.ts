@@ -2,21 +2,40 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   OnInit,
+  computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import type { QuoteDetailDto } from '../../services/borderbox-api.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import type { InitiateQuoteCheckoutDto, QuoteDetailDto } from '../../services/borderbox-api.service';
 import { BorderboxApiService } from '../../services/borderbox-api.service';
+import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { PaystackCheckoutService } from '../../services/paystack-checkout.service';
+import { MomoPendingComponent } from '../payments/momo-pending.component';
+import {
+  PaymentMethodPickerComponent,
+  type PaymentMethodChoice,
+} from '../payments/payment-method-picker.component';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
 @Component({
   selector: 'app-shipping-quote',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent, DecimalPipe, DatePipe],
+  imports: [
+    RouterLink,
+    SuiteExpiredBannerComponent,
+    DecimalPipe,
+    DatePipe,
+    MomoPendingComponent,
+    PaymentMethodPickerComponent,
+    ConfirmDialogComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (quote(); as q) {
@@ -72,7 +91,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
             <div class="total-box">
               <span>Total to pay</span>
               <strong>R{{ q.totalLandedCost | number:'1.2-2' }}</strong>
-              <small>BorderBox fees &amp; customs — not retailer price</small>
+              <small>WeYell fees &amp; customs — not retailer price</small>
             </div>
           </section>
         </div>
@@ -105,7 +124,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
               No Eswatini import duty on this quote — no item is declared above R{{ q.dutyGoodsValueThresholdZar | number:'1.0-0' }}.
             }
             @if (q.vatCharged) {
-              BorderBox standard take is 25% of declared goods value: 15% VAT (SARS) plus 10% for handling and freight fee.
+              WeYell standard take is 25% of declared goods value: 15% VAT (SARS) plus 10% for handling and freight fee.
             } @else {
               Service fees (10% of goods value) apply; VAT is paused on this quote.
             }
@@ -171,17 +190,40 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
           </button>
         </footer>
       } @else if (q.canPay) {
-        <footer class="sticky-bar bb-card bb-card-pad">
-          <span>Pay the landed cost to create your shipment (parcels move to ship-out after payment).</span>
-          <button
-            type="button"
-            class="bb-btn bb-btn-primary"
-            [disabled]="paying()"
-            (click)="pay()"
+        @if (momoPending(); as momo) {
+          <app-momo-pending
+            [reference]="momo.reference"
+            [payerMsisdn]="momo.payerMsisdn"
+            [amountLabel]="momo.amountLabel"
+            (succeeded)="onMomoSucceeded($event)"
+            (failed)="onMomoFailed($event)"
+            (cancelled)="onMomoCancelled()"
+          />
+        } @else {
+          <section
+            #payPanel
+            class="pay-panel bb-card bb-card-pad"
+            tabindex="-1"
+            id="choose-payment-method"
           >
-            Pay R{{ q.totalLandedCost | number:'1.2-2' }}
-          </button>
-        </footer>
+            <h2 class="pay-panel-title">Choose payment method</h2>
+            <app-payment-method-picker
+              [defaultMsisdn]="defaultPayerMsisdn()"
+              (choiceChange)="paymentChoice.set($event)"
+            />
+          </section>
+          <footer class="sticky-bar bb-card bb-card-pad">
+            <span>Pay the landed cost to create your shipment (parcels move to ship-out after payment).</span>
+            <button
+              type="button"
+              class="bb-btn bb-btn-primary"
+              [disabled]="paying() || !paymentChoice()"
+              (click)="pay()"
+            >
+              Pay R{{ q.totalLandedCost | number:'1.2-2' }}
+            </button>
+          </footer>
+        }
       } @else if (q.status === 'Cancelled') {
         <footer class="sticky-bar bb-card bb-card-pad">
           <span>This quote was cancelled.</span>
@@ -202,6 +244,18 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     @if (actionError()) {
       <p class="err pad">{{ actionError() }}</p>
     }
+
+    <app-confirm-dialog
+      [open]="showCancelDialog()"
+      title="Cancel this quote?"
+      message="Linked parcels will return to your inbox and can be quoted again. This cannot be undone."
+      confirmLabel="Cancel quote"
+      cancelLabel="Keep quote"
+      tone="danger"
+      [busy]="cancelling()"
+      (confirmed)="confirmCancel()"
+      (cancelled)="dismissCancelDialog()"
+    />
   `,
   styles: `
     .crumb { font-size: 0.82rem; margin-bottom: 0.75rem; }
@@ -270,6 +324,22 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     }
     .sticky-bar span:nth-child(1):not(.material-icons-outlined) { flex: 1; font-size: 0.85rem; color: var(--bb-muted); }
     .sticky-bar.approved { background: var(--bb-success-soft); }
+    .pay-panel {
+      margin-top: 1rem;
+      margin-bottom: 6rem;
+      scroll-margin-top: 1rem;
+      outline: none;
+      transition: box-shadow 240ms ease;
+    }
+    .pay-panel:focus,
+    .pay-panel:focus-visible {
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+    }
+    .pay-panel-title {
+      margin: 0 0 0.6rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
     .err { color: var(--bb-danger); font-size: 0.85rem; }
     .pad { padding: 1rem; }
     .muted { color: var(--bb-muted); }
@@ -282,9 +352,64 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
 })
 export class ShippingQuoteComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(BorderboxApiService);
   private readonly parcelsSvc = inject(ParcelsService);
   private readonly paystack = inject(PaystackCheckoutService);
+  private readonly accountApi = inject(CustomerAccountService);
+
+  readonly paymentChoice = signal<PaymentMethodChoice | null>(null);
+  readonly picker = viewChild(PaymentMethodPickerComponent);
+  readonly payPanelRef = viewChild<ElementRef<HTMLElement>>('payPanel');
+  /** Guards us from re-scrolling every time the user clicks around. */
+  private hasFocusedPayPanel = false;
+
+  constructor() {
+    // The moment the quote becomes payable and the pay panel is mounted,
+    // smooth-scroll it into view and move keyboard focus to it so the user
+    // arriving from the wizard immediately lands on "Choose payment method"
+    // instead of having to scroll past the quote summary.
+    effect(() => {
+      const q = this.quote();
+      const el = this.payPanelRef()?.nativeElement;
+      const pending = this.momoPending();
+      if (!q?.canPay || pending || !el || this.hasFocusedPayPanel) return;
+      this.hasFocusedPayPanel = true;
+      // Wait one frame so layout has settled before scrolling.
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        try {
+          el.focus({ preventScroll: true });
+        } catch {
+          /* older browsers — silently fall back to scrollIntoView alone */
+        }
+      });
+    });
+  }
+  /**
+   * Picks the phone we should pre-fill on the MoMo picker, in priority order:
+   *   1. The customer's default delivery address phone (most likely to be the
+   *      number they actually use on their phone, since the SPA forces them
+   *      to enter it on /my-address).
+   *   2. Any delivery address phone they have on file.
+   *   3. The legacy `profile.phone` field.
+   * All three may be saved via the /my-address page.
+   */
+  readonly defaultPayerMsisdn = computed((): string | null => {
+    const acc = this.accountApi.account();
+    if (!acc) return null;
+    const defaultAddr = acc.deliveryAddresses.find((a) => a.isDefault && a.phone?.trim());
+    if (defaultAddr?.phone) return defaultAddr.phone;
+    const anyAddr = acc.deliveryAddresses.find((a) => a.phone?.trim());
+    if (anyAddr?.phone) return anyAddr.phone;
+    return acc.profile.phone?.trim() || null;
+  });
+
+  readonly momoPending = signal<{
+    reference: string;
+    payerMsisdn: string;
+    amountLabel: string;
+  } | null>(null);
 
   paymentInvoiceUrl(quoteId: string): string {
     return this.api.quotePaymentInvoiceDownloadUrl(quoteId);
@@ -296,6 +421,7 @@ export class ShippingQuoteComponent implements OnInit {
   readonly approving = signal(false);
   readonly paying = signal(false);
   readonly cancelling = signal(false);
+  readonly showCancelDialog = signal(false);
 
   ngOnInit(): void {
     this.parcelsSvc.loadDashboard().subscribe();
@@ -329,42 +455,126 @@ export class ShippingQuoteComponent implements OnInit {
     });
   }
 
-  pay(): void {
+  async pay(): Promise<void> {
     const q = this.quote();
     if (!q || !q.canPay) return;
+
+    const picker = this.picker();
+    const ready = picker ? await picker.validate() : false;
+    if (!ready) return;
+    const choice = this.paymentChoice();
+    if (!choice) return;
+
     this.paying.set(true);
     this.actionError.set(null);
+    this.momoPending.set(null);
     const callbackUrl = `${window.location.origin}/quotes/${q.id}/checkout/complete`;
-    this.api.initiateQuoteCheckout(q.id, callbackUrl).subscribe({
-      next: (res) => {
-        this.paying.set(false);
-        void this.paystack.start(res).catch(() => {
-          window.location.href = res.authorizationUrl;
-        });
-      },
-      error: (err: { error?: { detail?: string }; message?: string }) => {
-        this.paying.set(false);
+    const msisdn = choice.payerMsisdn ?? this.defaultPayerMsisdn() ?? undefined;
+    this.api
+      .initiateQuoteCheckout(q.id, callbackUrl, {
+        provider: choice.provider,
+        payerMsisdn: msisdn,
+      })
+      .subscribe({
+        next: (res) => {
+          this.paying.set(false);
+          if (res.provider === 'momo') {
+            this.momoPending.set({
+              reference: res.reference,
+              payerMsisdn: msisdn ?? 'your phone',
+              amountLabel: `R ${res.amountZar.toFixed(2)}`,
+            });
+            return;
+          }
+          this.onPaystackInitiated(res);
+        },
+        error: (err: { error?: { detail?: string }; message?: string }) => {
+          this.paying.set(false);
+          this.actionError.set(
+            err?.error?.detail ?? err?.message ?? 'Could not start checkout.',
+          );
+        },
+      });
+  }
+
+  onMomoSucceeded(reference: string): void {
+    this.momoPending.set(null);
+    const q = this.quote();
+    if (!q) return;
+    this.api.completeQuoteCheckout(reference).subscribe({
+      next: () => this.router.navigateByUrl(`/quotes/${q.id}/checkout/complete?provider=momo`),
+      error: (err: { error?: { detail?: string }; message?: string }) =>
         this.actionError.set(
-          err?.error?.detail ?? err?.message ?? 'Could not start checkout.',
-        );
-      },
+          err?.error?.detail ?? err?.message ?? 'Could not finalise MoMo payment.',
+        ),
     });
+  }
+
+  onMomoFailed(message: string): void {
+    this.momoPending.set(null);
+    this.actionError.set(message);
+  }
+
+  onMomoCancelled(): void {
+    this.momoPending.set(null);
+  }
+
+  private onPaystackInitiated(res: InitiateQuoteCheckoutDto): void {
+    const q = this.quote();
+    if (!q) return;
+    this.paystack
+      .start(res)
+      .then((outcome) => {
+        if (outcome.status === 'success') {
+          // The inline popup finished successfully — hand off to the
+          // existing /checkout/complete page so we verify with Paystack
+          // server-side and then create the shipment.
+          this.router.navigateByUrl(
+            `/quotes/${q.id}/checkout/complete?reference=${encodeURIComponent(outcome.reference)}`,
+          );
+          return;
+        }
+        if (outcome.status === 'error') {
+          this.actionError.set(outcome.message);
+        }
+        // status === 'cancelled' → user closed the popup, nothing to do
+        // beyond letting them retry from the same page.
+      })
+      .catch(() => {
+        window.location.href = res.authorizationUrl;
+      });
   }
 
   cancel(): void {
     const q = this.quote();
     if (!q || !q.canCancel) return;
-    if (!confirm('Cancel this quote? Linked parcels can be quoted again.')) return;
+    // Open the in-app confirm modal instead of using the native browser
+    // dialog — keeps the experience on-brand and accessible.
+    this.showCancelDialog.set(true);
+  }
+
+  dismissCancelDialog(): void {
+    if (this.cancelling()) return;
+    this.showCancelDialog.set(false);
+  }
+
+  confirmCancel(): void {
+    const q = this.quote();
+    if (!q || !q.canCancel) {
+      this.showCancelDialog.set(false);
+      return;
+    }
     this.cancelling.set(true);
     this.actionError.set(null);
     this.api.cancelQuote(q.id).subscribe({
       next: () => {
         this.cancelling.set(false);
-        void this.route.snapshot;
+        this.showCancelDialog.set(false);
         this.reload();
       },
       error: (err: { error?: { detail?: string }; message?: string }) => {
         this.cancelling.set(false);
+        this.showCancelDialog.set(false);
         this.actionError.set(
           err?.error?.detail ?? err?.message ?? 'Could not cancel quote.',
         );

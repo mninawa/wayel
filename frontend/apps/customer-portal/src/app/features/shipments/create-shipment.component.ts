@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { DeliveryAddress, UpsertDeliveryAddressRequest } from '../../models/customer-account.models';
 import type { ParcelListItem } from '../../models/parcel.models';
 import { formatParcelReference, isQuoteEligibleParcel } from '../../models/parcel.models';
@@ -59,6 +59,47 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     @if (loadError()) {
       <p class="err">{{ loadError() }}</p>
     } @else {
+      @if (justUploadedHandoffVisible()) {
+        @if (justUploadedParcel(); as up) {
+          <div
+            class="handoff-banner"
+            [class.handoff-banner--ready]="justUploadedParcelEligible()"
+            [class.handoff-banner--pending]="!justUploadedParcelEligible()"
+            role="status"
+          >
+            <span class="material-icons-outlined handoff-icon">
+              {{ justUploadedParcelEligible() ? 'check_circle' : 'hourglass_top' }}
+            </span>
+            <div class="handoff-body">
+              @if (justUploadedParcelEligible()) {
+                <strong>Invoice received — {{ up.itemName }} is ready to quote.</strong>
+                <p>
+                  We've pre-selected
+                  <span class="mono">{{ parcelRef(up.id) }}</span>
+                  below. Pick an address and continue to payment.
+                </p>
+              } @else {
+                <strong>Invoice received for {{ up.itemName }}.</strong>
+                <p>
+                  Our warehouse team still needs to finish processing
+                  <span class="mono">{{ parcelRef(up.id) }}</span>
+                  ({{ blockerLabel(up) }}). You'll be able to add it to a quote
+                  here once that's done — we'll send a WhatsApp the moment it's ready.
+                </p>
+              }
+            </div>
+            <button
+              type="button"
+              class="handoff-dismiss"
+              aria-label="Dismiss"
+              (click)="dismissJustUploadedHandoff()"
+            >
+              <span class="material-icons-outlined">close</span>
+            </button>
+          </div>
+        }
+      }
+
       <div class="kanban-flow">
         <nav class="flow-rail" aria-label="Shipment steps">
           @for (step of flowSteps(); track step.id; let last = $last) {
@@ -292,7 +333,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
                     No duty (no item &gt; R{{ dutyThresholdZar() | number:'1.0-0' }})
                   }
                   @if (vatCharged()) {
-                    · 25% BorderBox take (15% VAT + 10% fees)
+                    · 25% WeYell take (15% VAT + 10% fees)
                   }
                   · fees on declared goods — not retailer price
                 </small>
@@ -413,6 +454,59 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       border: 1px solid var(--bb-danger-border);
     }
     .locked-banner p { margin: 0; font-size: 0.82rem; color: #991b1b; flex: 1; min-width: 12rem; }
+
+    .handoff-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 0.9rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: var(--bb-radius-sm);
+      border: 1px solid transparent;
+      animation: handoff-fade 220ms ease-out;
+    }
+    @keyframes handoff-fade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .handoff-banner--ready {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #065f46;
+    }
+    .handoff-banner--pending {
+      background: #fef9c3;
+      border-color: #fde68a;
+      color: #854d0e;
+    }
+    .handoff-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .handoff-banner--ready .handoff-icon { color: #047857; }
+    .handoff-banner--pending .handoff-icon { color: #b45309; }
+    .handoff-body { flex: 1; min-width: 0; }
+    .handoff-body strong { display: block; font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .handoff-body p { margin: 0; font-size: 0.82rem; line-height: 1.45; }
+    .handoff-body .mono {
+      font-family: var(--bb-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+      font-size: 0.78rem;
+      background: rgba(0, 0, 0, 0.06);
+      padding: 0.05rem 0.35rem;
+      border-radius: 4px;
+    }
+    .handoff-dismiss {
+      background: transparent;
+      border: 0;
+      padding: 0.25rem;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.65;
+      border-radius: 4px;
+    }
+    .handoff-dismiss:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+    .handoff-dismiss .material-icons-outlined { font-size: 1.1rem; }
 
     .kanban-flow { display: flex; flex-direction: column; gap: 1rem; }
 
@@ -1174,6 +1268,10 @@ export class CreateShipmentComponent implements OnInit {
   private readonly parcelsSvc = inject(ParcelsService);
   private readonly accountApi = inject(CustomerAccountService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  readonly justUploadedParcelId = signal<string | null>(null);
+  readonly justUploadedHandoffDismissed = signal(false);
 
   readonly deliveryMethod = signal<DeliveryMethodChoice>(PICKUP_METHOD);
   readonly selectedIds = signal<Set<string>>(new Set());
@@ -1238,6 +1336,21 @@ export class CreateShipmentComponent implements OnInit {
 
   readonly quoteEligibleParcels = computed(() =>
     this.parcelsSvc.parcels().filter((p) => isQuoteEligibleParcel(p)),
+  );
+
+  readonly justUploadedParcel = computed((): ParcelListItem | null => {
+    const id = this.justUploadedParcelId();
+    if (!id) return null;
+    return this.parcelsSvc.parcels().find((p) => p.id === id) ?? null;
+  });
+
+  readonly justUploadedParcelEligible = computed((): boolean => {
+    const p = this.justUploadedParcel();
+    return p ? isQuoteEligibleParcel(p) : false;
+  });
+
+  readonly justUploadedHandoffVisible = computed(
+    () => !!this.justUploadedParcel() && !this.justUploadedHandoffDismissed(),
   );
 
   readonly selectedCount = computed(() => this.selectedIds().size);
@@ -1352,16 +1465,33 @@ export class CreateShipmentComponent implements OnInit {
       },
     });
 
+    const fromHandoff = this.route.snapshot.queryParamMap.get('from') === 'invoice-upload';
+    const handoffParcelId = this.route.snapshot.queryParamMap.get('parcel')?.trim() || null;
+    if (fromHandoff && handoffParcelId) {
+      this.justUploadedParcelId.set(handoffParcelId);
+    }
+
     this.parcelsSvc.loadParcels().subscribe({
       next: (items) => {
         const eligible = items.filter((p) => isQuoteEligibleParcel(p));
-        if (eligible.length === 1) {
+        const targetParcelId = handoffParcelId ?? null;
+        const eligibleTarget = targetParcelId
+          ? eligible.find((p) => p.id === targetParcelId)
+          : undefined;
+        if (eligibleTarget) {
+          this.selectedIds.set(new Set([eligibleTarget.id]));
+          this.refreshLandedCostEstimate();
+        } else if (!targetParcelId && eligible.length === 1) {
           this.selectedIds.set(new Set([eligible[0].id]));
           this.refreshLandedCostEstimate();
         }
       },
       error: () => this.loadError.set('Could not load parcels.'),
     });
+  }
+
+  dismissJustUploadedHandoff(): void {
+    this.justUploadedHandoffDismissed.set(true);
   }
 
   private refreshLandedCostEstimate(): void {

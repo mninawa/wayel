@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { ParcelDetail, ParcelListItem } from '../../models/parcel.models';
 import {
   formatDimensionsLabel,
@@ -738,6 +738,7 @@ interface CustomsItem {
 })
 export class ParcelDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
   readonly parcelsApi = inject(ParcelsService);
   private readonly accountApi = inject(CustomerAccountService);
@@ -1081,6 +1082,7 @@ export class ParcelDetailsComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file || !this.parcel()) return;
+    const wasInitialUpload = this.parcel()!.invoiceStatus !== 'Uploaded';
     this.uploading.set(true);
     this.uploadError.set(null);
     this.parcelsApi.uploadInvoice(this.parcel()!.id, file).subscribe({
@@ -1089,6 +1091,11 @@ export class ParcelDetailsComponent implements OnInit, OnDestroy {
         this.refreshInvoicePreview();
         this.uploading.set(false);
         input.value = '';
+        if (wasInitialUpload) {
+          void this.router.navigate(['/quotes', 'request'], {
+            queryParams: { parcel: p.id, from: 'invoice-upload' },
+          });
+        }
       },
       error: (err: unknown) => {
         this.uploading.set(false);

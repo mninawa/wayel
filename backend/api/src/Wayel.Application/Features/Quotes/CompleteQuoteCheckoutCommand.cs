@@ -32,7 +32,7 @@ internal sealed class CompleteQuoteCheckoutCommandHandler(
     IInvoiceBlobStorage invoiceStorage,
     IBorderBoxPricingConfigRepository pricingConfig,
     IOptions<BorderBoxPricingOptions> pricingOptions,
-    IPaymentGateway paymentGateway,
+    IPaymentGatewayResolver paymentGatewayResolver,
     IUnitOfWork unitOfWork,
     IClock clock,
     IBorderBoxWhatsAppNotifier whatsApp,
@@ -56,13 +56,6 @@ internal sealed class CompleteQuoteCheckoutCommandHandler(
             return Error.Validation("checkout.missing_reference", "Payment reference is required.");
         }
 
-        if (!paymentGateway.IsConfigured)
-        {
-            return Error.Validation(
-                "payment_gateway.misconfigured",
-                "Paystack is not configured.");
-        }
-
         var payment = await checkoutPayments.GetByReferenceAsync(reference, cancellationToken);
         if (payment is null)
         {
@@ -72,6 +65,16 @@ internal sealed class CompleteQuoteCheckoutCommandHandler(
         if (payment.UserId != current.UserId)
         {
             return Error.Forbidden("checkout.forbidden", "This payment belongs to another account.");
+        }
+
+        IPaymentGateway paymentGateway;
+        try
+        {
+            paymentGateway = paymentGatewayResolver.Resolve(payment.Provider);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.misconfigured", ex.Message);
         }
 
         var quote = await quotes.GetByIdAsync(payment.QuoteId, cancellationToken);

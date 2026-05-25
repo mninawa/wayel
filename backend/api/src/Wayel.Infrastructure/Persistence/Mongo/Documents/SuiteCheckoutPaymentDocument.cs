@@ -13,4 +13,7 @@ internal sealed class SuiteCheckoutPaymentDocument
     public string Status { get; set; } = "Pending";
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
+
+    public string Provider { get; set; } = "paystack";
+    public string? PayerMsisdn { get; set; }
 }

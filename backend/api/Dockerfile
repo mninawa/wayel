@@ -39,8 +39,12 @@ COPY --from=build /app/publish .
 
 # Run as non-root. Ubuntu-based aspnet images ship useradd/groupadd but not
 # Debian's adduser wrapper (exit 127 in recent mcr.microsoft.com/dotnet/aspnet:10.0).
+# /app/data is pre-created so when docker mounts a named volume here the
+# mountpoint inherits wayel ownership and the in-memory blob storage can write
+# to it. (In production we run with S3, so this directory stays empty.)
 RUN groupadd --gid 10001 wayel \
  && useradd --uid 10001 --gid wayel --shell /usr/sbin/nologin --no-create-home wayel \
+ && mkdir -p /app/data \
  && chown -R wayel:wayel /app
 USER wayel
 

@@ -14,8 +14,11 @@ using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Quotes;
 
-public sealed record InitiateQuoteCheckoutCommand(Guid QuoteId, string CallbackUrl)
-    : ICommand<InitiateQuoteCheckoutResult>;
+public sealed record InitiateQuoteCheckoutCommand(
+    Guid QuoteId,
+    string CallbackUrl,
+    string? Provider = null,
+    string? PayerMsisdn = null) : ICommand<InitiateQuoteCheckoutResult>;
 
 public sealed record InitiateQuoteCheckoutResult(
     string Reference,
@@ -33,7 +36,7 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
     IQuoteParcelRepository quoteParcels,
     IParcelRepository parcels,
     IQuoteCheckoutPaymentRepository checkoutPayments,
-    IPaymentGateway paymentGateway,
+    IPaymentGatewayResolver paymentGatewayResolver,
     IUnitOfWork unitOfWork,
     IClock clock,
     IBorderBoxPricingConfigRepository pricingConfig,
@@ -48,11 +51,18 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
         }
 
-        if (!paymentGateway.IsConfigured)
+        var providerKey = string.IsNullOrWhiteSpace(request.Provider)
+            ? paymentGatewayResolver.DefaultFor(request.PayerMsisdn)
+            : request.Provider!.Trim().ToLowerInvariant();
+
+        IPaymentGateway paymentGateway;
+        try
         {
-            return Error.Validation(
-                "payment_gateway.misconfigured",
-                "Paystack is not configured. Set Billing:Paystack:SecretKey.");
+            paymentGateway = paymentGatewayResolver.Resolve(providerKey);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.misconfigured", ex.Message);
         }
 
         var callbackUrl = (request.CallbackUrl ?? string.Empty).Trim();
@@ -113,21 +123,36 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
 
         var pending = await checkoutPayments.GetPendingForQuoteAsync(quote.Id, cancellationToken);
         var attemptCount = pending is null ? 0 : 1;
-        var reference = QuoteCheckoutBilling.BuildPaystackReference(quote.Id, attemptCount);
+        var reference = providerKey == PaymentProviders.Momo
+            ? QuoteCheckoutBilling.BuildMomoReference(quote.Id, attemptCount)
+            : QuoteCheckoutBilling.BuildPaystackReference(quote.Id, attemptCount);
 
-        var init = await paymentGateway.InitializeChargeAsync(
-            new PaymentInitializeRequest(
-                user.Email.Value,
-                reference,
-                amountMinor,
-                callbackUrl,
-                new Dictionary<string, string>
-                {
-                    ["user_id"] = user.Id.Value.ToString(),
-                    ["quote_id"] = quote.Id.Value.ToString(),
-                    ["payment_type"] = "shipping",
-                }),
-            cancellationToken);
+        var msisdn = string.IsNullOrWhiteSpace(request.PayerMsisdn) ? user.Phone : request.PayerMsisdn!.Trim();
+
+        PaymentInitializeResult init;
+        try
+        {
+            init = await paymentGateway.InitializeChargeAsync(
+                new PaymentInitializeRequest(
+                    user.Email.Value,
+                    reference,
+                    amountMinor,
+                    callbackUrl,
+                    new Dictionary<string, string>
+                    {
+                        ["user_id"] = user.Id.Value.ToString(),
+                        ["quote_id"] = quote.Id.Value.ToString(),
+                        ["payment_type"] = "shipping",
+                    },
+                    PayerMsisdn: msisdn,
+                    PayerMessage: $"WeYell #{quote.Id.Value.ToString("N")[..6].ToUpperInvariant()}",
+                    PayeeNote: "WeYell shipping fee"),
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.initialize_failed", ex.Message);
+        }
 
         await checkoutPayments.AddAsync(
             new QuoteCheckoutPaymentRecord(
@@ -137,7 +162,9 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
                 amountMinor,
                 "Pending",
                 clock.UtcNow,
-                null),
+                null,
+                paymentGateway.ProviderName,
+                msisdn),
             cancellationToken);
 
         await quotes.UpdateAsync(quote, cancellationToken);
@@ -148,7 +175,7 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
             init.AuthorizationUrl,
             init.AccessCode,
             pricing.TotalLandedCost,
-            "Paystack",
+            paymentGateway.ProviderName,
             paymentGateway.PublicKey);
     }
 }

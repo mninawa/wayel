@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using Wayel.Application.Features.Payments;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Quotes;
@@ -14,6 +15,7 @@ internal static class QuotePaymentInvoiceHtmlBuilder
         string? suiteNumber,
         DateTime paidAtUtc,
         string paymentReference,
+        string paymentProvider,
         decimal amountZar,
         IReadOnlyList<QuoteBreakdownLineDto> breakdown,
         string deliveryMethod,
@@ -23,6 +25,7 @@ internal static class QuotePaymentInvoiceHtmlBuilder
         var customer = WebUtility.HtmlEncode(user.DisplayName);
         var email = WebUtility.HtmlEncode(user.Email.Value);
         var suite = WebUtility.HtmlEncode(suiteNumber ?? "—");
+        var providerLabel = PaymentProviderLabels.Format(paymentProvider);
 
         var rows = new StringBuilder();
         foreach (var line in breakdown)
@@ -42,7 +45,7 @@ internal static class QuotePaymentInvoiceHtmlBuilder
 
         var html =
             "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\" />"
-            + "<title>" + WebUtility.HtmlEncode(invoiceNumber) + " — BorderBox</title>"
+            + "<title>" + WebUtility.HtmlEncode(invoiceNumber) + " — WeYell</title>"
             + "<style>"
             + "body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;margin:2rem}"
             + "h1{font-size:1.5rem;margin:0 0 .25rem;color:#1d4ed8}"
@@ -61,12 +64,12 @@ internal static class QuotePaymentInvoiceHtmlBuilder
             + "@media print{body{margin:.5in}}"
             + "</style></head><body>"
             + "<h1>Payment invoice</h1>"
-            + "<p class=\"meta\">BorderBox (WeYell) — cross-border shipping to Eswatini</p>"
+            + "<p class=\"meta\">WeYell — cross-border shipping to Eswatini</p>"
             + "<div class=\"grid\"><div class=\"box\"><h2>Invoice</h2>"
             + "<div><strong>" + WebUtility.HtmlEncode(invoiceNumber) + "</strong></div>"
             + "<div>Quote: " + WebUtility.HtmlEncode(quoteDisplayNumber) + "</div>"
             + "<div>Paid: " + paidLocal + "</div>"
-            + "<div>Paystack ref: " + WebUtility.HtmlEncode(paymentReference) + "</div></div>"
+            + "<div>" + WebUtility.HtmlEncode(providerLabel) + " ref: " + WebUtility.HtmlEncode(paymentReference) + "</div></div>"
             + "<div class=\"box\"><h2>Customer</h2><div>" + customer + "</div><div>" + email + "</div>"
             + "<div>Suite: " + suite + "</div></div></div>"
             + "<div class=\"box\"><h2>Shipment</h2><div>"
@@ -75,7 +78,7 @@ internal static class QuotePaymentInvoiceHtmlBuilder
             + rows
             + "</tbody></table>"
             + "<div class=\"total\">Total paid: R " + amountZar.ToString("N2", CultureInfo.InvariantCulture) + "</div>"
-            + "<p class=\"note\">This invoice covers customs, freight and BorderBox fees paid via Paystack. "
+            + "<p class=\"note\">This invoice covers customs, freight and WeYell fees. "
             + "Goods value paid to Takealot/retailers is shown for reference only when marked not in total. "
             + "Import duty is remitted to Eswatini. VAT treatment follows your quote at checkout.</p>"
             + "</body></html>";

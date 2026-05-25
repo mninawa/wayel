@@ -14,6 +14,7 @@ using Wayel.Application.Abstractions.Payments;
 using Wayel.Application.Configuration;
 using Wayel.Application.Kyc;
 using Wayel.Infrastructure.Billing;
+using Wayel.Infrastructure.Billing.Momo;
 using Wayel.Infrastructure.Kyc;
 using Wayel.Infrastructure.Notifications;
 using Wayel.Infrastructure.Parcels;
@@ -113,8 +114,26 @@ public static class DependencyInjection
         services.AddOptions<QuoteQueueAutoProcessorOptions>()
             .Bind(configuration.GetSection(QuoteQueueAutoProcessorOptions.SectionName));
 
+        services.AddOptions<MtnMomoOptions>()
+            .Bind(configuration.GetSection(MtnMomoOptions.SectionName));
+
         services.AddHttpClient(nameof(PaystackPaymentGateway));
+        services.AddHttpClient(nameof(MtnMomoTokenManager));
+        services.AddHttpClient(nameof(MtnMomoCollectionsClient));
+        services.AddHttpClient(nameof(MtnMomoDisbursementsClient));
+        services.AddHttpClient(nameof(MtnMomoSandboxProvisioner));
+
+        services.AddSingleton<MtnMomoRuntimeCredentials>();
+        services.AddSingleton<MtnMomoTokenManager>();
+        services.AddSingleton<MtnMomoCollectionsClient>();
+        services.AddSingleton<MtnMomoDisbursementsClient>();
+        services.AddSingleton<MtnMomoSandboxProvisioner>();
+        services.AddHostedService<MtnMomoBootstrapHostedService>();
+
         services.AddSingleton<IPaymentGateway, PaystackPaymentGateway>();
+        services.AddSingleton<IPaymentGateway, MtnMomoPaymentGateway>();
+        services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
+        services.AddSingleton<IMomoAccountValidator, MtnMomoAccountValidator>();
 
         services.AddScoped<IOpsPhotoUploadSessionStore, MongoOpsPhotoUploadSessionStore>();
         services.AddScoped<IKycDocumentUploadSessionStore, MongoKycDocumentUploadSessionStore>();

@@ -5,6 +5,7 @@ using Wayel.Application.Features.Notifications;
 using Wayel.Application.Features.Account;
 using Wayel.Application.Features.Dashboard;
 using Wayel.Application.Features.Parcels;
+using Wayel.Application.Features.Payments;
 using Wayel.Application.Features.Quotes;
 using Wayel.Application.Features.Shipments;
 using Wayel.Application.Features.SuitePlans;
@@ -148,6 +149,27 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new ListSuitePlansQuery(), ct)).ToHttpResult())
             .WithName("ListSuitePlans");
 
+        group.MapGet("/payments/providers", async (
+            string? msisdn,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new ListPaymentProvidersQuery(msisdn), ct)).ToHttpResult())
+            .WithName("ListPaymentProviders");
+
+        group.MapGet("/payments/{reference}/status", async (
+            string reference,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new GetPaymentStatusQuery(reference), ct)).ToHttpResult())
+            .WithName("GetPaymentStatus");
+
+        group.MapPost("/payments/momo/validate", async (
+            ValidateMomoMsisdnRequest body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new ValidateMomoMsisdnQuery(body.Msisdn ?? string.Empty), ct)).ToHttpResult())
+            .WithName("ValidateMomoMsisdn");
+
         group.MapPost("/suite-access/checkout", async (ActivateSuiteRequest body, IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new ActivateSuiteSubscriptionCommand(body.PlanId), ct)).ToHttpResult())
             .WithName("ActivateSuiteAccess");
@@ -156,12 +178,36 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new GetSuitePaymentsOverviewQuery(), ct)).ToHttpResult())
             .WithName("GetSuitePaymentsOverview");
 
+        group.MapGet("/account/suite-payments/{reference}/invoice/download", async (
+            string reference,
+            HttpRequest httpRequest,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var result = await mediator.Send(new DownloadSuitePaymentInvoiceQuery(reference), ct);
+            if (result.IsFailure)
+            {
+                return result.ToHttpResult();
+            }
+
+            var file = result.Value;
+            // ?download=1 forces the browser into a save dialog; without it we
+            // stream inline so customers see the receipt rendered in a tab.
+            var forceDownload = httpRequest.Query.ContainsKey("download");
+            return Results.File(
+                file.Content,
+                contentType: file.ContentType,
+                fileDownloadName: forceDownload ? file.FileName : null,
+                enableRangeProcessing: true);
+        })
+            .WithName("DownloadSuitePaymentInvoice");
+
         group.MapPost("/suite-access/checkout/initiate", async (
             InitiateSuiteCheckoutRequest body,
             IMediator mediator,
             CancellationToken ct) =>
             (await mediator.Send(
-                new InitiateSuiteCheckoutCommand(body.PlanId, body.CallbackUrl),
+                new InitiateSuiteCheckoutCommand(body.PlanId, body.CallbackUrl, body.Provider, body.PayerMsisdn),
                 ct)).ToHttpResult())
             .WithName("InitiateSuiteCheckout");
 
@@ -290,7 +336,7 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             IMediator mediator,
             CancellationToken ct) =>
             (await mediator.Send(
-                new InitiateQuoteCheckoutCommand(quoteId, body.CallbackUrl),
+                new InitiateQuoteCheckoutCommand(quoteId, body.CallbackUrl, body.Provider, body.PayerMsisdn),
                 ct)).ToHttpResult())
             .WithName("InitiateQuoteCheckout");
 
@@ -346,13 +392,21 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
         [property: JsonPropertyName("declaredValueZar")] decimal? DeclaredValueZar);
     private sealed record CreateSupportTicketRequest(string Subject, string Body);
     private sealed record ActivateSuiteRequest(Guid PlanId);
-    private sealed record InitiateSuiteCheckoutRequest(Guid PlanId, string CallbackUrl);
+    private sealed record InitiateSuiteCheckoutRequest(
+        Guid PlanId,
+        string CallbackUrl,
+        string? Provider = null,
+        string? PayerMsisdn = null);
     private sealed record CompleteSuiteCheckoutRequest(string Reference);
     private sealed record EstimateShipmentRequest(IReadOnlyList<Guid> ParcelIds, string DeliveryMethod);
     private sealed record CreateShipmentRequest(IReadOnlyList<Guid> ParcelIds, string DeliveryMethod);
     private sealed record CreateQuoteRequest(IReadOnlyList<Guid> ParcelIds, string DeliveryMethod);
-    private sealed record InitiateQuoteCheckoutRequest(string CallbackUrl);
+    private sealed record InitiateQuoteCheckoutRequest(
+        string CallbackUrl,
+        string? Provider = null,
+        string? PayerMsisdn = null);
     private sealed record CompleteQuoteCheckoutRequest(string Reference);
+    private sealed record ValidateMomoMsisdnRequest(string? Msisdn);
     private sealed record UpdateProfileRequest(
         [property: JsonPropertyName("firstName")] string FirstName,
         [property: JsonPropertyName("lastName")] string LastName,

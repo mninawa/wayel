@@ -65,11 +65,11 @@ Renewal at `/suite-access/checkout` redirects to **Paystack** hosted checkout, t
 
 | Variable | Purpose |
 |----------|---------|
-| `PAYSTACK_SECRET_KEY` | `sk_test_…` / `sk_live_…` from Paystack dashboard |
-| `PAYSTACK_PUBLIC_KEY` | Optional `pk_test_…` |
-| `PAYSTACK_ALLOW_SIMULATED` | `true` (default in Docker) skips Paystack when secret is empty — for local demo only |
+| `PAYSTACK_SECRET_KEY` | `sk_test_…` / `sk_live_…` from Paystack dashboard (required) |
+| `PAYSTACK_PUBLIC_KEY` | `pk_test_…` / `pk_live_…` (required for inline checkout) |
 
-For real card payments, set `PAYSTACK_SECRET_KEY` and `PAYSTACK_ALLOW_SIMULATED=false`.
+Both keys are required — the API refuses to start without `PAYSTACK_SECRET_KEY`,
+and the SPA inline checkout needs `PAYSTACK_PUBLIC_KEY` to open the payment widget.
 
 ### Google SSO (`redirect_uri_mismatch`)
 

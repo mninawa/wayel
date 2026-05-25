@@ -42,6 +42,8 @@ internal sealed class MongoQuoteCheckoutPaymentRepository(MongoContext context) 
                 Status = payment.Status,
                 CreatedAtUtc = payment.CreatedAtUtc,
                 CompletedAtUtc = payment.CompletedAtUtc,
+                Provider = string.IsNullOrWhiteSpace(payment.Provider) ? "paystack" : payment.Provider,
+                PayerMsisdn = payment.PayerMsisdn,
             },
             cancellationToken: cancellationToken);
 
@@ -73,5 +75,7 @@ internal sealed class MongoQuoteCheckoutPaymentRepository(MongoContext context) 
             doc.AmountMinorUnits,
             doc.Status,
             doc.CreatedAtUtc,
-            doc.CompletedAtUtc);
+            doc.CompletedAtUtc,
+            string.IsNullOrWhiteSpace(doc.Provider) ? "paystack" : doc.Provider,
+            doc.PayerMsisdn);
 }

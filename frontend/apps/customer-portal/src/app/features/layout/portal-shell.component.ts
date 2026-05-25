@@ -17,8 +17,6 @@ import {
   CustomerInAppNotificationsApiService,
   type CustomerInAppNotification,
 } from '../../services/customer-inapp-notifications-api.service';
-import { SimulatedPaystackSheetComponent } from '../payments/simulated-paystack-sheet.component';
-
 interface NavItem {
   path: string;
   label: string;
@@ -39,7 +37,7 @@ function buildNav(): NavItem[] {
 @Component({
   selector: 'app-portal-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SimulatedPaystackSheetComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
@@ -146,7 +144,6 @@ function buildNav(): NavItem[] {
         </main>
       </div>
     </div>
-    <app-simulated-paystack-sheet />
   `,
   styles: `
     .shell {

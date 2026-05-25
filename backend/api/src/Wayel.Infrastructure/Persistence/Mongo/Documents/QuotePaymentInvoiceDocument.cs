@@ -14,4 +14,9 @@ internal sealed class QuotePaymentInvoiceDocument
     public decimal AmountZar { get; set; }
     public string StorageKey { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
+
+    // Default to "paystack" so legacy documents written before this field
+    // existed continue to render with the original gateway label after a
+    // self-heal rebuild.
+    public string PaymentProvider { get; set; } = "paystack";
 }

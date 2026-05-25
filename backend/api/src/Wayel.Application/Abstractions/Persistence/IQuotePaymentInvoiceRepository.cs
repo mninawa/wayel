@@ -11,7 +11,8 @@ public sealed record QuotePaymentInvoiceRecord(
     DateTime PaidAtUtc,
     decimal AmountZar,
     string StorageKey,
-    string FileName);
+    string FileName,
+    string PaymentProvider = "paystack");
 
 public interface IQuotePaymentInvoiceRepository
 {

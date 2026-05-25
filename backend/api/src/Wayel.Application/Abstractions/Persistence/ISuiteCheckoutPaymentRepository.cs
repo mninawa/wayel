@@ -10,7 +10,9 @@ public sealed record SuiteCheckoutPaymentRecord(
     int AmountMinorUnits,
     string Status,
     DateTime CreatedAtUtc,
-    DateTime? CompletedAtUtc);
+    DateTime? CompletedAtUtc,
+    string Provider = "paystack",
+    string? PayerMsisdn = null);
 
 public interface ISuiteCheckoutPaymentRepository
 {

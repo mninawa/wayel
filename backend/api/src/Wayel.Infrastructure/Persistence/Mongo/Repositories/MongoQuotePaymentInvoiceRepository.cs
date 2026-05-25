@@ -48,6 +48,9 @@ internal sealed class MongoQuotePaymentInvoiceRepository(MongoContext context) :
                 AmountZar = invoice.AmountZar,
                 StorageKey = invoice.StorageKey,
                 FileName = invoice.FileName,
+                PaymentProvider = string.IsNullOrWhiteSpace(invoice.PaymentProvider)
+                    ? "paystack"
+                    : invoice.PaymentProvider,
             },
             new ReplaceOptions { IsUpsert = true },
             cancellationToken);
@@ -61,5 +64,6 @@ internal sealed class MongoQuotePaymentInvoiceRepository(MongoContext context) :
             doc.PaidAtUtc,
             doc.AmountZar,
             doc.StorageKey,
-            doc.FileName);
+            doc.FileName,
+            string.IsNullOrWhiteSpace(doc.PaymentProvider) ? "paystack" : doc.PaymentProvider);
 }

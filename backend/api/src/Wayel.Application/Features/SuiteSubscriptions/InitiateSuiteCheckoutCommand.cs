@@ -11,8 +11,11 @@ using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.SuiteSubscriptions;
 
-public sealed record InitiateSuiteCheckoutCommand(Guid PlanId, string CallbackUrl)
-    : ICommand<InitiateSuiteCheckoutResult>;
+public sealed record InitiateSuiteCheckoutCommand(
+    Guid PlanId,
+    string CallbackUrl,
+    string? Provider = null,
+    string? PayerMsisdn = null) : ICommand<InitiateSuiteCheckoutResult>;
 
 public sealed record InitiateSuiteCheckoutResult(
     string Reference,
@@ -29,7 +32,7 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
     ISuiteSubscriptionRepository subscriptions,
     ISuiteCheckoutPaymentRepository checkoutPayments,
     ISuiteNumberAllocator suiteNumbers,
-    IPaymentGateway paymentGateway,
+    IPaymentGatewayResolver paymentGatewayResolver,
     IClock clock) : ICommandHandler<InitiateSuiteCheckoutCommand, InitiateSuiteCheckoutResult>
 {
     public async Task<Result<InitiateSuiteCheckoutResult>> Handle(
@@ -41,11 +44,18 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
         }
 
-        if (!paymentGateway.IsConfigured)
+        var providerKey = string.IsNullOrWhiteSpace(request.Provider)
+            ? paymentGatewayResolver.DefaultFor(request.PayerMsisdn)
+            : request.Provider!.Trim().ToLowerInvariant();
+
+        IPaymentGateway paymentGateway;
+        try
         {
-            return Error.Validation(
-                "payment_gateway.misconfigured",
-                "Paystack is not configured. Set Billing:Paystack:SecretKey.");
+            paymentGateway = paymentGatewayResolver.Resolve(providerKey);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.misconfigured", ex.Message);
         }
 
         var callbackUrl = (request.CallbackUrl ?? string.Empty).Trim();
@@ -93,24 +103,38 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
         }
 
         var completedPayments = await checkoutPayments.CountCompletedForUserAsync(user.Id, cancellationToken);
-        var reference = SuiteCheckoutBilling.BuildPaystackReference(suiteNumber, completedPayments);
+        var reference = providerKey == PaymentProviders.Momo
+            ? SuiteCheckoutBilling.BuildMomoReference(suiteNumber, completedPayments)
+            : SuiteCheckoutBilling.BuildPaystackReference(suiteNumber, completedPayments);
 
         var amountMinor = ToMinorUnits(plan.PriceZar);
+        var msisdn = string.IsNullOrWhiteSpace(request.PayerMsisdn) ? user.Phone : request.PayerMsisdn!.Trim();
 
-        var init = await paymentGateway.InitializeChargeAsync(
-            new PaymentInitializeRequest(
-                user.Email.Value,
-                reference,
-                amountMinor,
-                callbackUrl,
-                new Dictionary<string, string>
-                {
-                    ["user_id"] = user.Id.Value.ToString(),
-                    ["plan_id"] = plan.Id.Value.ToString(),
-                    ["payment_type"] = "suite_access",
-                    ["suite_number"] = suiteNumber,
-                }),
-            cancellationToken);
+        PaymentInitializeResult init;
+        try
+        {
+            init = await paymentGateway.InitializeChargeAsync(
+                new PaymentInitializeRequest(
+                    user.Email.Value,
+                    reference,
+                    amountMinor,
+                    callbackUrl,
+                    new Dictionary<string, string>
+                    {
+                        ["user_id"] = user.Id.Value.ToString(),
+                        ["plan_id"] = plan.Id.Value.ToString(),
+                        ["payment_type"] = "suite_access",
+                        ["suite_number"] = suiteNumber,
+                    },
+                    PayerMsisdn: msisdn,
+                    PayerMessage: $"Wayel Suite {suiteNumber}",
+                    PayeeNote: $"Suite access — {plan.Name}"),
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("payment_gateway.initialize_failed", ex.Message);
+        }
 
         await checkoutPayments.AddAsync(
             new SuiteCheckoutPaymentRecord(
@@ -120,7 +144,9 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
                 amountMinor,
                 "Pending",
                 DateTime.UtcNow,
-                null),
+                null,
+                paymentGateway.ProviderName,
+                msisdn),
             cancellationToken);
 
         return new InitiateSuiteCheckoutResult(
@@ -128,7 +154,7 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
             init.AuthorizationUrl,
             init.AccessCode,
             plan.PriceZar,
-            "Paystack",
+            paymentGateway.ProviderName,
             paymentGateway.PublicKey);
     }
 
