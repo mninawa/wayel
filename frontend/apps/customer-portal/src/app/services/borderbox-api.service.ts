@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { BorderboxMockService } from './borderbox-mock.service';
 
 export interface SuiteAccessSummary {
   status: string;
@@ -29,44 +28,528 @@ export interface SuitePlanDto {
   isRecommended: boolean;
 }
 
+export interface InitiateSuiteCheckoutDto {
+  reference: string;
+  authorizationUrl: string;
+  accessCode: string;
+  amountZar: number;
+  provider: string;
+  publicKey: string | null;
+}
+
+export interface SuitePaymentsOverviewDto {
+  currentPlan: SuitePaymentsCurrentPlanDto | null;
+  subscription: SuitePaymentsSubscriptionDto | null;
+  lastPayment: SuitePaymentsLastPaymentDto | null;
+  nextPayment: SuitePaymentsNextPaymentDto | null;
+  paymentMethod: SuitePaymentMethodDto | null;
+  history: SuitePaymentHistoryRowDto[];
+  summary: SuitePaymentsSummaryDto;
+}
+
+export interface SuitePaymentsCurrentPlanDto {
+  planId: string;
+  planName: string;
+  planLabel: string;
+  durationMonths: number;
+  priceZar: number;
+}
+
+export interface SuitePaymentsSubscriptionDto {
+  suiteNumber: string;
+  status: string;
+  startedAtUtc: string | null;
+  expiresAtUtc: string | null;
+  daysRemaining: number | null;
+  shipOutLocked: boolean;
+}
+
+export interface SuitePaymentsLastPaymentDto {
+  reference: string;
+  paidAtUtc: string;
+  amountZar: number;
+  status: string;
+}
+
+export interface SuitePaymentsNextPaymentDto {
+  dueAtUtc: string;
+  amountZar: number;
+  daysRemaining: number;
+}
+
+export interface SuitePaymentMethodDto {
+  provider: string;
+  descriptor: string;
+  isDefault: boolean;
+}
+
+export interface SuitePaymentHistoryRowDto {
+  reference: string;
+  invoiceNumber: string;
+  createdAtUtc: string;
+  completedAtUtc: string | null;
+  planName: string;
+  planDurationMonths: number;
+  amountZar: number;
+  status: string;
+}
+
+export interface SuitePaymentsSummaryDto {
+  totalInvoices: number;
+  paid: number;
+  failed: number;
+  totalPaidZar: number;
+}
+
 export interface ParcelDto {
   id: string;
   retailer: string;
   trackingNumber: string | null;
+  itemName: string;
+  category: string;
   status: string;
   weightKg: number | null;
+  declaredValueZar: number | null;
+  dimensionsLabel?: string | null;
   receivedAtUtc: string;
+  invoiceStatus: string;
+  invoiceFileName: string | null;
+  invoiceUploadedAtUtc?: string | null;
+  quoteState?: string;
+  quoteStateLabel?: string;
+  openQuoteId?: string | null;
+  openQuoteDisplayNumber?: string | null;
+  shipmentId?: string | null;
+  canRequestQuote?: boolean;
+  quoteRequestBlocker?: string | null;
+}
+
+export interface ParcelPhotoDto {
+  id: string;
+  url: string;
+  caption: string | null;
+  capturedAtUtc: string | null;
+}
+
+export interface ParcelDetailDto extends ParcelDto {
+  suiteNumber: string;
+  dimensionsLabel: string | null;
+  daysInWarehouse: number;
+  invoiceFileSizeBytes: number | null;
+  canUploadInvoice: boolean;
+  invoiceDownloadUrl?: string | null;
+  photos?: ParcelPhotoDto[];
+}
+
+export interface UploadParcelInvoiceResultDto {
+  parcelId: string;
+  invoiceStatus: string;
+  fileName: string;
+  uploadedAtUtc: string;
+  downloadUrl?: string | null;
+}
+
+export interface ShipmentDto {
+  id: string;
+  quoteId: string;
+  status: string;
+  shipOutLockedReason: string | null;
+}
+
+export interface QuoteSummaryDto {
+  id: string;
+  displayNumber: string;
+  totalLandedCost: number;
+  status: string;
+  statusLabel: string;
+  createdAtUtc: string;
+  validUntil: string;
+  parcelCount: number;
+  deliveryMethod: string;
+  shipOutLocked: boolean;
+  hasPaymentInvoice: boolean;
+  paymentPaidAtUtc: string | null;
+  paymentReference: string | null;
+}
+
+export interface QuoteBreakdownLineDto {
+  label: string;
+  amount: number;
+  /** When false, shown for reference only — not part of total to pay. */
+  includedInTotal?: boolean;
+}
+
+export interface QuoteLinkedParcelDto {
+  parcelId: string;
+  reference: string;
+  itemName: string;
+  retailer: string;
+  declaredValueZar: number;
+  weightKg: number | null;
+  dimensionsLabel: string | null;
+}
+
+export interface QuoteDetailDto {
+  id: string;
+  displayNumber: string;
+  shipmentId: string | null;
+  createdAtUtc: string;
+  publishedAtUtc: string | null;
+  validUntil: string;
+  shipTo: string;
+  deliveryEstimate: string;
+  totalLandedCost: number;
+  declaredGoodsValueZar: number;
+  vatCharged: boolean;
+  dutyCharged: boolean;
+  dutyGoodsValueThresholdZar: number;
+  parcelCount: number;
+  totalWeightKg: number;
+  deliveryMethod: string;
+  consolidation: string;
+  warehouse: string;
+  status: string;
+  statusLabel: string;
+  statusReason: string | null;
+  shipOutLocked: boolean;
+  canApprove: boolean;
+  canPay: boolean;
+  canCancel: boolean;
+  hasPaymentInvoice: boolean;
+  breakdown: QuoteBreakdownLineDto[];
+  linkedParcels: QuoteLinkedParcelDto[];
+}
+
+export interface InitiateQuoteCheckoutDto {
+  reference: string;
+  authorizationUrl: string;
+  accessCode: string;
+  amountZar: number;
+  provider: string;
+  publicKey: string | null;
+}
+
+export interface CreateQuoteRequestResultDto {
+  quoteId: string;
+  displayNumber: string;
+  status: string;
+  totalLandedCost: number;
+  validUntil: string;
+  parcelCount: number;
+}
+
+export interface QuoteApprovalDto {
+  id: string;
+  shipmentId: string | null;
+  totalLandedCost: number;
+  status: string;
+  statusReason: string | null;
+}
+
+export interface ParcelQuoteHistoryItemDto {
+  quoteId: string;
+  displayNumber: string;
+  statusLabel: string;
+  totalLandedCost: number;
+  validUntil: string;
+  isOpen: boolean;
 }
 
 /**
- * WeYell API facade. In dev (`environment.useMock`) all calls are served
- * in-memory — no backend or platform-mock-api required.
+ * WeYell API facade. Calls the live `/api/v1/borderbox/*` endpoints — no
+ * mock fallback is wired.
  */
 @Injectable({ providedIn: 'root' })
 export class BorderboxApiService {
   private readonly http = inject(HttpClient);
-  private readonly mock = inject(BorderboxMockService);
   private readonly base = environment.useBffAuth
     ? '/api/v1'
     : `${environment.platformApiUrl || ''}/api/v1`.replace(/\/$/, '') || '/api/v1';
 
   getDashboard(): Observable<DashboardDto> {
-    if (environment.useMock) return this.mock.getDashboard();
     return this.http.get<DashboardDto>(`${this.base}/borderbox/dashboard`);
   }
 
   listParcels(): Observable<ParcelDto[]> {
-    if (environment.useMock) return this.mock.listParcels();
     return this.http.get<ParcelDto[]>(`${this.base}/borderbox/parcels`);
   }
 
+  getParcel(id: string): Observable<ParcelDetailDto> {
+    return this.http.get<ParcelDetailDto>(`${this.base}/borderbox/parcels/${id}`);
+  }
+
+  updateParcelPhysical(
+    parcelId: string,
+    body: { weightKg: number | null; dimensionsLabel: string | null; declaredValueZar: number | null },
+  ): Observable<ParcelDetailDto> {
+    return this.http.patch<ParcelDetailDto>(
+      `${this.base}/borderbox/parcels/${parcelId}/physical`,
+      body,
+    );
+  }
+
+  uploadParcelInvoice(parcelId: string, file: File): Observable<UploadParcelInvoiceResultDto> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<UploadParcelInvoiceResultDto>(
+      `${this.base}/borderbox/parcels/${parcelId}/invoice`,
+      form,
+    );
+  }
+
+  invoiceDownloadUrl(parcelId: string): string {
+    return `${this.base}/borderbox/parcels/${parcelId}/invoice/download`;
+  }
+
+  downloadInvoiceBlob(parcelId: string): Observable<Blob> {
+    return this.http.get(`${this.base}/borderbox/parcels/${parcelId}/invoice/download`, {
+      responseType: 'blob',
+      withCredentials: true,
+    });
+  }
+
   listSuitePlans(): Observable<SuitePlanDto[]> {
-    if (environment.useMock) return this.mock.listSuitePlans();
     return this.http.get<SuitePlanDto[]>(`${this.base}/borderbox/suite-plans`);
   }
 
+  getSuitePaymentsOverview(): Observable<SuitePaymentsOverviewDto> {
+    return this.http.get<SuitePaymentsOverviewDto>(
+      `${this.base}/borderbox/account/suite-payments`,
+    );
+  }
+
   activateSuite(planId: string): Observable<unknown> {
-    if (environment.useMock) return this.mock.activateSuite(planId);
     return this.http.post(`${this.base}/borderbox/suite-access/checkout`, { planId });
   }
+
+  initiateSuiteCheckout(planId: string, callbackUrl: string): Observable<InitiateSuiteCheckoutDto> {
+    return this.http.post<InitiateSuiteCheckoutDto>(
+      `${this.base}/borderbox/suite-access/checkout/initiate`,
+      { planId, callbackUrl },
+    );
+  }
+
+  completeSuiteCheckout(reference: string): Observable<unknown> {
+    return this.http.post(`${this.base}/borderbox/suite-access/checkout/complete`, {
+      reference,
+    });
+  }
+
+  seedShippableTestParcels(dataset: 'catalog-a' | 'catalog-b' = 'catalog-a'): Observable<{
+    created: number;
+    totalShippable: number;
+    dataset: string;
+    message: string;
+  }> {
+    return this.http.post<{
+      created: number;
+      totalShippable: number;
+      dataset: string;
+      message: string;
+    }>(`${this.base}/borderbox/dev/seed-shippable-parcels`, { dataset });
+  }
+
+  estimateShipmentQuote(
+    parcelIds: string[],
+    deliveryMethod: string,
+  ): Observable<{
+    totalLandedCost: number;
+    declaredGoodsValueZar: number;
+    vatCharged: boolean;
+    dutyCharged: boolean;
+    dutyGoodsValueThresholdZar: number;
+    totalWeightKg: number;
+    parcelCount: number;
+    deliveryEstimate: string;
+    breakdown: QuoteBreakdownLineDto[];
+  }> {
+    return this.http.post<{
+      totalLandedCost: number;
+      declaredGoodsValueZar: number;
+      vatCharged: boolean;
+      dutyCharged: boolean;
+      dutyGoodsValueThresholdZar: number;
+      totalWeightKg: number;
+      parcelCount: number;
+      deliveryEstimate: string;
+      breakdown: QuoteBreakdownLineDto[];
+    }>(`${this.base}/borderbox/shipments/estimate`, {
+      parcelIds,
+      deliveryMethod,
+    });
+  }
+
+  createShipment(parcelIds: string[], deliveryMethod: string): Observable<ShipmentDto> {
+    return this.http.post<ShipmentDto>(`${this.base}/borderbox/shipments`, {
+      parcelIds,
+      deliveryMethod,
+    });
+  }
+
+  createQuoteRequest(
+    parcelIds: string[],
+    deliveryMethod: string,
+  ): Observable<CreateQuoteRequestResultDto> {
+    return this.http.post<CreateQuoteRequestResultDto>(
+      `${this.base}/borderbox/quotes/requests`,
+      { parcelIds, deliveryMethod },
+    );
+  }
+
+  listQuotes(status?: string): Observable<QuoteSummaryDto[]> {
+    const params = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.http.get<QuoteSummaryDto[]>(`${this.base}/borderbox/quotes${params}`);
+  }
+
+  getParcelQuoteHistory(parcelId: string): Observable<ParcelQuoteHistoryItemDto[]> {
+    return this.http.get<ParcelQuoteHistoryItemDto[]>(
+      `${this.base}/borderbox/parcels/${parcelId}/quotes`,
+    );
+  }
+
+  getQuote(id: string): Observable<QuoteDetailDto> {
+    return this.http.get<QuoteDetailDto>(`${this.base}/borderbox/quotes/${id}`);
+  }
+
+  approveQuote(id: string): Observable<QuoteApprovalDto> {
+    return this.http.post<QuoteApprovalDto>(`${this.base}/borderbox/quotes/${id}/approve`, {});
+  }
+
+  cancelQuote(id: string): Observable<QuoteApprovalDto> {
+    return this.http.post<QuoteApprovalDto>(`${this.base}/borderbox/quotes/${id}/cancel`, {});
+  }
+
+  initiateQuoteCheckout(quoteId: string, callbackUrl: string): Observable<InitiateQuoteCheckoutDto> {
+    return this.http.post<InitiateQuoteCheckoutDto>(
+      `${this.base}/borderbox/quotes/${quoteId}/checkout/initiate`,
+      { callbackUrl },
+    );
+  }
+
+  completeQuoteCheckout(reference: string): Observable<QuoteApprovalDto> {
+    return this.http.post<QuoteApprovalDto>(`${this.base}/borderbox/quotes/checkout/complete`, {
+      reference,
+    });
+  }
+
+  quotePaymentInvoiceDownloadUrl(quoteId: string, download = false): string {
+    const q = download ? '?download' : '';
+    return `${this.base}/borderbox/quotes/${quoteId}/payment-invoice/download${q}`;
+  }
+
+  getTrackingSupport(): Observable<TrackingSupportOverviewDto> {
+    return this.http.get<TrackingSupportOverviewDto>(`${this.base}/borderbox/tracking-support`);
+  }
+
+  getShipmentTracking(shipmentId: string): Observable<ShipmentTrackingDetailDto> {
+    return this.http.get<ShipmentTrackingDetailDto>(
+      `${this.base}/borderbox/shipments/${shipmentId}/tracking`,
+    );
+  }
+
+  getParcelShipmentTracking(parcelId: string): Observable<ShipmentTrackingDetailDto> {
+    return this.http.get<ShipmentTrackingDetailDto>(
+      `${this.base}/borderbox/parcels/${parcelId}/tracking`,
+    );
+  }
+
+  createSupportTicket(subject: string, body: string): Observable<SupportTicketSummaryDto> {
+    return this.http.post<SupportTicketSummaryDto>(`${this.base}/borderbox/support/tickets`, {
+      subject,
+      body,
+    });
+  }
+}
+
+export interface TrackingTimelineStepDto {
+  label: string;
+  done: boolean;
+  current: boolean;
+  occurredAtUtc: string | null;
+}
+
+export interface ShipmentTrackingDto {
+  shipmentId: string;
+  reference: string;
+  status: string;
+  statusLabel: string;
+  primaryTrackingNumber: string | null;
+  from: string;
+  to: string;
+  service: string;
+  weightLabel: string;
+  pieceCount: number;
+  estimatedDelivery: string | null;
+  timeline: TrackingTimelineStepDto[];
+}
+
+export interface SupportTicketSummaryDto {
+  id: string;
+  displayId: string;
+  subject: string;
+  snippet: string;
+  status: string;
+  createdAtUtc: string;
+}
+
+export interface TrackingSupportOverviewDto {
+  activeShipment: ShipmentTrackingDto | null;
+  recentTicket: SupportTicketSummaryDto | null;
+  notifications: { email: boolean; sms: boolean; whatsApp: boolean };
+}
+
+export interface ShipmentTrackingMilestoneDto {
+  label: string;
+  icon: string;
+  done: boolean;
+  current: boolean;
+  occurredAtUtc: string | null;
+}
+
+export interface ShipmentTrackingParcelRowDto {
+  trackingNumber: string;
+  itemName: string;
+  weightKg: number | null;
+  status: string;
+  statusLabel: string;
+}
+
+export interface ShipmentTrackingHistoryEventDto {
+  occurredAtUtc: string;
+  eventLabel: string;
+  eventTone: string;
+  location: string;
+  details: string;
+}
+
+export interface CourierInfoDto {
+  name: string;
+  website: string;
+  phone: string;
+}
+
+export interface RecipientInfoDto {
+  name: string;
+  phone: string;
+  address: string;
+}
+
+export interface ShipmentTrackingDetailDto {
+  shipmentId: string;
+  trackingNumber: string;
+  status: string;
+  statusLabel: string;
+  deliveryMethod: string;
+  estimatedDelivery: string;
+  originLabel: string;
+  destinationLabel: string;
+  parcelCount: number;
+  totalWeightLabel: string;
+  declaredValueLabel: string;
+  milestones: ShipmentTrackingMilestoneDto[];
+  parcels: ShipmentTrackingParcelRowDto[];
+  courier: CourierInfoDto;
+  recipient: RecipientInfoDto;
+  history: ShipmentTrackingHistoryEventDto[];
+  timezoneNote: string;
 }

@@ -1,0 +1,123 @@
+<div class="page">
+  <header class="page-head">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      Ops / Platform / <span>Accounts &amp; Suites</span>
+    </nav>
+    <h1>Account &amp; Suite Management</h1>
+    <p>Customer identities, suite numbers, KYC, membership, and delivery profiles.</p>
+  </header>
+
+  <div class="toolbar">
+    <label class="search-field">
+      <span class="material-icons-outlined">search</span>
+      <input
+        [(ngModel)]="searchFilter"
+        name="search"
+        placeholder="Search email, name, phone, suite, ID…"
+        (keyup.enter)="applyFilters()"
+      />
+    </label>
+    <select [(ngModel)]="kycFilter" name="kyc" (change)="applyFilters()">
+      <option value="">All KYC</option>
+      @for (s of kycOptions; track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+    <select [(ngModel)]="countryFilter" name="country" (change)="applyFilters()">
+      <option value="">All countries</option>
+      @for (c of countries; track c.code) {
+        <option [value]="c.code">{{ c.label }}</option>
+      }
+    </select>
+    <select [(ngModel)]="suiteFilter" name="suite" (change)="applyFilters()">
+      <option value="">All suite status</option>
+      @for (s of suiteOptions; track s) {
+        <option [value]="s">{{ s === 'none' ? 'No suite' : s }}</option>
+      }
+    </select>
+    <button type="button" class="ops-btn ops-btn-outline" (click)="applyFilters()" [disabled]="busy()">
+      Apply
+    </button>
+    <button type="button" class="ops-btn ops-btn-ghost" (click)="clearFilters()" [disabled]="busy()">
+      Clear
+    </button>
+    <button type="button" class="icon-btn" (click)="refresh()" [disabled]="busy()" title="Refresh">
+      <span class="material-icons-outlined">refresh</span>
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="err-banner" role="alert">{{ error() }}</p>
+  }
+
+  <section class="ops-card table-card">
+    @if (busy() && items().length === 0) {
+      <p class="loading">Loading accounts…</p>
+    } @else if (items().length === 0) {
+      <div class="empty">
+        <span class="material-icons-outlined">manage_accounts</span>
+        <p>No customer accounts match your filters.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Country</th>
+              <th>Suite</th>
+              <th>Membership</th>
+              <th>KYC</th>
+              <th>Member since</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.userId) {
+              <tr [class.disabled-row]="item.isDisabled">
+                <td>
+                  <strong>{{ item.displayName }}</strong>
+                  <span class="sub">{{ item.email }}</span>
+                  @if (item.phone) {
+                    <span class="sub">{{ item.phone }}</span>
+                  }
+                </td>
+                <td>{{ item.destinationCountryLabel }}</td>
+                <td>
+                  @if (item.suiteNumber) {
+                    <code>{{ item.suiteNumber }}</code>
+                    <span class="pill" [class]="suiteClass(item.suiteStatus)">{{ item.suiteStatus }}</span>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (item.planName) {
+                    {{ item.planName }}
+                    @if (item.suiteExpiresAtUtc) {
+                      <span class="sub">until {{ item.suiteExpiresAtUtc | date:'mediumDate' }}</span>
+                    }
+                  } @else {
+                    <span class="muted">No plan</span>
+                  }
+                </td>
+                <td>
+                  <span class="pill" [class]="kycClass(item.kycStatus)">{{ item.kycStatus }}</span>
+                </td>
+                <td>{{ item.memberSinceUtc | date:'mediumDate' }}</td>
+                <td class="actions">
+                  <a [routerLink]="routes.detail(item.userId)" class="ops-btn ops-btn-outline ops-btn-sm">
+                    Open
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="table-foot">
+        <span>{{ totalCount() }} account{{ totalCount() === 1 ? '' : 's' }}</span>
+      </footer>
+    }
+  </section>
+</div>

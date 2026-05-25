@@ -22,6 +22,7 @@ public sealed record CustomerProfileDto(
     string IdDocumentType,
     string PreferredDeliveryMethod,
     string KycStatus,
+    string? KycRejectionReason,
     string MemberSince,
     string AuthProvider);
 
@@ -41,6 +42,8 @@ public sealed record SuiteAddressDto(
 
 public sealed record DeliveryAddressDto(
     string Id,
+    string BranchId,
+    string BranchName,
     string Label,
     string FullName,
     string Phone,

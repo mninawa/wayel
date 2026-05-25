@@ -32,6 +32,15 @@ public sealed class AccessTokenRelayMiddleware(
             return;
         }
 
+        // Ops dashboard sends its own Bearer (wayel-ops) or X-Wayel-Ops-Key.
+        // Do not replace with the customer BFF cookie — localhost cookies are
+        // shared across ports, so a portal session on :8080 would clobber ops auth on :8081.
+        if (context.Request.Path.StartsWithSegments("/api/v1/borderbox/ops", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+
         // Three auth shapes to handle:
         //
         //  • Cookie-authenticated (OIDC sign-in): we have a BFF session, so

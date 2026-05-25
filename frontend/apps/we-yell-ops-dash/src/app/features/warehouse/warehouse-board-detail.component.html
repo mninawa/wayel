@@ -1,0 +1,227 @@
+@if (card(); as card) {
+  <aside class="detail-drawer ops-card">
+    <header class="drawer-head">
+      <div class="head-main">
+        @if (card.retailer) {
+          <span class="retailer-icon" [title]="card.retailer">{{ retailerInitial(card.retailer) }}</span>
+        }
+        <div>
+          <span class="card-id">{{ card.displayId }}</span>
+          <h2>{{ card.title }}</h2>
+          @if (card.retailer) {
+            <span class="retailer-name">{{ card.retailer }}</span>
+          }
+        </div>
+      </div>
+      <button type="button" class="icon-btn" (click)="closed.emit()" aria-label="Close">
+        <span class="material-icons-outlined">close</span>
+      </button>
+    </header>
+
+    @if (card.cardType === 'PARCEL') {
+      <nav class="drawer-tabs" aria-label="Parcel detail tabs">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === tab.id"
+            (click)="setTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </nav>
+
+      @if (loading()) {
+        <p class="muted pad">Loading details…</p>
+      } @else {
+        @if (parcel(); as p) {
+          <div class="drawer-body">
+            @switch (activeTab()) {
+              @case ('summary') {
+                <h3>Parcel Information</h3>
+                <dl class="info-grid">
+                  <div><dt>Suite ID</dt><dd>{{ p.suiteNumber || '—' }}</dd></div>
+                  <div><dt>Received</dt><dd>{{ p.receivedAtUtc | date:'MMM d, y, h:mm a' }}</dd></div>
+                  <div><dt>Weight</dt><dd>{{ p.weightKg != null ? (p.weightKg | number:'1.0-1') + ' kg' : '—' }}</dd></div>
+                  <div><dt>Dimensions</dt><dd>{{ p.dimensionsLabel || '—' }}</dd></div>
+                  <div><dt>Declared Value</dt><dd>{{ p.declaredValueZar != null ? ('R ' + (p.declaredValueZar | number:'1.0-0')) : '—' }}</dd></div>
+                </dl>
+                <div class="status-row">
+                  <div class="status-item">
+                    <span class="status-label">Invoice Status</span>
+                    <ops-pill [label]="p.invoiceStatus" [tone]="invoiceTone(p.invoiceStatus)" />
+                  </div>
+                  <div class="status-item">
+                    <span class="status-label">Inspection</span>
+                    <ops-pill [label]="inspectionLabel(p)" [tone]="inspectionTone(p)" />
+                  </div>
+                </div>
+
+                @if (storage(); as s) {
+                  <h3>Location</h3>
+                  <dl class="info-grid">
+                    <div><dt>Location</dt><dd>{{ locationLabel(s) }}</dd></div>
+                    <div><dt>Storage Type</dt><dd>{{ matchedLocation()?.storageType ?? 'Standard' }}</dd></div>
+                  </dl>
+                  <a [routerLink]="routes.locations" class="map-btn">
+                    <span class="material-icons-outlined">map</span>
+                    View on Map
+                  </a>
+                }
+              }
+              @case ('details') {
+                <h3>Details</h3>
+                <dl class="info-grid full">
+                  <div><dt>Tracking</dt><dd>{{ p.trackingNumber || '—' }}</dd></div>
+                  <div><dt>Category</dt><dd>{{ p.category || '—' }}</dd></div>
+                  <div><dt>Customer</dt><dd>{{ p.customerDisplayName }}</dd></div>
+                  <div><dt>Email</dt><dd>{{ p.customerEmail }}</dd></div>
+                  <div><dt>Phone</dt><dd>{{ p.customerPhone || '—' }}</dd></div>
+                  <div><dt>Parcel status</dt><dd>{{ p.statusLabel }}</dd></div>
+                  <div><dt>Quote state</dt><dd>{{ p.quoteStateLabel }}</dd></div>
+                  <div><dt>Quote readiness</dt><dd>{{ p.quoteReadiness }}</dd></div>
+                  <div><dt>Days in warehouse</dt><dd>{{ p.daysInWarehouse }}</dd></div>
+                </dl>
+                @if (p.readinessBlockers.length) {
+                  <h3>Blockers</h3>
+                  <ul class="blocker-list">
+                    @for (b of p.readinessBlockers; track b) {
+                      <li>{{ b }}</li>
+                    }
+                  </ul>
+                }
+              }
+              @case ('location') {
+                <h3>Storage Location</h3>
+                @if (storage(); as s) {
+                  <dl class="info-grid">
+                    <div><dt>Zone</dt><dd>{{ matchedLocation()?.zone ?? '—' }}</dd></div>
+                    <div><dt>Aisle</dt><dd>{{ matchedLocation()?.aisle ?? '—' }}</dd></div>
+                    <div><dt>Shelf</dt><dd>{{ matchedLocation()?.shelf ?? '—' }}</dd></div>
+                    <div><dt>Bin</dt><dd>{{ matchedLocation()?.bin ?? '—' }}</dd></div>
+                    <div><dt>Location ID</dt><dd>{{ s.currentLocationId ?? 'Unassigned' }}</dd></div>
+                    <div><dt>Storage Type</dt><dd>{{ matchedLocation()?.storageType ?? 'Standard' }}</dd></div>
+                    <div><dt>Occupancy</dt><dd>{{ matchedLocation() ? matchedLocation()!.occupancy + ' / ' + matchedLocation()!.capacity : '—' }}</dd></div>
+                    <div><dt>Days stored</dt><dd>{{ s.daysInWarehouse }}</dd></div>
+                  </dl>
+                  @if (!s.currentLocationId && card.parcelId) {
+                    <a [routerLink]="routes.storage(card.parcelId)" class="map-btn primary">Assign storage</a>
+                  } @else {
+                    <a [routerLink]="routes.locations" class="map-btn">
+                      <span class="material-icons-outlined">map</span>
+                      View on Map
+                    </a>
+                  }
+                } @else {
+                  <p class="muted">No location assigned.</p>
+                }
+              }
+              @case ('activity') {
+                <h3>Activity</h3>
+                @if (activity().length) {
+                  <ul class="activity-list">
+                    @for (a of activity(); track a.id) {
+                      <li>
+                        <div class="activity-dot"></div>
+                        <div>
+                          <strong>{{ a.title }}</strong>
+                          @if (a.detail) { <p>{{ a.detail }}</p> }
+                          <span class="activity-meta">
+                            {{ a.actor ?? 'System' }} · {{ a.occurredAtUtc | date:'MMM d, h:mm a' }}
+                          </span>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="muted">No activity recorded yet.</p>
+                }
+              }
+              @case ('documents') {
+                <h3>Documents</h3>
+                @if (p.invoiceFileName) {
+                  <div class="doc-row">
+                    <span class="material-icons-outlined">description</span>
+                    <div>
+                      <strong>Invoice</strong>
+                      <span>{{ p.invoiceFileName }}</span>
+                      @if (p.invoiceUploadedAtUtc) {
+                        <span class="doc-meta">{{ p.invoiceUploadedAtUtc | date:'mediumDate' }}</span>
+                      }
+                    </div>
+                    @if (card.parcelId) {
+                      <a [routerLink]="recv.invoice(card.parcelId)" class="doc-link">Review</a>
+                    }
+                  </div>
+                }
+                @if (photos().length) {
+                  <h3>Photos</h3>
+                  <ul class="photo-list">
+                    @for (ph of photos(); track ph.photoId) {
+                      <li>
+                        <span class="material-icons-outlined">photo</span>
+                        <div>
+                          <strong>{{ ph.category }}</strong>
+                          <span>{{ ph.fileName }}</span>
+                          <span class="doc-meta">{{ ph.uploadedAtUtc | date:'mediumDate' }}</span>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else if (!p.invoiceFileName) {
+                  <p class="muted">No documents uploaded.</p>
+                }
+              }
+            }
+
+            <h3>Quick Actions</h3>
+            <div class="quick-actions">
+              @if (card.parcelId) {
+                <a [routerLink]="routes.movements" class="qa-btn">
+                  <span class="material-icons-outlined">swap_horiz</span>
+                  Move Parcel
+                </a>
+                <a [routerLink]="recv.inspection(card.parcelId)" class="qa-btn">
+                  <span class="material-icons-outlined">fact_check</span>
+                  Send to Inspection
+                </a>
+                <a [routerLink]="recv.exceptions" class="qa-btn">
+                  <span class="material-icons-outlined">pause_circle</span>
+                  Move to Hold
+                </a>
+                <a [routerLink]="recv.readyForQuote" class="qa-btn">
+                  <span class="material-icons-outlined">local_shipping</span>
+                  Create Shipment
+                </a>
+              }
+            </div>
+          </div>
+        }
+      }
+    } @else {
+      <div class="drawer-body">
+        <h3>Shipment</h3>
+        <dl class="info-grid">
+          <div><dt>Customer</dt><dd>{{ card.customerDisplayName ?? '—' }}</dd></div>
+          <div><dt>Destination</dt><dd>{{ card.destination ?? '—' }}</dd></div>
+          <div><dt>Service</dt><dd>{{ card.deliveryMethod ?? '—' }}</dd></div>
+          <div><dt>Parcels</dt><dd>{{ card.parcelCount ?? '—' }}</dd></div>
+          <div><dt>Weight</dt><dd>{{ card.weightKg != null ? (card.weightKg | number:'1.0-1') + ' kg' : '—' }}</dd></div>
+          <div><dt>Status</dt><dd><ops-pill [label]="card.statusLabel" tone="blue" /></dd></div>
+          @if (card.dispatchByUtc) {
+            <div><dt>Dispatch by</dt><dd>{{ card.dispatchByUtc | date:'h:mm a' }}</dd></div>
+          }
+          @if (card.pickupLabel) {
+            <div><dt>Pickup</dt><dd>{{ card.pickupLabel }}</dd></div>
+          }
+          @if (card.assignedTo) {
+            <div><dt>Assigned</dt><dd>{{ card.assignedTo }}</dd></div>
+          }
+        </dl>
+        <h3>Quick Actions</h3>
+        <div class="quick-actions"></div>
+      </div>
+    }
+  </aside>
+}

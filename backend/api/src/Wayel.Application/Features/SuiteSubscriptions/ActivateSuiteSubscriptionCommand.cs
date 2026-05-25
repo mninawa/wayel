@@ -3,10 +3,8 @@ using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.BorderBox;
-using Wayel.Domain.Addresses;
 using Wayel.Domain.Common;
 using Wayel.Domain.SuitePlans;
-using Wayel.Domain.SuiteSubscriptions;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.SuiteSubscriptions;
@@ -26,6 +24,9 @@ internal sealed class ActivateSuiteSubscriptionCommandHandler(
     ISuitePlanRepository plans,
     ISuiteSubscriptionRepository subscriptions,
     ICustomerAddressRepository addresses,
+    IWarehouseLocationRepository locations,
+    ISuitePlatformConfigRepository platformConfig,
+    ISuiteNumberAllocator suiteNumbers,
     IUnitOfWork unitOfWork,
     IClock clock) : ICommandHandler<ActivateSuiteSubscriptionCommand, SuiteSubscriptionDto>
 {
@@ -57,39 +58,16 @@ internal sealed class ActivateSuiteSubscriptionCommandHandler(
             return Error.NotFound("suite_plan.not_found", "Suite plan not found.");
         }
 
-        var existing = await subscriptions.GetForUserAsync(user.Id, cancellationToken);
-        var suiteNumber = existing?.SuiteNumber ?? $"WY-{user.Id.Value.ToString()[..8].ToUpperInvariant()}";
-
-        SuiteSubscription subscription;
-        if (existing is null)
-        {
-            subscription = SuiteSubscription.CreatePending(user.Id, plan.Id, suiteNumber);
-            subscription.Activate(clock.UtcNow, clock.UtcNow.AddMonths(plan.DurationMonths));
-            await subscriptions.AddAsync(subscription, cancellationToken);
-
-            if (await addresses.GetSuiteForUserAsync(user.Id, cancellationToken) is null)
-            {
-                var suiteAddress = CustomerAddress.CreateSuite(
-                    user.Id,
-                    suiteNumber,
-                    $"WeYell Suite {suiteNumber}, Unit 12, Jet Park Warehouse");
-                await addresses.AddAsync(suiteAddress, cancellationToken);
-            }
-        }
-        else
-        {
-            subscription = existing;
-            subscription.Renew(clock.UtcNow.AddMonths(plan.DurationMonths));
-            await subscriptions.UpdateAsync(subscription, cancellationToken);
-        }
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return new SuiteSubscriptionDto(
-            subscription.Id.Value,
-            subscription.Status.ToString(),
-            subscription.SuiteNumber,
-            subscription.ExpiresAt,
-            subscription.ShipOutLocked);
+        return await SuiteSubscriptionActivator.ActivateOrRenewAsync(
+            user,
+            plan,
+            subscriptions,
+            addresses,
+            locations,
+            platformConfig,
+            suiteNumbers,
+            unitOfWork,
+            clock,
+            cancellationToken);
     }
 }

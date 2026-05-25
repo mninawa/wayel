@@ -1,0 +1,868 @@
+@if (detail(); as d) {
+  <div class="account-page">
+    <a [routerLink]="routes.list" class="back-link">← Accounts &amp; Suites</a>
+
+    <header class="page-header">
+      <div>
+        @if (tab() !== 'overview') {
+          <p class="customer-meta">Account &amp; Suite · Ops preview</p>
+        } @else {
+          <p class="customer-meta">{{ d.account.profile.displayName }} · {{ d.account.profile.email }}</p>
+        }
+        <h1>{{ tabTitle() }}</h1>
+        @if (tabSubtitle(); as sub) {
+          <p class="page-subtitle">{{ sub }}</p>
+        }
+      </div>
+      <span class="ops-badge">Ops view</span>
+    </header>
+
+    <nav class="tabs" aria-label="Account sections">
+      <button type="button" [class.active]="tab() === 'overview'" (click)="setTab('overview')">Overview</button>
+      <button type="button" [class.active]="tab() === 'address'" (click)="setTab('address')">Address</button>
+      <button type="button" [class.active]="tab() === 'plan'" (click)="setTab('plan')">Plan &amp; Renewal</button>
+      <button type="button" [class.active]="tab() === 'billing'" (click)="setTab('billing')">Billing</button>
+      <button type="button" [class.active]="tab() === 'profile'" (click)="setTab('profile')">Profile &amp; Security</button>
+    </nav>
+
+    @if (message()) {
+      <p class="ok-banner">{{ message() }}</p>
+    }
+    @if (error()) {
+      <p class="err-banner">{{ error() }}</p>
+    }
+
+    @switch (tab()) {
+      @case ('overview') {
+        @if (showExpiredUi()) {
+          <div class="alert-banner" role="alert">
+            <div class="alert-copy">
+              <span class="material-icons-outlined alert-icon">warning</span>
+              <div>
+                <strong>Your suite access has expired.</strong>
+                <p>
+                  Your suite is still reserved and you can continue receiving parcels.
+                  <strong>Ship-out access is locked until payment is made.</strong>
+                </p>
+              </div>
+            </div>
+            <div class="alert-art" aria-hidden="true">
+              <span class="material-icons-outlined lock-art">lock</span>
+              <span class="material-icons-outlined cal-art">event_busy</span>
+            </div>
+          </div>
+        }
+
+        <div class="stat-row">
+          <article class="stat-card">
+            <span class="material-icons-outlined stat-icon" [class.red]="lockedActionsVisible()" [class.green]="!lockedActionsVisible()">shield</span>
+            <div>
+              <span class="stat-label">Suite Status</span>
+              <strong class="stat-value" [class]="statusClass(suiteStatusLabel())">{{ suiteStatusLabel() }}</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="material-icons-outlined stat-icon" [class.red]="lockedActionsVisible()" [class.green]="!lockedActionsVisible()">lock</span>
+            <div>
+              <span class="stat-label">Ship-out Access</span>
+              <strong class="stat-value" [class]="statusClass(shipOutLabel())">{{ shipOutLabel() }}</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="material-icons-outlined stat-icon">tag</span>
+            <div>
+              <span class="stat-label">Reserved Suite Number</span>
+              <strong class="stat-value mono">{{ d.subscription?.suiteNumber ?? d.account.suiteAddress?.suiteNumber ?? '—' }}</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="material-icons-outlined stat-icon amber">payments</span>
+            <div>
+              <span class="stat-label">Outstanding Renewal</span>
+              <strong class="stat-value amber">{{ outstandingRenewal() }}</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="material-icons-outlined stat-icon green">inventory_2</span>
+            <div>
+              <span class="stat-label">Received Parcels</span>
+              <strong class="stat-value green">{{ d.receivedParcelCount }}</strong>
+            </div>
+          </article>
+        </div>
+
+        <div class="overview-grid">
+          <section class="panel renewal-panel">
+            <h2>Renew your suite to restore full access</h2>
+            <p class="panel-sub">Customer-facing renewal options (ops preview).</p>
+
+            <div class="renewal-options">
+              <button
+                type="button"
+                class="renewal-card"
+                [class.selected]="selectedRenewal() === 'monthly'"
+                (click)="selectRenewal('monthly')"
+              >
+                @if (selectedRenewal() === 'monthly') {
+                  <span class="popular-badge">Most popular</span>
+                }
+                <span class="renewal-title">Renew for 1 Month</span>
+                <span class="renewal-price">R100</span>
+                <span class="renewal-btn" [class.primary]="selectedRenewal() === 'monthly'">Renew for 1 Month – R100</span>
+              </button>
+
+              <button
+                type="button"
+                class="renewal-card"
+                [class.selected]="selectedRenewal() === 'quarterly'"
+                (click)="selectRenewal('quarterly')"
+              >
+                <span class="renewal-title">Renew for 3 Months</span>
+                <span class="renewal-price">R200</span>
+                <span class="renewal-btn outline" [class.primary]="selectedRenewal() === 'quarterly'">Renew for 3 Months – R200</span>
+              </button>
+            </div>
+
+            <div class="trust-row">
+              <span><span class="material-icons-outlined">verified_user</span> Secure payment</span>
+              <span><span class="material-icons-outlined">bolt</span> Instant access</span>
+              <span><span class="material-icons-outlined">cancel</span> Cancel anytime</span>
+            </div>
+          </section>
+
+          <div class="side-stack">
+            <section class="panel side-panel">
+              <h3>{{ lockedActionsVisible() ? 'Actions locked until renewal' : 'Customer actions' }}</h3>
+              <ul class="locked-list">
+                @for (action of lockedActions; track action) {
+                  <li>
+                    <span>{{ action }}</span>
+                    @if (lockedActionsVisible()) {
+                      <span class="locked-tag"><span class="material-icons-outlined">lock</span> Locked</span>
+                    } @else {
+                      <span class="available-tag">Available</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </section>
+
+            <section class="panel side-panel safe-panel">
+              <span class="material-icons-outlined safe-icon">inventory_2</span>
+              <div>
+                <h3>Parcels remain safe in your suite</h3>
+                <p>
+                  All received parcels stay securely stored at the WeYell Johannesburg warehouse until the customer renews.
+                </p>
+                <span class="linkish">{{ d.receivedParcelCount }} parcel{{ d.receivedParcelCount === 1 ? '' : 's' }} in suite</span>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <footer class="page-foot">
+          Need help? Visit our Help Center or contact support anytime.
+          <a href="#" class="help-link">Visit Help Center <span class="material-icons-outlined">open_in_new</span></a>
+        </footer>
+      }
+
+      @case ('address') {
+        <div class="address-grid address-grid-top">
+          <section class="panel address-primary-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">location_on</span>
+                <h2>Your Primary Suite Address</h2>
+              </div>
+            </header>
+
+            <div class="suite-address-block">
+              <h3>{{ suiteTitle() }}</h3>
+              @if (suiteAddressLines().length > 0) {
+                <address>
+                  @for (line of suiteAddressLines(); track line) {
+                    <span>{{ line }}</span>
+                  }
+                </address>
+              } @else {
+                <p class="muted">No suite address on file.</p>
+              }
+
+              <div class="qr-block" aria-hidden="true">
+                <p class="qr-placeholder">
+                  <span class="material-icons-outlined">qr_code_2</span>
+                </p>
+                <span>Scan to view address</span>
+              </div>
+
+              <div class="address-actions">
+                <button type="button" class="ops-btn ops-btn-primary" disabled>Copy address</button>
+                <button type="button" class="ops-btn ops-btn-outline" disabled>Print label</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel suite-details-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">info</span>
+                <h2>Suite Details</h2>
+              </div>
+            </header>
+
+            <dl class="suite-details-kv">
+              <div>
+                <dt>Suite Number</dt>
+                <dd><code>{{ d.subscription?.suiteNumber ?? d.account.suiteAddress?.suiteNumber ?? '—' }}</code></dd>
+              </div>
+              <div>
+                <dt>Country Served</dt>
+                <dd>{{ countryFlag() }} {{ d.account.profile.destinationCountryLabel }}</dd>
+              </div>
+              <div>
+                <dt>Receiving Status</dt>
+                <dd><span class="pill" [class]="statusClass(receivingStatusLabel())">{{ receivingStatusLabel() }}</span></dd>
+              </div>
+              <div>
+                <dt>Ship-out Status</dt>
+                <dd><span class="pill" [class]="statusClass(shipOutAccessLabel())">{{ shipOutAccessLabel() }}</span></dd>
+              </div>
+              <div>
+                <dt>Valid Until</dt>
+                <dd>{{ paidUntilLabel() }}</dd>
+              </div>
+              <div>
+                <dt>Reserved Until</dt>
+                <dd>{{ reservedDaysLabel() }}</dd>
+              </div>
+              <div>
+                <dt>Support</dt>
+                <dd>We're here to help</dd>
+              </div>
+            </dl>
+
+            <a href="#" class="help-link suite-help-link">
+              <span class="material-icons-outlined">headset_mic</span>
+              Visit Help Center
+            </a>
+          </section>
+        </div>
+
+        <div class="address-grid address-grid-bottom">
+          <section class="panel how-it-works-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">help_outline</span>
+                <h2>How it works</h2>
+              </div>
+            </header>
+
+            <ol class="steps-list">
+              @for (step of howItWorksSteps; track step.title; let i = $index) {
+                <li>
+                  <span class="step-badge">{{ i + 1 }}</span>
+                  <span class="step-icon"><span class="material-icons-outlined">{{ step.icon }}</span></span>
+                  <div>
+                    <strong>{{ step.title }}</strong>
+                    <p>{{ step.text }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
+
+          <section class="panel address-activity-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">history</span>
+                <h2>Recent address activity</h2>
+              </div>
+              <button type="button" class="link-btn" disabled>View all activity</button>
+            </header>
+
+            <ul class="activity-list address-activity-list">
+              @for (item of addressActivity(); track item.id) {
+                <li>
+                  <span class="activity-icon"><span class="material-icons-outlined">{{ item.icon }}</span></span>
+                  <div class="activity-copy">
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.subtitle }} · {{ item.dateUtc | date:'d MMM y' }}</span>
+                  </div>
+                  <span class="pill" [class]="activityStatusClass(item.statusTone)">{{ item.status }}</span>
+                </li>
+              }
+            </ul>
+          </section>
+        </div>
+
+        @if (d.account.deliveryAddresses.length > 0) {
+          <section class="panel delivery-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">home_pin</span>
+                <h2>Eswatini Delivery Addresses</h2>
+              </div>
+            </header>
+            @for (addr of d.account.deliveryAddresses; track addr.id) {
+              <article class="delivery-card">
+                <div class="delivery-card-head">
+                  <strong>{{ addr.label }}</strong>
+                  @if (addr.isDefault) { <span class="pill green">Default</span> }
+                </div>
+                <p>{{ addr.fullName }} · {{ addr.phone }}</p>
+                <p>{{ addr.branchName }}</p>
+                <p>{{ addr.line1 }}@if (addr.line2) {, {{ addr.line2 }} }</p>
+                <p>{{ addr.city }}, {{ addr.region }} · {{ addr.countryLabel }}</p>
+              </article>
+            }
+          </section>
+        }
+
+      }
+
+      @case ('plan') {
+        <div class="plan-grid plan-grid-top">
+          <section class="panel plan-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">workspace_premium</span>
+                <h2>Your Plan</h2>
+              </div>
+            </header>
+
+            <div class="plan-options">
+              @for (plan of planOptions(); track plan.id) {
+                <article
+                  class="plan-option-card"
+                  [class.current]="currentPlanId() === plan.id"
+                  [class.selected]="selectedPlanOption() === plan.id"
+                >
+                  @if (currentPlanId() === plan.id) {
+                    <span class="current-plan-badge">Current Plan</span>
+                  }
+                  <h3>{{ plan.name }}</h3>
+                  <p class="plan-price">R{{ plan.priceZar }} <span>/ {{ plan.durationMonths }} month{{ plan.durationMonths === 1 ? '' : 's' }}</span></p>
+                  <ul class="plan-features">
+                    @for (feature of plan.features; track feature) {
+                      <li><span class="material-icons-outlined">check_circle</span>{{ feature }}</li>
+                    }
+                  </ul>
+                  <button
+                    type="button"
+                    class="ops-btn"
+                    [class.ops-btn-primary]="currentPlanId() === plan.id"
+                    [class.ops-btn-outline]="currentPlanId() !== plan.id"
+                    [disabled]="currentPlanId() === plan.id"
+                    (click)="selectPlanOption(plan.id)"
+                  >
+                    {{ currentPlanId() === plan.id ? 'Current Plan' : 'Select Plan' }}
+                  </button>
+                </article>
+              }
+            </div>
+          </section>
+
+          <section class="panel plan-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">event_repeat</span>
+                <h2>Renewal &amp; Access</h2>
+              </div>
+            </header>
+
+            <dl class="renewal-kv">
+              <div>
+                <dt>Paid Until</dt>
+                <dd>{{ paidUntilLabel() }}</dd>
+              </div>
+              <div>
+                <dt>Next Renewal Date</dt>
+                <dd>{{ nextRenewalLabel() }}</dd>
+              </div>
+              <div class="renewal-row">
+                <dt>Auto-Renew</dt>
+                <dd>
+                  <label class="toggle">
+                    <input type="checkbox" [checked]="autoRenewEnabled()" (change)="toggleAutoRenew()" />
+                    <span class="toggle-track" aria-hidden="true"></span>
+                  </label>
+                  <span class="toggle-label">{{ autoRenewEnabled() ? 'On' : 'Off' }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Ship-out Access</dt>
+                <dd><span class="pill" [class]="statusClass(shipOutAccessLabel())">{{ shipOutAccessLabel() }}</span></dd>
+              </div>
+              @if (d.subscription; as sub) {
+                <div>
+                  <dt>Suite Number</dt>
+                  <dd><code>{{ sub.suiteNumber }}</code></dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd><span class="pill" [class]="statusClass(sub.status)">{{ sub.status }}</span></dd>
+                </div>
+              }
+            </dl>
+          </section>
+        </div>
+
+        <section class="panel rules-panel">
+          <div class="rules-head">
+            <span class="material-icons-outlined rules-icon">info</span>
+            <h2>Pricing &amp; Renewal Rules</h2>
+          </div>
+          <ul class="rules-list">
+            @for (rule of renewalRules; track rule) {
+              <li><span class="material-icons-outlined">check_circle</span>{{ rule }}</li>
+            }
+          </ul>
+        </section>
+
+        <div class="quick-actions-bar">
+          <button type="button" class="ops-btn ops-btn-outline" disabled>Renew for 1 Month</button>
+          <button type="button" class="ops-btn ops-btn-outline" disabled>Renew for 3 Months</button>
+          <button type="button" class="ops-btn ops-btn-outline" disabled>Change Plan</button>
+        </div>
+
+        <div class="plan-grid plan-grid-bottom">
+          <section class="panel benefits-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">compare</span>
+                <h2>Plan Benefits Comparison</h2>
+              </div>
+            </header>
+
+            <div class="table-wrap">
+              <table class="benefits-table">
+                <thead>
+                  <tr>
+                    <th>Benefit</th>
+                    <th>Monthly Plan</th>
+                    <th class="highlight-col">Quarterly Plan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of planBenefits; track row.label) {
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td>
+                        @if (row.monthly) {
+                          <span class="material-icons-outlined check-mark">check_circle</span>
+                        } @else {
+                          <span class="dash-mark">—</span>
+                        }
+                      </td>
+                      <td class="highlight-col">
+                        @if (row.quarterly) {
+                          <span class="material-icons-outlined check-mark">check_circle</span>
+                        } @else {
+                          <span class="dash-mark">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel activity-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">history</span>
+                <h2>Recent Renewal Activity</h2>
+              </div>
+              <button type="button" class="link-btn" disabled>View all activity</button>
+            </header>
+
+            <ul class="activity-list">
+              @for (item of renewalActivity(); track item.id) {
+                <li>
+                  <span class="activity-icon"><span class="material-icons-outlined">{{ item.icon }}</span></span>
+                  <div class="activity-copy">
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.dateUtc | date:'d MMM y, HH:mm' }}</span>
+                  </div>
+                  <div class="activity-meta">
+                    <span class="pill" [class]="activityStatusClass(item.statusTone)">{{ item.status }}</span>
+                    @if (item.amountZar !== null) {
+                      <strong>R{{ item.amountZar | number:'1.0-0' }}</strong>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        </div>
+
+        <p class="ops-preview-note plan-preview-note">Ops preview — plan changes and renewals are read-only until subscription management APIs are connected.</p>
+      }
+
+      @case ('billing') {
+        <div class="billing-summary-row">
+          <article class="billing-card">
+            <span class="material-icons-outlined billing-card-icon purple">workspace_premium</span>
+            <div>
+              <span class="billing-card-label">Current Plan</span>
+              <strong class="billing-card-value">{{ billingPlanLabel() }}</strong>
+              <span class="billing-card-meta">{{ billingPlanPriceLabel() }}</span>
+              <button type="button" class="link-btn" (click)="setTab('plan')">View plan details</button>
+            </div>
+          </article>
+
+          <article class="billing-card">
+            <span class="material-icons-outlined billing-card-icon blue">event</span>
+            <div>
+              <span class="billing-card-label">Next Payment Amount</span>
+              <strong class="billing-card-value">{{ nextPaymentAmount() }}</strong>
+              <span class="billing-card-meta">Due on {{ nextPaymentDate() }}</span>
+              @if (daysUntilNextPayment(); as days) {
+                <span class="pill green">{{ days }} day{{ days === 1 ? '' : 's' }} remaining</span>
+              }
+            </div>
+          </article>
+
+          <article class="billing-card">
+            <span class="material-icons-outlined billing-card-icon green">receipt_long</span>
+            <div>
+              <span class="billing-card-label">Last Payment</span>
+              <strong class="billing-card-value">{{ lastPaymentAmount() }}</strong>
+              <span class="billing-card-meta">Paid on {{ lastPaymentDate() }}</span>
+              <span class="pill green">Successful</span>
+            </div>
+          </article>
+
+          <article class="billing-card">
+            <span class="material-icons-outlined billing-card-icon amber">credit_card</span>
+            <div>
+              <span class="billing-card-label">Payment Method</span>
+              @if (defaultPaymentMethod(); as method) {
+                <strong class="billing-card-value">{{ method.brand }} •••• {{ method.last4 }}</strong>
+                <span class="billing-card-meta">Expires {{ method.expiry }}</span>
+                <span class="pill gray">Default</span>
+              } @else {
+                <strong class="billing-card-value">No saved card</strong>
+                <span class="billing-card-meta">Customer hasn't completed a successful payment yet.</span>
+              }
+              <button type="button" class="link-btn" disabled>Manage payment methods</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="billing-grid">
+          <section class="panel billing-table-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">history</span>
+                <h2>Payment History</h2>
+              </div>
+              <label class="filter-select">
+                <select [value]="billingStatusFilter()" (change)="setBillingStatusFilter($any($event.target).value)">
+                  <option value="all">All Statuses</option>
+                  <option value="Successful">Successful</option>
+                  <option value="Failed">Failed</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </label>
+            </header>
+
+            <div class="table-wrap">
+              <table class="billing-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Invoice</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of filteredPaymentHistory(); track row.id) {
+                    <tr>
+                      <td>
+                        <strong>{{ row.dateUtc | date:'d MMM y' }}</strong>
+                        <span class="table-sub">{{ row.dateUtc | date:'HH:mm' }}</span>
+                      </td>
+                      <td>{{ row.description }}</td>
+                      <td>{{ row.plan }}</td>
+                      <td><strong>R{{ row.amountZar | number:'1.0-0' }}</strong></td>
+                      <td>
+                        <span class="method-cell">
+                          <span class="material-icons-outlined">{{ row.methodIcon }}</span>
+                          {{ row.methodLabel }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="pill" [class]="statusClass(row.status)">{{ row.status }}</span>
+                      </td>
+                      <td><a href="#" class="invoice-link">{{ row.invoiceId }}</a></td>
+                      <td>
+                        @if (row.canRetry) {
+                          <button type="button" class="icon-btn" title="Retry payment" disabled>
+                            <span class="material-icons-outlined">refresh</span>
+                          </button>
+                        } @else {
+                          <button type="button" class="icon-btn" title="Download invoice" disabled>
+                            <span class="material-icons-outlined">download</span>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="empty-row">No payments match this filter.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <footer class="table-foot">
+              <span>Showing 1 to {{ filteredPaymentHistory().length }} of {{ paymentHistory().length }} payments</span>
+              <div class="pager">
+                <button type="button" class="icon-btn" disabled aria-label="Previous page">
+                  <span class="material-icons-outlined">chevron_left</span>
+                </button>
+                <button type="button" class="icon-btn" disabled aria-label="Next page">
+                  <span class="material-icons-outlined">chevron_right</span>
+                </button>
+              </div>
+            </footer>
+          </section>
+
+          <div class="billing-side-stack">
+            <section class="panel billing-side-panel">
+              <header class="panel-head">
+                <div class="panel-title">
+                  <span class="material-icons-outlined">credit_card</span>
+                  <h2>Saved Payment Methods</h2>
+                </div>
+                <button type="button" class="ops-btn ops-btn-outline ops-btn-sm" disabled>+ Add Card</button>
+              </header>
+
+              @if (defaultPaymentMethod(); as method) {
+                <article class="saved-card">
+                  <span class="material-icons-outlined saved-card-icon">credit_card</span>
+                  <div>
+                    <strong>{{ method.brand }} •••• {{ method.last4 }}</strong>
+                    <span>Expires {{ method.expiry }}</span>
+                  </div>
+                  <span class="pill gray">Default</span>
+                </article>
+              } @else {
+                <p class="muted-note">No saved payment methods on file.</p>
+              }
+
+              <button type="button" class="link-btn" disabled>+ Add another card</button>
+
+              <p class="secure-note">
+                <span class="material-icons-outlined">lock</span>
+                Your payment details are secure and encrypted
+              </p>
+            </section>
+
+            <section class="panel billing-side-panel">
+              <header class="panel-head">
+                <div class="panel-title">
+                  <span class="material-icons-outlined">description</span>
+                  <h2>Invoices Summary</h2>
+                </div>
+              </header>
+
+              <ul class="invoice-stats">
+                <li><span>Total Invoices</span><strong>{{ invoiceSummary().total }}</strong></li>
+                <li><span>Paid Invoices</span><strong class="green">{{ invoiceSummary().paid }}</strong></li>
+                <li><span>Failed Invoices</span><strong class="red">{{ invoiceSummary().failed }}</strong></li>
+                <li><span>Total Amount Paid</span><strong>R{{ invoiceSummary().totalPaidZar | number:'1.0-0' }}</strong></li>
+              </ul>
+
+              <button type="button" class="ops-btn ops-btn-outline full-width" disabled>View all invoices</button>
+            </section>
+          </div>
+        </div>
+
+      }
+
+      @case ('profile') {
+        @if (d.account.profile.kycStatus === 'Pending') {
+          <div class="kyc-ops-banner">
+            <p>KYC submission pending review.</p>
+            <div class="actions">
+              <button type="button" class="ops-btn ops-btn-primary" [disabled]="actionBusy()" (click)="approveKyc()">Approve KYC</button>
+              <button type="button" class="ops-btn ops-btn-ghost danger" [disabled]="actionBusy()" (click)="rejectKyc()">Reject</button>
+            </div>
+          </div>
+        }
+
+        <div class="profile-grid profile-grid-top">
+          <section class="panel profile-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">person</span>
+                <h2>Personal Details</h2>
+              </div>
+              <button type="button" class="text-btn" (click)="toggleEditingProfile()">
+                {{ editingProfile() ? 'Done' : 'Edit' }}
+              </button>
+            </header>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Full Name</span>
+                <input type="text" [value]="d.account.profile.displayName" [readonly]="!editingProfile()" />
+              </label>
+              <label class="field">
+                <span>Preferred Delivery</span>
+                <select [disabled]="!editingProfile()">
+                  <option>{{ deliveryLabel() }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Email Address</span>
+                <input type="email" [value]="d.account.profile.email" [readonly]="!editingProfile()" />
+              </label>
+              <label class="field">
+                <span>{{ idDocumentLabel() }} Number</span>
+                <input type="text" [value]="d.account.profile.idNumber || '—'" [readonly]="!editingProfile()" />
+              </label>
+              <label class="field">
+                <span>Phone Number</span>
+                <input type="tel" [value]="d.account.profile.phone || '—'" [readonly]="!editingProfile()" />
+              </label>
+              <label class="field">
+                <span>KYC Status</span>
+                <span class="kyc-pill" [class]="statusClass(d.account.profile.kycStatus)">
+                  <span class="material-icons-outlined">check_circle</span>
+                  {{ d.account.profile.kycStatus }}
+                </span>
+              </label>
+              <label class="field field-wide">
+                <span>Country</span>
+                <select [disabled]="!editingProfile()">
+                  <option>{{ countryFlag() }} {{ d.account.profile.destinationCountryLabel }}</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel photo-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">photo_camera</span>
+                <h2>Your Profile Photo</h2>
+              </div>
+            </header>
+            <div class="avatar-wrap">
+              <div class="avatar" aria-hidden="true">{{ profileInitials() }}</div>
+              <button type="button" class="ops-btn ops-btn-outline" disabled>Change Photo</button>
+              <p class="photo-hint">JPG, PNG or WEBP. Max 2MB.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="profile-grid profile-grid-bottom">
+          <section class="panel security-panel">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined">security</span>
+                <h2>Security Settings</h2>
+              </div>
+            </header>
+
+            <ul class="security-list">
+              <li>
+                <span class="material-icons-outlined row-icon">lock</span>
+                <div class="row-copy">
+                  <strong>Password</strong>
+                  <span>{{ lastPasswordLabel() }}</span>
+                </div>
+                <button type="button" class="ops-btn ops-btn-outline ops-btn-sm" disabled>Change Password</button>
+              </li>
+              <li>
+                <span class="material-icons-outlined row-icon">verified_user</span>
+                <div class="row-copy">
+                  <strong>Two-Factor Authentication (2FA)</strong>
+                  <span>Add an extra layer of security to your account</span>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" [checked]="twoFactorEnabled()" (change)="toggleTwoFactor()" />
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+              </li>
+              <li>
+                <span class="material-icons-outlined row-icon">devices</span>
+                <div class="row-copy">
+                  <strong>Login Sessions</strong>
+                  <span>Manage your active login sessions</span>
+                </div>
+                <button type="button" class="ops-btn ops-btn-outline ops-btn-sm" disabled>View Sessions</button>
+              </li>
+              <li>
+                <span class="material-icons-outlined row-icon">phonelink</span>
+                <div class="row-copy">
+                  <strong>Trusted Devices</strong>
+                  <span>Manage devices that can access your account</span>
+                </div>
+                <button type="button" class="ops-btn ops-btn-outline ops-btn-sm" disabled>Manage Devices</button>
+              </li>
+              <li class="notif-row">
+                <span class="material-icons-outlined row-icon">notifications</span>
+                <div class="row-copy">
+                  <strong>Notification Preferences</strong>
+                  <span>Choose how you want to receive notifications</span>
+                </div>
+                <button type="button" class="ops-btn ops-btn-outline ops-btn-sm" (click)="toggleNotifications()">
+                  {{ notificationsOpen() ? 'Hide' : 'Manage Preferences' }}
+                </button>
+              </li>
+            </ul>
+
+            @if (notificationsOpen()) {
+              <ul class="notif-list compact">
+                <li><span>Email</span><strong>{{ d.account.notifications.email ? 'On' : 'Off' }}</strong></li>
+                <li><span>SMS</span><strong>{{ d.account.notifications.sms ? 'On' : 'Off' }}</strong></li>
+                <li><span>WhatsApp</span><strong>{{ d.account.notifications.whatsApp ? 'On' : 'Off' }}</strong></li>
+                <li><span>Marketing</span><strong>{{ d.account.notifications.marketing ? 'On' : 'Off' }}</strong></li>
+              </ul>
+            }
+
+            <div class="profile-actions">
+              <button type="button" class="ops-btn ops-btn-primary" disabled>Save Changes</button>
+              <button type="button" class="ops-btn ops-btn-outline" disabled>Cancel</button>
+              <span class="ops-preview-note">Ops preview — customer self-service controls are read-only here.</span>
+            </div>
+          </section>
+
+          <section class="panel tips-panel">
+            <h2>Keep your account secure</h2>
+            <ul class="tips-list">
+              @for (tip of securityTips; track tip.title) {
+                <li>
+                  <span class="tip-icon" [class]="tip.tone">
+                    <span class="material-icons-outlined">{{ tip.icon }}</span>
+                  </span>
+                  <div>
+                    <strong>{{ tip.title }}</strong>
+                    <p>{{ tip.text }}</p>
+                  </div>
+                </li>
+              }
+            </ul>
+            <a href="#" class="help-link">Visit Help Center <span class="material-icons-outlined">arrow_forward</span></a>
+          </section>
+        </div>
+      }
+    }
+  </div>
+} @else if (busy()) {
+  <p class="loading">Loading account…</p>
+} @else if (error()) {
+  <p class="err-banner">{{ error() }}</p>
+  <a [routerLink]="routes.list" class="back-link">← Back to accounts</a>
+}

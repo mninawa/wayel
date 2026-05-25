@@ -1,10 +1,11 @@
 export const environment = {
   production: false,
   /**
-   * UI-only mode: all WeYell data and auth are in-memory. No API, BFF, or
-   * platform-mock-api process required. Run `npm run dev:portal` only.
+   * Legacy flag retained for `@wayel/shared` bridge services (cross-product
+   * workspace). The customer portal does not consume mock data — every
+   * service call goes through the live API.
    */
-  useMock: true,
+  useMock: false,
   /**
    * When true, the SPA bootstraps a `BffAuthService` session against
    * `REMOVED` (cookie + Google SSO) instead of running open
@@ -29,4 +30,8 @@ export const environment = {
    * `auth.password_login_disabled` from `/auth/login` outside Development.
    */
   passwordSignInEnabled: true,
+  /** Internal KYC ops queue at /internal/kyc-review (localhost only). */
+  enableKycOpsReview: true,
+  /** Warehouse parcel receive at /internal/parcel-receive */
+  enableParcelReceive: true,
 };

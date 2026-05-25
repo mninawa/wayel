@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Domain.Users;
@@ -9,6 +10,7 @@ public static class AuthorizationPolicies
 {
     public const string AuthenticatedUser = "AuthenticatedUser";
     public const string CustomerOnly = "CustomerOnly";
+    public const string KycOps = "KycOps";
 
     public static AuthorizationOptions AddWayelPolicies(this AuthorizationOptions options)
     {
@@ -17,6 +19,12 @@ public static class AuthorizationPolicies
         options.AddPolicy(CustomerOnly, policy => policy
             .RequireAuthenticatedUser()
             .RequireAssertion(ctx => ctx.User.HasRole(UserRole.Customer)));
+
+        options.AddPolicy(KycOps, policy =>
+        {
+            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+            policy.Requirements.Add(new KycOpsRequirement());
+        });
 
         return options;
     }

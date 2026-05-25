@@ -1,11 +1,17 @@
 /* WeYell — customer portal design system */
 
+body.nk-connectivity-offline {
+  padding-top: 3.25rem;
+}
+
 :root {
   --bb-navy: #001a41;
   --bb-navy-light: #0a2d5c;
-  --bb-primary: #0052cc;
-  --bb-primary-hover: #0041a3;
-  --bb-primary-soft: #e6f0ff;
+  --bb-brand-purple: #845EC2;
+  --bb-brand-green: #81C784;
+  --bb-primary: #845EC2;
+  --bb-primary-hover: #734db3;
+  --bb-primary-soft: #f3eefb;
   --bb-accent: #ff8c42;
   --bb-accent-soft: #fff0e6;
 
@@ -33,7 +39,7 @@
   --sidebar-text: rgba(255, 255, 255, 0.72);
   --sidebar-text-active: #ffffff;
   --sidebar-bg-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-bg-active: #0052cc;
+  --sidebar-bg-active: #845EC2;
   --sidebar-border: rgba(255, 255, 255, 0.1);
 
   --nk-sky: var(--bb-primary);

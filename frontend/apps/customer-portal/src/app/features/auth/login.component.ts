@@ -3,7 +3,6 @@ import {
   Component,
   DestroyRef,
   OnInit,
-  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -13,8 +12,8 @@ import { resetHttpErrorUnauthorizedLatch } from '@wayel/shared/interceptors/http
 import { AccountsBridgeService } from '@wayel/shared/services/accounts-bridge.service';
 import { AccountSessionService } from '@wayel/shared/services/account-session.service';
 import { BffAuthService } from '@wayel/shared/services/bff-auth.service';
-import type { MockAccount } from '@wayel/shared/core/mock/mock-accounts';
 import { environment } from '../../../environments/environment';
+import { PRODUCT_NAME } from '../../brand';
 
 interface FormState {
   email: string;
@@ -62,30 +61,28 @@ const EMPTY: FormState = { email: '', password: '' };
         </div>
 
         <div class="brand-top">
-          <img class="brand-mark" src="/logo-256.png" alt="Wayel Kid logo" />
-          <span class="brand-name">Wayel Kids</span>
+          <span class="brand-wordmark">{{ productName }}</span>
         </div>
 
         <div class="brand-hero">
-          <h2 class="hero-title">Your child's world, in one app.</h2>
+          <h2 class="hero-title">Shop in South Africa. Deliver to Eswatini.</h2>
           <p class="hero-sub">
-            Daily reports, schedules, photos, payments and pickup —
-            across every preschool, swim school and dojo your family
-            uses.
+            Track parcels from US retailers, upload invoices, approve quotes,
+            and follow your shipment home — all in one WeYell customer portal.
           </p>
 
           <ul class="hero-bullets" role="list">
             <li>
-              <span class="material-icons-outlined" aria-hidden="true">photo_library</span>
-              See today's moments before bedtime
+              <span class="material-icons-outlined" aria-hidden="true">inventory_2</span>
+              See every parcel the moment it hits our warehouse
             </li>
             <li>
-              <span class="material-icons-outlined" aria-hidden="true">qr_code_scanner</span>
-              Tap-to-pickup at every gate
+              <span class="material-icons-outlined" aria-hidden="true">request_quote</span>
+              Review quotes and pay when you're ready to ship
             </li>
             <li>
-              <span class="material-icons-outlined" aria-hidden="true">receipt_long</span>
-              One statement, every fee
+              <span class="material-icons-outlined" aria-hidden="true">local_shipping</span>
+              Live tracking from checkout to delivery in Eswatini
             </li>
           </ul>
 
@@ -113,7 +110,7 @@ const EMPTY: FormState = { email: '', password: '' };
         </div>
 
         <footer class="brand-foot">
-          <span>© {{ year }} Wayel Kids</span>
+          <span>© {{ year }} WeYell</span>
           <span class="brand-foot-links">
             <a routerLink="/" class="brand-foot-link">About</a>
           </span>
@@ -128,8 +125,7 @@ const EMPTY: FormState = { email: '', password: '' };
             Back
           </a>
           <div class="brand-mobile">
-            <img class="brand-mark" src="/logo-256.png" alt="Wayel Kid logo" />
-            <span class="brand-name">Wayel Kids</span>
+            <span class="brand-wordmark">{{ productName }}</span>
           </div>
         </header>
 
@@ -247,13 +243,6 @@ const EMPTY: FormState = { email: '', password: '' };
               </p>
             }
 
-            @if (resolvedHint(); as hint) {
-              <p class="hint" role="status">
-                <span class="material-icons-outlined" aria-hidden="true">badge</span>
-                {{ hint }}
-              </p>
-            }
-
             <button
               type="submit"
               class="btn-primary"
@@ -276,43 +265,12 @@ const EMPTY: FormState = { email: '', password: '' };
           } @else {
           <p class="sso-only-note" role="note">
             <span class="material-icons-outlined" aria-hidden="true">verified_user</span>
-            Wayel Kids uses single sign-on only. Continue with your
+            WeYell uses single sign-on only. Continue with your
             Google or Apple account to sign in or create your family
             account.
           </p>
           }
 
-          @if (showDemoAccounts) {
-          <details class="advanced">
-            <summary>Demo accounts (no password needed)</summary>
-            <p class="advanced-hint">
-              All demo accounts use password <code>demo1234</code> — click
-              one to fill the form.
-            </p>
-            <ul class="demo-list" role="list">
-              @for (a of demoAccounts(); track a.id) {
-                <li>
-                  <button
-                    type="button"
-                    class="demo-card"
-                    (click)="useDemoAccount(a)"
-                  >
-                    <span class="avatar" [style.background]="avatarColor(a.email)">
-                      {{ initials(a.displayName) }}
-                    </span>
-                    <span class="demo-main">
-                      <span class="demo-name">{{ a.displayName }}</span>
-                      <span class="demo-email">{{ a.email }}</span>
-                    </span>
-                    <span class="role-pill" [attr.data-role]="a.role">
-                      {{ a.role }}
-                    </span>
-                  </button>
-                </li>
-              }
-            </ul>
-          </details>
-          }
         </section>
       </main>
     </div>
@@ -406,14 +364,12 @@ const EMPTY: FormState = { email: '', password: '' };
         gap: 10px;
         font-weight: 700;
       }
-      .brand-mark {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        object-fit: cover;
-        display: block;
+      .brand-wordmark {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #fff;
       }
-      .brand-name { font-size: 0.95rem; }
 
       .brand-hero { max-width: 460px; }
       .hero-title {
@@ -532,9 +488,11 @@ const EMPTY: FormState = { email: '', password: '' };
         font-weight: 700;
         color: #111827;
       }
-      .brand-mobile .brand-mark {
-        object-fit: cover;
-        display: block;
+      .brand-mobile .brand-wordmark {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--bb-brand-purple, #845ec2);
       }
 
       .form-card {
@@ -935,6 +893,8 @@ const EMPTY: FormState = { email: '', password: '' };
   ],
 })
 export class LoginComponent implements OnInit {
+  readonly productName = PRODUCT_NAME;
+
   private readonly accounts = inject(AccountsBridgeService);
   private readonly session = inject(AccountSessionService);
   private readonly bffAuth = inject(BffAuthService);
@@ -957,13 +917,6 @@ export class LoginComponent implements OnInit {
    * the banner mid-typing.
    */
   readonly sessionExpired = signal(false);
-  /**
-   * Demo accounts panel only renders when both (a) we're not in
-   * production and (b) we're using the mock catalogue. With BFF dev
-   * mode (`useMock: false`) the picker would otherwise render an
-   * empty list once the lazy-load decided not to fire.
-   */
-  readonly showDemoAccounts = !environment.production && environment.useMock;
 
   /**
    * Build-time SSO-only switch — see `environment.passwordSignInEnabled`.
@@ -983,33 +936,27 @@ export class LoginComponent implements OnInit {
   }> = [
     {
       url:
-        'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=70',
-      alt: "Children's hands covered in colourful paint",
-      caption: 'Hands-on creativity at every age.',
+        'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=70',
+      alt: 'Packages on a warehouse conveyor',
+      caption: 'Your US purchases, received and ready to quote.',
     },
     {
       url:
-        'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=1600&q=70',
-      alt: 'Group of preschool children playing together',
-      caption: 'Where curious kids meet patient teachers.',
+        'https://images.unsplash.com/photo-1578575437136-9e86f6c5e3e2?auto=format&fit=crop&w=1600&q=70',
+      alt: 'Shipping containers at a port',
+      caption: 'Cross-border delivery built for Eswatini families.',
     },
     {
       url:
-        'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=1600&q=70',
-      alt: "Stack of children's books on a desk",
-      caption: 'A library for the next generation of readers.',
+        'https://images.unsplash.com/photo-1494412646604-aaac575ede33?auto=format&fit=crop&w=1600&q=70',
+      alt: 'Worker scanning parcels in a warehouse',
+      caption: 'Every parcel scanned, matched, and tracked.',
     },
     {
       url:
-        'https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&w=1600&q=70',
-      alt: 'Toddler painting on a canvas with a brush',
-      caption: 'Bold strokes from very small artists.',
-    },
-    {
-      url:
-        'https://images.unsplash.com/photo-1602030638412-bb8dcc0bc8b0?auto=format&fit=crop&w=1600&q=70',
-      alt: 'Smiling child blowing bubbles outdoors',
-      caption: 'Outdoor play, indoor learning.',
+        'https://images.unsplash.com/photo-1607083206869-4c7672fa65a1?auto=format&fit=crop&w=1600&q=70',
+      alt: 'Brown cardboard delivery boxes',
+      caption: 'From checkout to your door in Eswatini.',
     },
     {
       url:
@@ -1023,44 +970,7 @@ export class LoginComponent implements OnInit {
   readonly imageFailed = signal<boolean[]>([]);
   private rotateHandle: ReturnType<typeof setInterval> | null = null;
 
-  /**
-   * Backing list for the demo picker + recognition hint. Only ever
-   * populated when {@link environment.useMock} is true, and only via a
-   * deferred dynamic import so production builds tree-shake the
-   * `MOCK_ACCOUNTS` table out of the auth chunk entirely. Empty array
-   * keeps the computeds inert in live mode.
-   */
-  private readonly mockAccounts = signal<readonly MockAccount[]>([]);
-
-  /**
-   * Email-based recognition hint. Mock-only: production builds always
-   * return null because the mock catalogue isn't shipped, and we don't
-   * want to leak a real-account presence oracle to the login screen.
-   */
-  readonly resolvedHint = computed<string | null>(() => {
-    if (!environment.useMock) return null;
-    const e = this.form().email.trim().toLowerCase();
-    if (e.length < 5 || !e.includes('@')) return null;
-    const acct = this.mockAccounts().find(
-      (a) => a.email.toLowerCase() === e,
-    );
-    if (!acct) return null;
-    const r = acct.role === 'parent' ? 'parent' : 'staff member';
-    return `Recognised as ${acct.displayName} · ${r}.`;
-  });
-
-  /** Sorted demo accounts (parents first). Mock-only. */
-  readonly demoAccounts = computed<MockAccount[]>(() =>
-    [...this.mockAccounts()].sort((a, b) => {
-      if (a.role !== b.role) return a.role === 'parent' ? -1 : 1;
-      return a.displayName.localeCompare(b.displayName);
-    }),
-  );
-
   ngOnInit(): void {
-    // Read once; we don't react to live query-param changes here — the
-    // banner shouldn't disappear if the user happens to navigate within
-    // /login (e.g. by clicking "Forgot?" and back).
     this.sessionExpired.set(
       this.route.snapshot.queryParamMap.get('reason') === 'session-expired',
     );
@@ -1068,14 +978,6 @@ export class LoginComponent implements OnInit {
     this.imageFailed.set(this.backgroundImages.map(() => false));
     this.startBackgroundRotation();
     this.destroyRef.onDestroy(() => this.stopBackgroundRotation());
-    // Mock-only: lazy-load the demo catalogue so the import isn't part
-    // of the auth chunk in production builds. The dynamic specifier
-    // also stays out of the static dependency graph the bundler walks.
-    if (environment.useMock) {
-      void import('@wayel/shared/core/mock/mock-accounts').then((m) => {
-        this.mockAccounts.set(m.MOCK_ACCOUNTS);
-      });
-    }
   }
 
   patch(p: Partial<FormState>): void {
@@ -1147,12 +1049,6 @@ export class LoginComponent implements OnInit {
     );
   }
 
-  useDemoAccount(a: MockAccount): void {
-    this.form.set({ email: a.email, password: 'demo1234' });
-    this.serverError.set(null);
-    this.onSubmit();
-  }
-
   // ── Background carousel ──────────────────────────────────────────────
 
   setImage(i: number): void {
@@ -1202,26 +1098,4 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-
-  initials(name: string): string {
-    return name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase() ?? '')
-      .join('');
-  }
-
-  avatarColor(email: string): string {
-    const palette = [
-      '#ec4899', '#f97316', '#8b5cf6', '#22d3ee',
-      '#10b981', '#ef4444', '#3b82f6', '#a855f7',
-    ];
-    let hash = 0;
-    for (let i = 0; i < email.length; i++) {
-      hash = (hash * 31 + email.charCodeAt(i)) | 0;
-    }
-    return palette[Math.abs(hash) % palette.length];
-  }
 }

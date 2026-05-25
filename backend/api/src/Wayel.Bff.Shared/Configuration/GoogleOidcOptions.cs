@@ -20,4 +20,10 @@ public sealed class GoogleOidcOptions
     /// Empty = allow any domain. Useful for the admin BFF to restrict to staff domains.
     /// </summary>
     public IReadOnlyList<string> AllowedHostedDomains { get; init; } = [];
+
+    /// <summary>
+    /// Use built-in Google OIDC endpoints instead of fetching the discovery document
+    /// on each login challenge. Defaults to on in Development (Docker-friendly).
+    /// </summary>
+    public bool UseStaticMetadata { get; init; }
 }

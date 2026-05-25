@@ -1,0 +1,164 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+using Wayel.Application.Abstractions.Payments;
+
+namespace Wayel.Infrastructure.Billing;
+
+internal sealed class PaystackPaymentGateway(
+    IOptions<PaystackOptions> options,
+    IHttpClientFactory httpClientFactory) : IPaymentGateway
+{
+    private readonly PaystackOptions _opts = options.Value;
+
+    public bool IsConfigured =>
+        _opts.Enabled
+        && (!string.IsNullOrWhiteSpace(_opts.SecretKey) || _opts.AllowSimulatedPayments);
+
+    public string? PublicKey =>
+        string.IsNullOrWhiteSpace(_opts.PublicKey) ? null : _opts.PublicKey.Trim();
+
+    public async Task<PaymentInitializeResult> InitializeChargeAsync(
+        PaymentInitializeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        if (string.IsNullOrWhiteSpace(_opts.SecretKey))
+        {
+            var simRef = request.Reference;
+            var separator = request.CallbackUrl.Contains('?') ? '&' : '?';
+            var url = $"{request.CallbackUrl}{separator}reference={Uri.EscapeDataString(simRef)}&trxref={Uri.EscapeDataString(simRef)}";
+            return new PaymentInitializeResult(simRef, url, "simulated");
+        }
+
+        var payload = new
+        {
+            email = request.Email,
+            amount = request.AmountMinorUnits,
+            reference = request.Reference,
+            currency = _opts.Currency,
+            callback_url = request.CallbackUrl,
+            metadata = request.Metadata,
+        };
+
+        using var client = CreateClient();
+        using var response = await client.PostAsJsonAsync("transaction/initialize", payload, cancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<PaystackEnvelope<InitializeData>>(
+            PaystackJson.Options,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode || body?.Status != true || body.Data is null)
+        {
+            throw new InvalidOperationException(
+                body?.Message ?? $"Paystack initialize failed ({(int)response.StatusCode}).");
+        }
+
+        return new PaymentInitializeResult(
+            body.Data.Reference ?? request.Reference,
+            body.Data.AuthorizationUrl ?? string.Empty,
+            body.Data.AccessCode ?? string.Empty);
+    }
+
+    public async Task<PaymentVerifyResult> VerifyChargeAsync(
+        string reference,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        if (string.IsNullOrWhiteSpace(_opts.SecretKey))
+        {
+            return new PaymentVerifyResult(reference, "success", 0, _opts.Currency);
+        }
+
+        using var client = CreateClient();
+        using var response = await client.GetAsync(
+            $"transaction/verify/{Uri.EscapeDataString(reference)}",
+            cancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<PaystackEnvelope<VerifyData>>(
+            PaystackJson.Options,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode || body?.Status != true || body.Data is null)
+        {
+            throw new InvalidOperationException(
+                body?.Message ?? $"Paystack verify failed ({(int)response.StatusCode}).");
+        }
+
+        return new PaymentVerifyResult(
+            body.Data.Reference ?? reference,
+            body.Data.Status ?? "failed",
+            body.Data.Amount,
+            body.Data.Currency ?? _opts.Currency);
+    }
+
+    private void EnsureConfigured()
+    {
+        if (!IsConfigured)
+        {
+            throw new InvalidOperationException(
+                "Paystack is not configured. Set Billing:Paystack:SecretKey or enable AllowSimulatedPayments.");
+        }
+    }
+
+    private HttpClient CreateClient()
+    {
+        var client = httpClientFactory.CreateClient(nameof(PaystackPaymentGateway));
+        client.BaseAddress = new Uri(_opts.ApiBaseUrl.TrimEnd('/') + "/");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            _opts.SecretKey);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        return client;
+    }
+
+    private sealed class InitializeData
+    {
+        [JsonPropertyName("authorization_url")]
+        public string? AuthorizationUrl { get; init; }
+
+        [JsonPropertyName("access_code")]
+        public string? AccessCode { get; init; }
+
+        [JsonPropertyName("reference")]
+        public string? Reference { get; init; }
+    }
+
+    private sealed class VerifyData
+    {
+        [JsonPropertyName("reference")]
+        public string? Reference { get; init; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; init; }
+
+        [JsonPropertyName("amount")]
+        public int Amount { get; init; }
+
+        [JsonPropertyName("currency")]
+        public string? Currency { get; init; }
+    }
+
+    private sealed class PaystackEnvelope<T>
+    {
+        [JsonPropertyName("status")]
+        public bool Status { get; init; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; init; }
+
+        [JsonPropertyName("data")]
+        public T? Data { get; init; }
+    }
+
+    private static class PaystackJson
+    {
+        public static readonly JsonSerializerOptions Options = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
+    }
+}

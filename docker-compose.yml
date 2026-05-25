@@ -1,8 +1,14 @@
-# WeYell — local full stack (MongoDB + API + BFF + optional customer portal).
+# WeYell — local full stack (API + BFF + optional customer portal).
+#
+# Mongo: bundled `mongo` service (profile `local-mongo`) OR Atlas via `.env`
+#   Atlas: docker compose -f docker-compose.yml -f docker-compose.atlas.yml …
 #
 # Quick start:
-#   cp .env.example .env    # optional — defaults work for local Mongo
-#   docker compose up --build
+#   cp .env.example .env
+#   docker compose -f docker-compose.yml -f docker-compose.atlas.yml --profile portal up -d --build
+#
+# Single URL (portal proxies /api and /bff to BFF): http://localhost:8080
+# Ops dashboard (parcel receive, KYC, shipments): http://localhost:8081
 #
 # Portal only (after API/BFF are healthy):
 #   docker compose --profile portal up --build
@@ -13,6 +19,7 @@
 
 services:
   mongo:
+    profiles: ["local-mongo"]
     image: mongo:7
     container_name: wayel-mongo
     ports:
@@ -34,24 +41,64 @@ services:
         PROJECT: src/Wayel.Api/Wayel.Api.csproj
         ASSEMBLY: Wayel.Api.dll
     container_name: wayel-api
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     depends_on:
       mongo:
         condition: service_healthy
+        required: false
     ports:
       - "5099:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__ConnectionString: ${MONGO_CONNECTION_STRING:-mongodb://mongo:27017/?directConnection=true}
-      Mongo__DatabaseName: ${MONGO_DATABASE_NAME:-borderbox}
+      Mongo__DatabaseName: ${MONGO_DATABASE_NAME:-courier_platform}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-dev-signing-key-must-be-at-least-32-chars}
       Jwt__Issuer: wayel-api
       Jwt__Audience: wayel-clients
       AuthSession__RefreshTokenLifetimeMinutes: "20160"
-      GoogleAuth__ClientIds__0: ${GOOGLEAUTH__CLIENTIDS__0:-000000000000-ci-placeholder.apps.googleusercontent.com}
-      GoogleAuth__ClientIds__1: ${GOOGLEAUTH__CLIENTIDS__1:-}
-      MediaStorage__Provider: ${MEDIA_STORAGE_PROVIDER:-s3}
+      GoogleAuth__ClientIds__0: ${GOOGLEAUTH__CLIENTIDS__0:-1094311210896-s30kc67i68rfri54p6m7drm4soeshbe9.apps.googleusercontent.com}
+      OpsAuth__BootstrapLeadEmails__0: ${OPS_BOOTSTRAP_LEAD_EMAIL:-mninawa@felidaen.co}
+      OpsAuth__BootstrapLeadEmails__1: ${OPS_BOOTSTRAP_LEAD_EMAIL_2:-mninawa@gmail.com}
+      GoogleAuth__ClientIds__1: ${GOOGLEAUTH__CLIENTIDS__1:-1094311210896-54en0qs1uc5qu7qp977e0c9pgpqfalcr.apps.googleusercontent.com}
+      MediaStorage__Provider: ${MEDIA_STORAGE_PROVIDER:-in-memory}
+      MediaStorage__Region: ${MEDIA_STORAGE_REGION:-eu-west-1}
+      MediaStorage__BucketName: ${MEDIA_STORAGE_BUCKET:-we-yell-courier-platform}
+      MediaStorage__CdnHost: ${MEDIA_STORAGE_CDN_HOST:-d1uqzemvshg76c.cloudfront.net}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-${MEDIA_STORAGE_REGION:-eu-west-1}}
       Notifications__Ses__Enabled: "false"
-      Notifications__WaSender__Enabled: "false"
+      Notifications__WaSender__Enabled: ${NOTIFICATIONS__WASENDER__ENABLED:-false}
+      Notifications__WaSender__ApiKey: ${NOTIFICATIONS__WASENDER__APIKEY:-}
+      Notifications__WaSender__BaseUrl: ${NOTIFICATIONS__WASENDER__BASEURL:-https://www.wasenderapi.com}
+      Notifications__WaSender__SessionId: ${NOTIFICATIONS__WASENDER__SESSIONID:-}
+      Notifications__WaSender__Allowlist__0: ${NOTIFICATIONS__WASENDER__ALLOWLIST__0:-}
+      Notifications__WaSender__SupportInboxPhoneE164: ${NOTIFICATIONS__WASENDER__SUPPORTINBOXPHONE:-}
+      Notifications__Webhooks__WaSenderSecret: ${NOTIFICATIONS__WEBHOOKS__WASENDERSECRET:-}
+      Auth__EnablePasswordSignIn: ${AUTH_ENABLE_PASSWORD_SIGNIN:-true}
+      Seed__DemoData__Enabled: ${SEED_DEMO_DATA:-true}
+      Seed__TestParcels__Enabled: ${SEED_ALLOW_TEST_PARCELS:-true}
+      Billing__Paystack__Enabled: ${PAYSTACK_ENABLED:-true}
+      Billing__Paystack__SecretKey: ${PAYSTACK_SECRET_KEY:-}
+      Billing__Paystack__PublicKey: ${PAYSTACK_PUBLIC_KEY:-}
+      Billing__Paystack__AllowSimulatedPayments: ${PAYSTACK_ALLOW_SIMULATED:-true}
+      Billing__Paystack__ApiBaseUrl: ${PAYSTACK_API_BASE_URL:-https://api.paystack.co}
+      Billing__Paystack__Currency: ${PAYSTACK_CURRENCY:-ZAR}
+      Kyc__AutoVerifyOnSubmit: ${KYC_AUTO_VERIFY_ON_SUBMIT:-false}
+      Kyc__AutoApproveOnProviderPass: ${KYC_AUTO_APPROVE_ON_PROVIDER_PASS:-false}
+      Kyc__IdAnalyzerEnabled: ${KYC_IDANALYZER_ENABLED:-false}
+      Kyc__IdAnalyzerApiKey: ${IDANALYZER_API_KEY:-}
+      Kyc__IdAnalyzerProfileId: ${IDANALYZER_PROFILE_ID:-security_medium}
+      Kyc__IdAnalyzerBaseUrl: ${IDANALYZER_BASE_URL:-https://api2.idanalyzer.com}
+      Kyc__OpsApiKey: ${KYC_OPS_API_KEY:-weyell-local-kyc-ops}
+      Kyc__OpsRoleByApiKey__weyell-local-kyc-ops: lead
+      Kyc__OpsRoleByApiKey__weyell-ops-clerk: clerk
+      Kyc__OpsRoleByApiKey__weyell-ops-finance: finance
+      BorderBox__Pricing__ChargeVat: ${BORDERBOX_CHARGE_VAT:-true}
+      BorderBox__Pricing__ChargeWeightSurcharge: ${BORDERBOX_CHARGE_WEIGHT_SURCHARGE:-false}
+      BorderBox__CustomerPortalBaseUrl: ${PUBLIC_URL:-http://localhost:8080}
 
   bff-customer:
     build:
@@ -61,6 +108,9 @@ services:
         PROJECT: src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj
         ASSEMBLY: Wayel.Bff.Customer.dll
     container_name: wayel-bff-customer
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     depends_on:
       api:
         condition: service_started
@@ -68,23 +118,40 @@ services:
       - "5299:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Bff__Audience: customer
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-dev-signing-key-must-be-at-least-32-chars}
+      Jwt__Issuer: wayel-api
+      Jwt__Audience: wayel-clients
+      Bff__Audience: client
       Bff__SpaBaseUri: ${BFF__SPA_BASE_URI:-http://localhost:8080}
       Bff__ApiBaseUri: http://api:8080
       Bff__SessionLifetimeMinutes: "20160"
       Bff__RequireHttpsCookie: "false"
       Bff__CookieName: ".Wayel.Bff.Customer"
+      GoogleOidc__ClientId: ${GOOGLEOIDC__CLIENTID:-1094311210896-s30kc67i68rfri54p6m7drm4soeshbe9.apps.googleusercontent.com}
+      GoogleOidc__ClientSecret: ${GOOGLEOIDC__CLIENTSECRET:-local-dev-placeholder}
+      GoogleOidc__UseStaticMetadata: ${GOOGLEOIDC__USE_STATIC_METADATA:-true}
 
   portal:
     profiles: ["portal"]
     build:
       context: ./frontend
-      dockerfile: apps/customer-portal/Dockerfile
+      dockerfile: apps/customer-portal/Dockerfile.deploy
     container_name: wayel-portal
     depends_on:
       - bff-customer
     ports:
       - "8080:80"
+
+  ops-dash:
+    profiles: ["ops", "portal"]
+    build:
+      context: ./frontend
+      dockerfile: apps/we-yell-ops-dash/Dockerfile.deploy
+    container_name: wayel-ops-dash
+    depends_on:
+      - api
+    ports:
+      - "${OPS_DASH_PORT:-8081}:80"
 
 volumes:
   mongo-data:

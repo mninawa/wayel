@@ -7,6 +7,8 @@ import {
   profileOnboardingGuard,
   suitePlanOnboardingGuard,
 } from './guards/customer-journey.guard';
+import { kycOpsReviewGuard } from './guards/kyc-ops.guard';
+import { parcelOpsGuard } from './guards/parcel-ops.guard';
 
 /**
  * WeYell customer journey:
@@ -58,25 +60,34 @@ export const routes: Routes = [
   },
 
   {
-    path: 'suite-access/checkout',
-    canActivate: [customerSignedInGuard, profileCompleteGuard],
-    title: 'Activate Suite Access',
-    loadComponent: () =>
-      import('./features/suite/suite-checkout.component').then(
-        (m) => m.SuiteCheckoutComponent,
-      ),
-  },
-
-  {
     path: '',
-    canActivate: [portalReadyGuard],
+    canActivate: [customerSignedInGuard],
     loadComponent: () =>
       import('./features/layout/portal-shell.component').then(
         (m) => m.PortalShellComponent,
       ),
     children: [
       {
+        path: 'suite-access/checkout',
+        canActivate: [profileCompleteGuard],
+        title: 'Renew Suite Access',
+        loadComponent: () =>
+          import('./features/suite/suite-checkout.component').then(
+            (m) => m.SuiteCheckoutComponent,
+          ),
+      },
+      {
+        path: 'suite-access/checkout/complete',
+        canActivate: [profileCompleteGuard],
+        title: 'Payment confirmation',
+        loadComponent: () =>
+          import('./features/suite/suite-checkout-complete.component').then(
+            (m) => m.SuiteCheckoutCompleteComponent,
+          ),
+      },
+      {
         path: 'dashboard',
+        canActivate: [portalReadyGuard],
         title: 'Dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(
@@ -85,6 +96,7 @@ export const routes: Routes = [
       },
       {
         path: 'my-address',
+        canActivate: [portalReadyGuard],
         title: 'My Address & Profile',
         loadComponent: () =>
           import('./features/address/my-address.component').then(
@@ -94,6 +106,7 @@ export const routes: Routes = [
       { path: 'my-profile', redirectTo: 'my-address', pathMatch: 'full' },
       {
         path: 'received-parcels',
+        canActivate: [portalReadyGuard],
         title: 'Received Parcels',
         loadComponent: () =>
           import('./features/parcels/received-parcels.component').then(
@@ -102,6 +115,7 @@ export const routes: Routes = [
       },
       {
         path: 'parcels/:id',
+        canActivate: [portalReadyGuard],
         title: 'Parcel Details',
         loadComponent: () =>
           import('./features/parcels/parcel-details.component').then(
@@ -109,27 +123,110 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'shipments/create',
-        title: 'Create Shipment',
+        path: 'quotes',
+        canActivate: [portalReadyGuard],
         loadComponent: () =>
-          import('./features/shipments/create-shipment.component').then(
-            (m) => m.CreateShipmentComponent,
-          ),
+          import('./features/quotes/quotes-hub.component').then((m) => m.QuotesHubComponent),
+        children: [
+          {
+            path: '',
+            redirectTo: 'list',
+            pathMatch: 'full',
+          },
+          {
+            path: 'list',
+            title: 'Your quotes',
+            loadComponent: () =>
+              import('./features/quotes/quotes-list.component').then(
+                (m) => m.QuotesListComponent,
+              ),
+          },
+          {
+            path: 'request',
+            title: 'Request quote',
+            loadComponent: () =>
+              import('./features/shipments/create-shipment.component').then(
+                (m) => m.CreateShipmentComponent,
+              ),
+          },
+        ],
       },
       {
-        path: 'shipping/quote/:id',
-        title: 'Shipping Quote',
+        path: 'quotes/:id',
+        canActivate: [portalReadyGuard],
+        title: 'Quote details',
         loadComponent: () =>
           import('./features/quotes/shipping-quote.component').then(
             (m) => m.ShippingQuoteComponent,
           ),
       },
       {
+        path: 'quotes/:id/checkout/complete',
+        canActivate: [portalReadyGuard],
+        title: 'Quote payment',
+        loadComponent: () =>
+          import('./features/quotes/quote-checkout-complete.component').then(
+            (m) => m.QuoteCheckoutCompleteComponent,
+          ),
+      },
+      {
+        path: 'quotes/request/select-parcels',
+        redirectTo: 'quotes/request',
+        pathMatch: 'full',
+      },
+      {
+        path: 'shipments/create',
+        redirectTo: 'quotes/request',
+        pathMatch: 'full',
+      },
+      {
+        path: 'shipping/quote/:id',
+        redirectTo: 'quotes/:id',
+        pathMatch: 'full',
+      },
+      {
         path: 'tracking-support',
+        canActivate: [portalReadyGuard],
         title: 'Tracking & Support',
         loadComponent: () =>
           import('./features/tracking/tracking-support.component').then(
             (m) => m.TrackingSupportComponent,
+          ),
+      },
+      {
+        path: 'shipments/:shipmentId/track',
+        canActivate: [portalReadyGuard],
+        title: 'Track shipment',
+        loadComponent: () =>
+          import('./features/tracking/shipment-tracking.component').then(
+            (m) => m.ShipmentTrackingComponent,
+          ),
+      },
+      {
+        path: 'parcels/:parcelId/track',
+        canActivate: [portalReadyGuard],
+        title: 'Track shipment',
+        loadComponent: () =>
+          import('./features/tracking/shipment-tracking.component').then(
+            (m) => m.ShipmentTrackingComponent,
+          ),
+      },
+      {
+        path: 'internal/kyc-review',
+        canActivate: [customerSignedInGuard, kycOpsReviewGuard],
+        title: 'KYC review',
+        loadComponent: () =>
+          import('./features/ops/kyc-ops-review.component').then(
+            (m) => m.KycOpsReviewComponent,
+          ),
+      },
+      {
+        path: 'internal/parcel-receive',
+        canActivate: [customerSignedInGuard, parcelOpsGuard],
+        title: 'Receive parcel',
+        loadComponent: () =>
+          import('./features/ops/parcel-receive.component').then(
+            (m) => m.ParcelReceiveComponent,
           ),
       },
     ],

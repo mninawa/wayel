@@ -6,9 +6,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Wayel.Bff.Shared.ApiClient;
 using Wayel.Bff.Shared.Configuration;
@@ -64,6 +66,7 @@ public static class BffHostBuilder
             .ValidateOnStart();
 
         services.AddSingleton<BffSessionStore>();
+        services.AddSingleton<IPostConfigureOptions<OpenIdConnectOptions>, GoogleOidcStaticMetadataPostConfigure>();
 
         // Data Protection backs the cookie auth ticket's encryption AND the
         // antiforgery token pairing. Without a persisted, *shared* key ring
@@ -116,12 +119,9 @@ public static class BffHostBuilder
                 cookie.Cookie.HttpOnly = true;
                 cookie.Cookie.SameSite = SameSiteMode.Lax;
 
-                // Outside Development we always force Secure cookies, even if
-                // the operator forgets to set RequireHttpsCookie=true. The
-                // dev-time opt-out exists so plain http://localhost SPAs can
-                // round-trip the cookie at all; production must never rely on
-                // the SameAsRequest fallback.
-                cookie.Cookie.SecurePolicy = (bff.RequireHttpsCookie || !environment.IsDevelopment())
+                // When RequireHttpsCookie=false (Docker portal on http://localhost:8080)
+                // cookies must be SameAsRequest or the browser never stores them.
+                cookie.Cookie.SecurePolicy = bff.RequireHttpsCookie
                     ? CookieSecurePolicy.Always
                     : CookieSecurePolicy.SameAsRequest;
                 cookie.ExpireTimeSpan = TimeSpan.FromMinutes(bff.SessionLifetimeMinutes);
@@ -171,7 +171,9 @@ public static class BffHostBuilder
                 // with "correlation failed". We downgrade to query mode +
                 // SameSite=Lax in that case — the callback is then a top-level
                 // navigation and Lax cookies ride along.
-                if (!bff.RequireHttpsCookie && environment.IsDevelopment())
+                // Plain http://localhost (Docker portal on :8080, dev proxy) cannot
+                // store Secure correlation cookies — use query + Lax in that case.
+                if (!bff.RequireHttpsCookie)
                 {
                     oidc.ResponseMode = "query";
                     oidc.CorrelationCookie.SameSite = SameSiteMode.Lax;
@@ -216,8 +218,10 @@ public static class BffHostBuilder
                     OnRemoteFailure = ctx =>
                     {
                         var spa = configuration[$"{BffOptions.SectionName}:SpaBaseUri"] ?? "/";
+                        var signIn = $"{spa.TrimEnd('/')}/sign-in";
                         ctx.HandleResponse();
-                        ctx.Response.Redirect($"{spa}?sso_error={Uri.EscapeDataString(ctx.Failure?.Message ?? "unknown")}");
+                        ctx.Response.Redirect(
+                            $"{signIn}?sso_error={Uri.EscapeDataString(ctx.Failure?.Message ?? "unknown")}");
                         return Task.CompletedTask;
                     },
                 };
@@ -288,12 +292,13 @@ public static class BffHostBuilder
         //     header-token-vs-cookie-token, which now line up.
         services.AddAntiforgery(options =>
         {
+            var bff = configuration.GetSection(BffOptions.SectionName).Get<BffOptions>() ?? new BffOptions();
             options.HeaderName = CsrfHeaderName;
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
-            options.Cookie.SecurePolicy = environment.IsDevelopment()
-                ? CookieSecurePolicy.SameAsRequest
-                : CookieSecurePolicy.Always;
+            options.Cookie.SecurePolicy = bff.RequireHttpsCookie
+                ? CookieSecurePolicy.Always
+                : CookieSecurePolicy.SameAsRequest;
         });
 
         services.AddReverseProxy()
@@ -304,6 +309,18 @@ public static class BffHostBuilder
 
     public static WebApplication UseBff(this WebApplication app)
     {
+        // Trust X-Forwarded-* from nginx/Caddy so OIDC redirect_uri uses the
+        // browser-facing host:port (e.g. http://localhost:8080/signin-oidc).
+        var forwarded = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                | ForwardedHeaders.XForwardedProto
+                | ForwardedHeaders.XForwardedHost,
+        };
+        forwarded.KnownIPNetworks.Clear();
+        forwarded.KnownProxies.Clear();
+        app.UseForwardedHeaders(forwarded);
+
         app.UseAuthentication();
         app.UseAuthorization();
         // Antiforgery sits behind authentication so the cookie can be tied
@@ -446,6 +463,17 @@ public static class BffHostBuilder
                     Path = "/api/v1/staff-invitations/accept-password",
                     Methods = ["POST"],
                 },
+                AuthorizationPolicy = "Anonymous",
+            },
+            // WeYell internal ops (KYC queue, warehouse parcel receive). Secured
+            // upstream by X-Wayel-Ops-Key — must not require a BFF cookie so the
+            // portal can call these after the user enters the ops key (the SPA
+            // still gates /internal/* routes behind customerSignedInGuard).
+            new RouteConfig
+            {
+                RouteId = "wayel-api-borderbox-ops",
+                ClusterId = "wayel-api",
+                Match = new RouteMatch { Path = "/api/v1/borderbox/ops/{**catch-all}" },
                 AuthorizationPolicy = "Anonymous",
             },
             new RouteConfig

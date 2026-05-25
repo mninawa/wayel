@@ -6,6 +6,19 @@ namespace Wayel.Application.Abstractions.Persistence;
 public interface ISuiteSubscriptionRepository
 {
     Task<SuiteSubscription?> GetForUserAsync(UserId userId, CancellationToken cancellationToken = default);
+
+    Task<SuiteSubscription?> GetBySuiteNumberAsync(string suiteNumber, CancellationToken cancellationToken = default);
+
     Task AddAsync(SuiteSubscription subscription, CancellationToken cancellationToken = default);
     Task UpdateAsync(SuiteSubscription subscription, CancellationToken cancellationToken = default);
+
+    Task<int> CountAssignedSuitesAsync(CancellationToken cancellationToken = default);
+
+    Task<int> CountAssignedSuitesByRegionAsync(
+        string regionCode,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<UserId>> ListActiveSuiteUserIdsByRegionAsync(
+        string regionCode,
+        CancellationToken cancellationToken = default);
 }

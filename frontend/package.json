@@ -13,8 +13,11 @@
     "dev:portal": "npm --workspace apps/customer-portal run start",
     "dev:portal:bff": "npm --workspace apps/customer-portal run start:bff",
     "dev:portal:bff:docker": "npm --workspace apps/customer-portal run start:bff:docker",
+    "dev:ops-dash": "npm --workspace @weyell/we-yell-ops-dash run start",
+    "dev:ops-dash:docker": "npm --workspace @weyell/we-yell-ops-dash run start:docker",
     "build": "npm run build --workspaces --if-present",
     "build:portal": "npm --workspace apps/customer-portal run build",
+    "build:ops-dash": "npm --workspace @weyell/we-yell-ops-dash run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

@@ -1,210 +1,1325 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MOCK_SUITE } from '../../data/borderbox-mock.data';
-import { environment } from '../../../environments/environment';
-import { BorderboxApiService } from '../../services/borderbox-api.service';
+import {
+  BorderboxApiService,
+  type SuiteAccessSummary,
+  type SuitePaymentsOverviewDto,
+  type SuitePlanDto,
+} from '../../services/borderbox-api.service';
 import { CustomerAccountService } from '../../services/customer-account.service';
+import { ParcelsService } from '../../services/parcels.service';
+import { PaystackCheckoutService } from '../../services/paystack-checkout.service';
+
+type PayMethod = 'card' | 'eft';
+
+type StatusFilter = 'all' | 'successful' | 'failed' | 'pending';
+
+const PLAN_FEATURES = [
+  'All suite features',
+  'Unlimited parcel receiving',
+  "Ship when you're ready",
+] as const;
 
 @Component({
   selector: 'app-suite-checkout',
   standalone: true,
+  imports: [DatePipe, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bb-page-head">
-      <h1><span class="material-icons-outlined">verified_user</span> Renew Suite Access</h1>
-      <p>Choose a plan and payment method to unlock ship-out.</p>
-    </div>
+    <header class="page-head">
+      <h1>
+        <span class="material-icons-outlined head-icon">payments</span>
+        Payments
+      </h1>
+      <p class="head-sub">
+        Manage your suite-access subscription, payment history and saved cards.
+      </p>
+    </header>
 
-    <div class="info bb-card bb-card-pad">
-      <span class="material-icons-outlined">info</span>
-      Ship-out unlocks immediately after successful payment. Your suite address stays reserved.
-    </div>
+    @if (error()) {
+      <div class="err-banner" role="alert">{{ error() }}</div>
+    }
 
-    <div class="checkout-grid">
-      <div class="main-col">
-        <section class="bb-card bb-card-pad">
-          <h2 class="step">Step 1 — Choose a Plan</h2>
-          <label class="plan-card" [class.selected]="plan() === 'quarterly'">
-            <input type="radio" name="plan" value="quarterly" [checked]="plan() === 'quarterly'" (change)="plan.set('quarterly')" />
-            <div>
-              <span class="bb-badge bb-badge-success">Recommended</span>
-              <strong>Quarterly</strong>
-              <span>R200 / 3 months · Paid upfront</span>
-            </div>
-          </label>
-          <label class="plan-card" [class.selected]="plan() === 'monthly'">
-            <input type="radio" name="plan" value="monthly" [checked]="plan() === 'monthly'" (change)="plan.set('monthly')" />
-            <div>
-              <strong>Monthly</strong>
-              <span>R100 / 1 month · Paid upfront</span>
-            </div>
-          </label>
-        </section>
-
-        <section class="bb-card bb-card-pad">
-          <h2 class="step">Step 2 — Choose Payment Method</h2>
-          <label class="pay-card selected">
-            <input type="radio" name="pay" checked />
-            <div>
-              <strong>Card Payment</strong>
-              <span>Visa · Mastercard · Apple Pay</span>
-            </div>
-          </label>
-          <label class="pay-card">
-            <input type="radio" name="pay" />
-            <div>
-              <strong>EFT / Bank Transfer</strong>
-              <span>Manual verification required</span>
-            </div>
-          </label>
-          <p class="trust">🔒 Secure &amp; Encrypted · PCI DSS · SSL Secure</p>
-        </section>
-
-        <button type="button" class="bb-btn bb-btn-primary pay-btn" (click)="pay()" [disabled]="busy()">
-          <span class="material-icons-outlined">lock</span>
-          Pay R{{ amount() }} Securely
+    <section class="stat-row">
+      <div class="stat-card">
+        <span class="stat-label">
+          <span class="material-icons-outlined">workspace_premium</span>
+          Current Plan
+        </span>
+        <strong class="stat-value">{{ currentPlanLabel() }}</strong>
+        <span class="stat-sub">{{ currentPlanPriceLabel() }}</span>
+        <button type="button" class="stat-link" (click)="scrollToRenew()">
+          View plan details
         </button>
       </div>
 
-      <aside class="bb-card bb-card-pad summary">
-        <h2 class="bb-card-title">Order Summary</h2>
-        <dl class="kv">
-          <div><dt>Suite Number</dt><dd>{{ suite.number }}</dd></div>
-          <div><dt>Plan</dt><dd>{{ planLabel() }}</dd></div>
-          <div><dt>Billing Period</dt><dd>{{ plan() === 'quarterly' ? '3 Months' : '1 Month' }}</dd></div>
-        </dl>
-        <div class="due">
-          <span>Amount Due</span>
-          <strong>R{{ amount() }}.00</strong>
+      <div class="stat-card">
+        <span class="stat-label">
+          <span class="material-icons-outlined">event</span>
+          Next Payment Amount
+        </span>
+        <strong class="stat-value money">{{ nextPaymentAmountLabel() }}</strong>
+        <span class="stat-sub">{{ nextPaymentDueLabel() }}</span>
+        @if (nextPaymentBadgeLabel(); as badge) {
+          <span class="badge" [class]="nextPaymentBadgeTone()">{{ badge }}</span>
+        }
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">
+          <span class="material-icons-outlined">paid</span>
+          Last Payment
+        </span>
+        <strong class="stat-value money">{{ lastPaymentAmountLabel() }}</strong>
+        <span class="stat-sub">{{ lastPaymentLabel() }}</span>
+        @if (lastPaymentBadgeLabel(); as badge) {
+          <span class="badge" [class]="lastPaymentBadgeTone()">{{ badge }}</span>
+        }
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">
+          <span class="material-icons-outlined">credit_card</span>
+          Payment Method
+        </span>
+        <strong class="stat-value">{{ paymentMethodLabel() }}</strong>
+        <span class="stat-sub">{{ paymentMethodSubLabel() }}</span>
+        <div class="stat-actions">
+          <span class="badge tone-muted">Default</span>
+          <button type="button" class="stat-link" (click)="scrollToCards()">
+            Manage payment methods
+          </button>
         </div>
-        <dl class="kv dates">
-          <div><dt>Start Date</dt><dd>20 May 2026</dd></div>
-          <div><dt>Expiry Date</dt><dd>{{ expiry() }}</dd></div>
-        </dl>
-        <div class="note-box">Ship-out unlocks after payment is confirmed.</div>
-        <div class="reserved">🛡️ Your Suite is Reserved</div>
-        <p class="help">Need help? <a href="#" class="bb-link">Help Center</a> or Live Chat</p>
+      </div>
+    </section>
+
+    <div class="payments-grid">
+      <section class="bb-card history-card">
+        <header class="card-head">
+          <h2>
+            <span class="material-icons-outlined">history</span>
+            Payment History
+          </h2>
+          <label class="filter">
+            <select [value]="statusFilter()" (change)="setStatusFilter($any($event.target).value)">
+              <option value="all">All Statuses</option>
+              <option value="successful">Successful</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </label>
+        </header>
+
+        @if (loading()) {
+          <p class="loading">Loading payment history…</p>
+        } @else if (visibleHistory().length === 0) {
+          <div class="empty">
+            <span class="material-icons-outlined">receipt_long</span>
+            <p>No payments yet. Once you renew your suite access, your invoices will appear here.</p>
+          </div>
+        } @else {
+          <div class="history-scroll">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Plan</th>
+                  <th class="num">Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Invoice</th>
+                  <th class="num">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of visibleHistory(); track row.reference) {
+                  <tr>
+                    <td class="date-cell">
+                      <strong>{{ row.createdAtUtc | date:'d MMM y' }}</strong>
+                      <span class="muted">{{ row.createdAtUtc | date:'HH:mm' }}</span>
+                    </td>
+                    <td>{{ row.planName }}</td>
+                    <td>{{ planShortLabel(row.planDurationMonths) }}</td>
+                    <td class="num">R{{ row.amountZar | number:'1.0-0' }}</td>
+                    <td>
+                      <span class="method-pill" aria-hidden="true">
+                        <span class="material-icons-outlined">credit_card</span>
+                        •••• 4242
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge" [class]="statusBadgeTone(row.status)">{{ row.status }}</span>
+                    </td>
+                    <td><a class="invoice-link" href="javascript:void(0)">{{ row.invoiceNumber }}</a></td>
+                    <td class="num">
+                      @if (row.status === 'Failed') {
+                        <button type="button" class="icon-btn" title="Retry payment" (click)="scrollToRenew()">
+                          <span class="material-icons-outlined">refresh</span>
+                        </button>
+                      } @else {
+                        <button type="button" class="icon-btn" title="Download invoice">
+                          <span class="material-icons-outlined">download</span>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <aside class="side-col">
+        <section class="bb-card cards-card" #cardsSection>
+          <header class="card-head">
+            <h2>
+              <span class="material-icons-outlined">credit_card</span>
+              Saved Payment Methods
+            </h2>
+            <button type="button" class="bb-btn bb-btn-outline" (click)="scrollToCards()">
+              <span class="material-icons-outlined">add</span>
+              Add Card
+            </button>
+          </header>
+
+          @if (overview()?.paymentMethod; as pm) {
+            <div class="card-row">
+              <div class="card-icon">
+                <span class="material-icons-outlined">credit_card</span>
+              </div>
+              <div class="card-meta">
+                <strong>Visa •••• 4242</strong>
+                <span class="muted">Expires 12/27</span>
+              </div>
+              <span class="badge tone-muted">Default</span>
+            </div>
+            <button type="button" class="add-card-link" (click)="scrollToCards()">
+              + Add another card
+            </button>
+          } @else {
+            <div class="empty no-card">
+              <p>You have no saved cards yet. Cards are stored securely with Paystack after your next payment.</p>
+            </div>
+          }
+
+          <p class="security-note">
+            <span class="material-icons-outlined">lock</span>
+            Your payment details are secure and encrypted
+          </p>
+        </section>
+
+        <section class="bb-card summary-card">
+          <header class="card-head">
+            <h2>
+              <span class="material-icons-outlined">receipt_long</span>
+              Invoices Summary
+            </h2>
+          </header>
+
+          <dl class="summary-kv">
+            <div><dt>Total Invoices</dt><dd>{{ overview()?.summary?.totalInvoices ?? 0 }}</dd></div>
+            <div><dt>Paid Invoices</dt><dd class="ok">{{ overview()?.summary?.paid ?? 0 }}</dd></div>
+            <div><dt>Failed Invoices</dt><dd class="err">{{ overview()?.summary?.failed ?? 0 }}</dd></div>
+            <div class="total-row">
+              <dt>Total Amount Paid</dt>
+              <dd class="strong">R{{ (overview()?.summary?.totalPaidZar ?? 0) | number:'1.0-0' }}</dd>
+            </div>
+          </dl>
+
+          <button type="button" class="bb-btn bb-btn-outline view-all" (click)="setStatusFilter('all')">
+            View all invoices
+          </button>
+        </section>
       </aside>
     </div>
+
+    <section class="bb-card renew-card" #renewSection>
+      <header class="card-head">
+        <h2>
+          <span class="material-icons-outlined">autorenew</span>
+          Renew Suite Access
+        </h2>
+      </header>
+
+      @if (suiteStillActive()) {
+        <div class="info-banner" role="status">
+          <span class="material-icons-outlined">verified_user</span>
+          <p>
+            Your suite access is active until <strong>{{ activeUntilLabel() }}</strong>.
+            Renewal opens after your current period ends — your subscription will not lapse.
+          </p>
+        </div>
+      } @else {
+        <div class="warn-banner" role="alert">
+          <span class="material-icons-outlined">priority_high</span>
+          <p>
+            Suite access needs to be renewed for parcels to be couriered. Choose a plan and pay below.
+          </p>
+        </div>
+      }
+
+      <div class="checkout-layout" [class.checkout-disabled]="suiteStillActive()">
+        <div class="main-col">
+          <section class="panel">
+            <h3 class="panel-title">1. Choose a Plan</h3>
+            <div class="plan-row">
+              @for (p of orderedPlans(); track p.id) {
+                <label class="plan-option" [class.selected]="selectedPlan()?.id === p.id">
+                  <input
+                    type="radio"
+                    name="plan"
+                    class="plan-radio"
+                    [checked]="selectedPlan()?.id === p.id"
+                    (change)="selectPlan(p)"
+                  />
+                  @if (selectedPlan()?.id === p.id) {
+                    <span class="plan-check material-icons-outlined" aria-hidden="true">check_circle</span>
+                  }
+                  <div class="plan-body">
+                    <div class="plan-top">
+                      <span class="plan-name">{{ planLabel(p) }}</span>
+                      @if (p.isRecommended) {
+                        <span class="tag-recommended">Recommended</span>
+                      }
+                    </div>
+                    <p class="plan-price">
+                      R{{ p.priceZar | number:'1.0-0' }}
+                      <span class="plan-period">/ {{ p.durationMonths }} month{{ p.durationMonths > 1 ? 's' : '' }}</span>
+                    </p>
+                    <p class="plan-paid">Paid upfront</p>
+                    <p class="plan-billing">{{ planBillingLabel(p) }}</p>
+                  </div>
+                </label>
+              }
+            </div>
+
+            <ul class="feature-list">
+              @for (f of planFeatures; track f) {
+                <li>
+                  <span class="material-icons-outlined feat-check">check_circle</span>
+                  {{ f }}
+                </li>
+              }
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title">2. Choose Payment Method</h3>
+            <p class="panel-sub">All payments are secure and encrypted.</p>
+            <div class="pay-row">
+              <label class="pay-option" [class.selected]="payMethod() === 'card'">
+                <input
+                  type="radio"
+                  name="pay"
+                  class="pay-radio"
+                  [checked]="payMethod() === 'card'"
+                  (change)="payMethod.set('card')"
+                />
+                <div class="pay-body">
+                  <div class="pay-top">
+                    <span class="pay-name">Card Payment</span>
+                    <span class="card-brands" aria-hidden="true">
+                      <span class="brand visa">VISA</span>
+                      <span class="brand mc">MC</span>
+                    </span>
+                  </div>
+                  <p class="pay-desc">Pay securely using your debit or credit card.</p>
+                </div>
+              </label>
+
+              <label class="pay-option" [class.selected]="payMethod() === 'eft'">
+                <input
+                  type="radio"
+                  name="pay"
+                  class="pay-radio"
+                  [checked]="payMethod() === 'eft'"
+                  (change)="payMethod.set('eft')"
+                />
+                <div class="pay-body">
+                  <div class="pay-top">
+                    <span class="pay-name">EFT / Bank Transfer</span>
+                    <span class="material-icons-outlined pay-bank">account_balance</span>
+                  </div>
+                  <p class="pay-desc">Make a direct payment from your bank account.</p>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <button
+            type="button"
+            class="pay-cta"
+            (click)="pay()"
+            [disabled]="busy() || !selectedPlan() || payMethod() === 'eft' || suiteStillActive()"
+          >
+            <span class="material-icons-outlined">lock</span>
+            {{ busy() ? 'Redirecting to Paystack…' : 'Pay R' + amount() + ' Securely' }}
+          </button>
+
+          <p class="legal">
+            By proceeding, you agree to our
+            <a href="#" class="legal-link">Terms of Service</a>
+            and
+            <a href="#" class="legal-link">Privacy Policy</a>.
+          </p>
+        </div>
+
+        <aside class="summary panel">
+          <div class="summary-head">
+            <span class="material-icons-outlined summary-icon">receipt_long</span>
+            <div>
+              <h3 class="summary-title">Order Summary</h3>
+              <p class="summary-sub">Review your suite access details.</p>
+            </div>
+          </div>
+
+          <dl class="summary-kv">
+            <div><dt>Suite Number</dt><dd>{{ suiteNumber() }}</dd></div>
+            <div><dt>Plan</dt><dd>{{ selectedPlan() ? planLabel(selectedPlan()!) : '—' }}</dd></div>
+            <div><dt>Billing Period</dt><dd>{{ billingPeriod() }}</dd></div>
+          </dl>
+
+          <div class="amount-block">
+            <span class="amount-label">Amount Due</span>
+            <p class="amount-value">R{{ amount() | number:'1.2-2' }}</p>
+            <span class="amount-note">Paid upfront</span>
+          </div>
+        </aside>
+      </div>
+    </section>
   `,
   styles: `
-    .bb-page-head h1 { display: flex; align-items: center; gap: 0.4rem; }
-    .info {
+    .page-head { margin-bottom: 1.25rem; }
+    .page-head h1 {
+      margin: 0;
       display: flex;
+      align-items: center;
       gap: 0.5rem;
-      align-items: flex-start;
-      margin-bottom: 1.25rem;
-      background: var(--bb-primary-soft);
-      border-color: #bfdbfe;
-      font-size: 0.85rem;
+      font-size: 1.625rem;
+      font-weight: 700;
+      color: var(--bb-text);
+      letter-spacing: -0.02em;
+    }
+    .head-icon {
+      font-size: 1.5rem;
       color: var(--bb-primary);
     }
-    .checkout-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.25rem; align-items: start; }
-    @media (max-width: 900px) { .checkout-grid { grid-template-columns: 1fr; } }
-    .step { margin: 0 0 1rem; font-size: 0.95rem; font-weight: 700; }
-    .plan-card, .pay-card {
+    .head-sub {
+      margin: 0.35rem 0 0;
+      font-size: 0.9rem;
+      color: var(--bb-muted);
+    }
+
+    .err-banner {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--bb-radius-sm);
+      background: var(--bb-danger-soft);
+      border: 1px solid var(--bb-danger-border);
+      color: #b91c1c;
+      font-size: 0.85rem;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 1100px) {
+      .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .stat-row { grid-template-columns: 1fr; }
+    }
+    .stat-card {
+      background: var(--bb-surface);
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      padding: 0.95rem 1.1rem 1.05rem;
+      box-shadow: var(--bb-shadow);
+    }
+    .stat-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--bb-muted);
+    }
+    .stat-label .material-icons-outlined {
+      font-size: 1.05rem !important;
+      color: var(--bb-primary);
+    }
+    .stat-value {
+      display: block;
+      margin: 0.45rem 0 0.15rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--bb-text);
+      line-height: 1.2;
+    }
+    .stat-value.money { font-size: 1.45rem; }
+    .stat-sub {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--bb-muted);
+    }
+    .stat-actions {
       display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-top: 0.45rem;
+    }
+    .stat-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--bb-primary);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      margin-top: 0.4rem;
+    }
+    .stat-link:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .badge.tone-green {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .badge.tone-amber {
+      background: #fef3c7;
+      color: #b45309;
+    }
+    .badge.tone-red {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .badge.tone-muted {
+      background: #f1f5f9;
+      color: var(--bb-muted);
+    }
+
+    .payments-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 1.25rem;
+      align-items: start;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 1024px) {
+      .payments-grid { grid-template-columns: 1fr; }
+    }
+
+    .bb-card {
+      background: var(--bb-surface);
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      box-shadow: var(--bb-shadow);
+      padding: 1.25rem 1.35rem;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 0.75rem;
-      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .card-head h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--bb-text);
+    }
+    .card-head h2 .material-icons-outlined {
+      font-size: 1.1rem !important;
+      color: var(--bb-primary);
+    }
+
+    .filter select {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--bb-border);
+      border-radius: 6px;
+      background: var(--bb-surface);
+      font-size: 0.8rem;
+      color: var(--bb-text);
+    }
+
+    .history-scroll { overflow-x: auto; }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .history-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--bb-muted);
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid var(--bb-border);
+    }
+    .history-table th.num,
+    .history-table td.num { text-align: right; }
+    .history-table td {
+      padding: 0.85rem 0.5rem;
+      vertical-align: top;
+      border-bottom: 1px solid var(--bb-border);
+      color: var(--bb-text);
+    }
+    .history-table tbody tr:last-child td { border-bottom: none; }
+    .date-cell strong { display: block; }
+    .date-cell .muted { color: var(--bb-muted); font-size: 0.74rem; }
+    .muted { color: var(--bb-muted); }
+
+    .method-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--bb-border);
+      border-radius: 6px;
+      background: #f8fafc;
+      font-size: 0.78rem;
+      color: var(--bb-text);
+    }
+    .method-pill .material-icons-outlined { font-size: 0.95rem !important; }
+
+    .invoice-link {
+      color: var(--bb-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .invoice-link:hover { text-decoration: underline; }
+
+    .icon-btn {
+      width: 2rem;
+      height: 2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bb-surface);
+      border: 1px solid var(--bb-border);
+      border-radius: 8px;
+      color: var(--bb-muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .icon-btn:hover {
+      border-color: var(--bb-primary);
+      color: var(--bb-primary);
+    }
+    .icon-btn .material-icons-outlined { font-size: 1rem !important; }
+
+    .side-col { display: grid; gap: 1.25rem; }
+
+    .card-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem;
       border: 1px solid var(--bb-border);
       border-radius: var(--bb-radius-sm);
-      margin-bottom: 0.65rem;
-      cursor: pointer;
+      background: #f8fafc;
     }
-    .plan-card.selected, .pay-card.selected { border-color: var(--bb-primary); background: var(--bb-primary-soft); }
-    .plan-card div, .pay-card div { flex: 1; }
-    .plan-card strong, .pay-card strong { display: block; }
-    .plan-card span, .pay-card span { font-size: 0.78rem; color: var(--bb-muted); }
-    .trust { font-size: 0.75rem; color: var(--bb-muted); margin: 0.5rem 0 0; }
-    .pay-btn { width: 100%; padding: 0.85rem; font-size: 1rem; margin-top: 0.5rem; }
-    .summary { position: sticky; top: 1rem; }
-    .kv > div { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; }
-    .kv dt { color: var(--bb-muted); margin: 0; }
-    .kv dd { margin: 0; font-weight: 600; }
-    .due {
-      margin: 1rem 0;
-      padding: 0.85rem 0;
-      border-top: 1px solid var(--bb-border);
-      border-bottom: 1px solid var(--bb-border);
+    .card-icon {
+      width: 2.25rem;
+      height: 2.25rem;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: center;
+      background: var(--bb-surface);
+      border-radius: 6px;
+      border: 1px solid var(--bb-border);
     }
-    .due strong { font-size: 1.35rem; color: var(--bb-primary); }
-    .note-box {
-      padding: 0.65rem;
-      background: var(--bb-primary-soft);
-      border-radius: var(--bb-radius-sm);
-      font-size: 0.78rem;
+    .card-icon .material-icons-outlined {
       color: var(--bb-primary);
-      margin-bottom: 0.65rem;
     }
-    .reserved {
-      padding: 0.65rem;
-      background: var(--bb-success-soft);
-      border: 1px solid #bbf7d0;
-      border-radius: var(--bb-radius-sm);
-      font-size: 0.82rem;
+    .card-meta strong {
+      display: block;
+      font-size: 0.88rem;
+      color: var(--bb-text);
+    }
+    .card-meta .muted { font-size: 0.75rem; }
+
+    .add-card-link {
+      display: block;
+      margin: 0.85rem 0 0.65rem;
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--bb-primary);
       font-weight: 600;
-      color: #15803d;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .add-card-link:hover { text-decoration: underline; }
+
+    .security-note {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+      font-size: 0.74rem;
+      color: var(--bb-muted);
+    }
+    .security-note .material-icons-outlined {
+      font-size: 0.9rem !important;
+    }
+
+    .summary-kv {
+      margin: 0;
+      padding: 0;
+    }
+    .summary-kv > div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 0.55rem 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--bb-border);
+    }
+    .summary-kv > div:last-child { border-bottom: none; }
+    .summary-kv dt {
+      margin: 0;
+      color: var(--bb-muted);
+      font-weight: 500;
+    }
+    .summary-kv dd {
+      margin: 0;
+      font-weight: 700;
+      color: var(--bb-text);
+    }
+    .summary-kv dd.ok { color: #15803d; }
+    .summary-kv dd.err { color: #b91c1c; }
+    .summary-kv dd.strong { font-size: 1.1rem; }
+    .summary-kv .total-row {
+      padding-top: 0.85rem;
+      border-top: 2px solid var(--bb-border);
+    }
+
+    .view-all {
+      width: 100%;
+      margin-top: 0.85rem;
+      justify-content: center;
+    }
+
+    .empty {
+      padding: 1.5rem 1rem;
+      text-align: center;
+      color: var(--bb-muted);
+      font-size: 0.85rem;
+    }
+    .empty .material-icons-outlined {
+      font-size: 2rem !important;
+      color: #cbd5e1;
+      display: block;
+      margin: 0 auto 0.5rem;
+    }
+    .empty.no-card {
+      background: #f8fafc;
+      border-radius: var(--bb-radius-sm);
+      padding: 1rem;
       margin-bottom: 0.75rem;
     }
-    .help { font-size: 0.78rem; color: var(--bb-muted); margin: 0; }
+    .empty.no-card p { margin: 0; line-height: 1.45; }
+    .loading {
+      padding: 1.5rem 0;
+      text-align: center;
+      color: var(--bb-muted);
+      font-size: 0.85rem;
+    }
+
+    /* ---- Renew card (existing checkout form, restyled to fit dashboard) ---- */
+    .renew-card { margin-bottom: 1rem; }
+
+    .info-banner,
+    .warn-banner {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      padding: 0.85rem 1rem;
+      border-radius: var(--bb-radius-sm);
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .info-banner {
+      background: var(--bb-primary-soft);
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+    .warn-banner {
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+    .info-banner p,
+    .warn-banner p { margin: 0; }
+
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .checkout-layout { grid-template-columns: 1fr; }
+    }
+    .checkout-disabled {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .panel {
+      background: #f8fafc;
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .panel-title {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--bb-text);
+    }
+    .panel-sub {
+      margin: -0.4rem 0 0.85rem;
+      font-size: 0.78rem;
+      color: var(--bb-muted);
+    }
+
+    .plan-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 640px) {
+      .plan-row { grid-template-columns: 1fr; }
+    }
+    .plan-option {
+      position: relative;
+      display: block;
+      padding: 0.9rem 0.9rem 0.9rem 2.5rem;
+      border: 2px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      background: var(--bb-surface);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .plan-option:hover { border-color: #93c5fd; }
+    .plan-option.selected {
+      border-color: var(--bb-primary);
+      background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
+      box-shadow: 0 0 0 1px var(--bb-primary);
+    }
+    .plan-radio {
+      position: absolute;
+      left: 0.85rem;
+      top: 1rem;
+      accent-color: var(--bb-primary);
+      width: 1.05rem;
+      height: 1.05rem;
+    }
+    .plan-check {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      font-size: 1.25rem !important;
+      color: var(--bb-primary);
+    }
+    .plan-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.35rem;
+    }
+    .plan-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--bb-text);
+    }
+    .tag-recommended {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .plan-price {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--bb-text);
+      line-height: 1.2;
+    }
+    .plan-period {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--bb-muted);
+    }
+    .plan-paid {
+      margin: 0.2rem 0 0;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--bb-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .plan-billing {
+      margin: 0.15rem 0 0;
+      font-size: 0.76rem;
+      color: var(--bb-muted);
+    }
+
+    .feature-list {
+      margin: 0.75rem 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.4rem 1rem;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--bb-text);
+    }
+    .feat-check {
+      font-size: 1rem !important;
+      color: var(--bb-success);
+    }
+
+    .pay-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 640px) {
+      .pay-row { grid-template-columns: 1fr; }
+    }
+    .pay-option {
+      position: relative;
+      display: block;
+      padding: 0.9rem 0.9rem 0.9rem 2.5rem;
+      border: 2px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      background: var(--bb-surface);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .pay-option.selected {
+      border-color: var(--bb-primary);
+      background: var(--bb-primary-soft);
+    }
+    .pay-radio {
+      position: absolute;
+      left: 0.85rem;
+      top: 1rem;
+      accent-color: var(--bb-primary);
+      width: 1.05rem;
+      height: 1.05rem;
+    }
+    .pay-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .pay-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--bb-text);
+    }
+    .pay-desc {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--bb-muted);
+    }
+    .pay-bank {
+      font-size: 1.4rem !important;
+      color: var(--bb-muted);
+    }
+    .card-brands {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+    .brand.visa {
+      color: #1a1f71;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      padding: 0.1rem 0.25rem;
+      border-radius: 3px;
+    }
+    .brand.mc {
+      color: #eb001b;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      padding: 0.1rem 0.2rem;
+      border-radius: 3px;
+    }
+
+    .pay-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      border: none;
+      border-radius: var(--bb-radius-sm);
+      background: var(--bb-primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(0, 82, 204, 0.35);
+      cursor: pointer;
+    }
+    .pay-cta:hover:not(:disabled) { background: var(--bb-primary-hover); }
+    .pay-cta:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .legal {
+      margin: 0.85rem 0 0;
+      text-align: center;
+      font-size: 0.76rem;
+      color: var(--bb-muted);
+    }
+    .legal-link {
+      color: var(--bb-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .legal-link:hover { text-decoration: underline; }
+
+    .summary {
+      position: sticky;
+      top: 1rem;
+      padding: 1.2rem;
+      background: var(--bb-surface);
+    }
+    .summary-head {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--bb-border);
+    }
+    .summary-icon {
+      font-size: 1.6rem !important;
+      color: var(--bb-primary);
+    }
+    .summary-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .summary-sub {
+      margin: 0.2rem 0 0;
+      font-size: 0.76rem;
+      color: var(--bb-muted);
+    }
+    .amount-block {
+      margin: 0.75rem 0 0;
+      padding: 1rem 0 0;
+      border-top: 1px solid var(--bb-border);
+      text-align: center;
+    }
+    .amount-label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--bb-muted);
+      font-weight: 600;
+    }
+    .amount-value {
+      margin: 0.25rem 0 0;
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--bb-primary);
+      letter-spacing: -0.02em;
+    }
+    .amount-note {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.72rem;
+      color: var(--bb-muted);
+    }
   `,
 })
-export class SuiteCheckoutComponent {
-  private readonly router = inject(Router);
+export class SuiteCheckoutComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly accountApi = inject(CustomerAccountService);
   private readonly borderboxApi = inject(BorderboxApiService);
-  readonly suite = MOCK_SUITE;
-  readonly plan = signal<'quarterly' | 'monthly'>('quarterly');
-  readonly resolvedPlanId = signal<string | null>(null);
-  readonly busy = signal(false);
+  private readonly parcelsApi = inject(ParcelsService);
+  private readonly paystack = inject(PaystackCheckoutService);
 
-  amount = () => (this.plan() === 'quarterly' ? 200 : 100);
-  planLabel = () => (this.plan() === 'quarterly' ? 'Quarterly' : 'Monthly');
-  expiry = () => (this.plan() === 'quarterly' ? '20 Aug 2026' : '20 Jun 2026');
+  readonly planFeatures = PLAN_FEATURES;
+  readonly plans = signal<SuitePlanDto[]>([]);
+  readonly selectedPlan = signal<SuitePlanDto | null>(null);
+  readonly payMethod = signal<PayMethod>('card');
+  readonly busy = signal(false);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly suiteAccess = signal<SuiteAccessSummary | null>(null);
+  readonly overview = signal<SuitePaymentsOverviewDto | null>(null);
+  readonly statusFilter = signal<StatusFilter>('all');
+
+  readonly orderedPlans = computed(() => {
+    const list = [...this.plans()];
+    return list.sort((a, b) => b.durationMonths - a.durationMonths);
+  });
+
+  readonly suiteNumber = computed(
+    () =>
+      this.overview()?.subscription?.suiteNumber ??
+      this.suiteAccess()?.suiteNumber ??
+      this.accountApi.account()?.suiteAddress?.suiteNumber ??
+      'Pending assignment',
+  );
+
+  readonly suiteStillActive = computed(() => {
+    const access = this.suiteAccess();
+    if (!access?.expiresAt) return false;
+    if (access.shipOutLocked) return false;
+    return Date.parse(access.expiresAt) > Date.now();
+  });
+
+  readonly activeUntilLabel = computed(() => {
+    const raw = this.suiteAccess()?.expiresAt;
+    if (!raw) return '';
+    return this.formatDate(new Date(raw));
+  });
+
+  readonly visibleHistory = computed(() => {
+    const rows = this.overview()?.history ?? [];
+    const filter = this.statusFilter();
+    if (filter === 'all') return rows;
+    return rows.filter((r) => r.status.toLowerCase() === filter);
+  });
+
+  setStatusFilter(value: string): void {
+    this.statusFilter.set((['all', 'successful', 'failed', 'pending'].includes(value)
+      ? value
+      : 'all') as StatusFilter);
+  }
+
+  currentPlanLabel = (): string =>
+    this.overview()?.currentPlan?.planLabel ?? 'No active plan';
+
+  currentPlanPriceLabel = (): string => {
+    const plan = this.overview()?.currentPlan;
+    if (!plan) return '—';
+    return `R${Math.round(plan.priceZar)} / ${plan.durationMonths} month${plan.durationMonths > 1 ? 's' : ''}`;
+  };
+
+  nextPaymentAmountLabel = (): string => {
+    const next = this.overview()?.nextPayment;
+    return next ? `R${Math.round(next.amountZar)}` : '—';
+  };
+
+  nextPaymentDueLabel = (): string => {
+    const next = this.overview()?.nextPayment;
+    if (!next) return 'No upcoming payment';
+    return `Due on ${this.formatDate(new Date(next.dueAtUtc))}`;
+  };
+
+  nextPaymentBadgeLabel = (): string | null => {
+    const next = this.overview()?.nextPayment;
+    if (!next) return null;
+    if (next.daysRemaining <= 0) return 'Due now';
+    if (next.daysRemaining <= 7) return `${next.daysRemaining} days remaining`;
+    return `${next.daysRemaining} days remaining`;
+  };
+
+  nextPaymentBadgeTone = (): string => {
+    const next = this.overview()?.nextPayment;
+    if (!next) return 'tone-muted';
+    if (next.daysRemaining <= 0) return 'tone-red';
+    if (next.daysRemaining <= 7) return 'tone-amber';
+    return 'tone-green';
+  };
+
+  lastPaymentAmountLabel = (): string => {
+    const last = this.overview()?.lastPayment;
+    return last ? `R${Math.round(last.amountZar)}` : '—';
+  };
+
+  lastPaymentLabel = (): string => {
+    const last = this.overview()?.lastPayment;
+    if (!last) return 'No payments yet';
+    return `Paid on ${this.formatDate(new Date(last.paidAtUtc))}`;
+  };
+
+  lastPaymentBadgeLabel = (): string | null =>
+    this.overview()?.lastPayment ? 'Successful' : null;
+
+  lastPaymentBadgeTone = (): string => 'tone-green';
+
+  paymentMethodLabel = (): string =>
+    this.overview()?.paymentMethod ? 'Visa •••• 4242' : 'Not added yet';
+
+  paymentMethodSubLabel = (): string =>
+    this.overview()?.paymentMethod ? 'Expires 12/27' : 'Add a card to renew faster';
+
+  amount = (): number => this.selectedPlan()?.priceZar ?? 0;
+
+  billingPeriod = (): string => {
+    const m = this.selectedPlan()?.durationMonths;
+    if (!m) return '—';
+    return m === 1 ? '1 Month' : `${m} Months`;
+  };
+
+  planLabel(p: SuitePlanDto): string {
+    if (p.durationMonths === 3) return 'Quarterly';
+    if (p.durationMonths === 1) return 'Monthly';
+    return p.name.replace(/\s+suite\s+access$/i, '').trim() || p.name;
+  }
+
+  planShortLabel(durationMonths: number): string {
+    if (durationMonths === 1) return 'Monthly Plan';
+    if (durationMonths === 3) return 'Quarterly Suite Access';
+    if (durationMonths === 12) return 'Annual Suite Access';
+    return 'Suite Access';
+  }
+
+  planBillingLabel(p: SuitePlanDto): string {
+    return p.durationMonths === 1
+      ? 'Billed upfront every month'
+      : `Billed upfront every ${p.durationMonths} months`;
+  }
+
+  statusBadgeTone(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'successful':
+        return 'tone-green';
+      case 'failed':
+        return 'tone-red';
+      default:
+        return 'tone-amber';
+    }
+  }
+
+  scrollToRenew(): void {
+    const el = document.querySelector('.renew-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  scrollToCards(): void {
+    const el = document.querySelector('.cards-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap.get('plan');
-    if (q === 'monthly' || q === 'quarterly') {
-      this.plan.set(q);
-    }
-    if (!this.accountApi.account()) {
-      this.accountApi.loadAccount().subscribe();
-    }
-    this.resolvePlanId();
-  }
+    this.accountApi.ensureAccountLoaded().subscribe();
+    this.parcelsApi.loadDashboard().subscribe({
+      next: (d) => this.suiteAccess.set(d.suiteAccess),
+    });
 
-  private resolvePlanId(): void {
-    if (environment.useMock) {
-      this.resolvedPlanId.set(this.plan() === 'quarterly' ? 'plan_quarterly' : 'plan_monthly');
-      return;
-    }
     this.borderboxApi.listSuitePlans().subscribe({
-      next: (plans) => {
-        const months = this.plan() === 'quarterly' ? 3 : 1;
-        const match = plans.find((p) => p.durationMonths === months);
-        this.resolvedPlanId.set(match?.id ?? null);
+      next: (list) => {
+        this.plans.set(list);
+        const quarterly = list.find((p) => p.durationMonths === 3);
+        const monthly = list.find((p) => p.durationMonths === 1);
+        if (q === 'monthly' && monthly) {
+          this.selectedPlan.set(monthly);
+        } else if (quarterly) {
+          this.selectedPlan.set(quarterly);
+        } else if (list.length > 0) {
+          this.selectedPlan.set(list[0]);
+        }
+      },
+      error: () => this.error.set('Could not load suite plans.'),
+    });
+
+    this.borderboxApi.getSuitePaymentsOverview().subscribe({
+      next: (o) => {
+        this.overview.set(o);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
       },
     });
   }
 
+  selectPlan(p: SuitePlanDto): void {
+    this.selectedPlan.set(p);
+    this.error.set(null);
+  }
+
   pay(): void {
-    const planId =
-      this.resolvedPlanId() ??
-      (this.plan() === 'quarterly' ? 'plan_quarterly' : 'plan_monthly');
-    if (!planId) return;
+    const plan = this.selectedPlan();
+    if (!plan || this.payMethod() !== 'card' || this.suiteStillActive()) return;
+
+    const callbackUrl = `${window.location.origin}/suite-access/checkout/complete`;
     this.busy.set(true);
-    this.accountApi.activateFirstSuite(planId).subscribe({
-      next: () => {
+    this.error.set(null);
+    this.borderboxApi.initiateSuiteCheckout(plan.id, callbackUrl).subscribe({
+      next: (res) => {
         this.busy.set(false);
-        void this.router.navigate(['/dashboard']);
+        void this.paystack.start(res).catch(() => {
+          window.location.href = res.authorizationUrl;
+        });
       },
-      error: () => {
+      error: (err: Error) => {
         this.busy.set(false);
+        this.error.set(err?.message ?? 'Could not start Paystack checkout.');
       },
+    });
+  }
+
+  private formatDate(d: Date): string {
+    return d.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
   }
 }

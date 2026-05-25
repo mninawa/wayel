@@ -20,6 +20,7 @@ internal sealed class CustomerAddressDocument
     public string RecipientName { get; set; } = "";
     public string? Phone { get; set; }
     public bool IsDefault { get; set; }
+    public string PickupBranchId { get; set; } = "";
 
     public static CustomerAddressDocument From(CustomerAddress a) => new()
     {
@@ -38,6 +39,7 @@ internal sealed class CustomerAddressDocument
         RecipientName = a.RecipientName,
         Phone = a.Phone,
         IsDefault = a.IsDefault,
+        PickupBranchId = a.PickupBranchId,
     };
 
     public CustomerAddress ToDomain() =>
@@ -56,5 +58,6 @@ internal sealed class CustomerAddressDocument
             Label,
             RecipientName,
             Phone,
-            IsDefault);
+            IsDefault,
+            PickupBranchId);
 }

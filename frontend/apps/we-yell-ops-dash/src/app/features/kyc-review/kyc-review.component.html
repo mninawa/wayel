@@ -1,0 +1,345 @@
+<div class="kyc-page">
+  <header class="page-head">
+    <div>
+      <h1>KYC Review</h1>
+      <p>Review customer identity submissions, verify documents, and approve or reject KYC applications.</p>
+    </div>
+    <div class="head-actions">
+      <button type="button" class="ops-btn ops-btn-outline" (click)="refresh()" [disabled]="busy()">
+        <span class="material-icons-outlined">refresh</span>
+        Refresh
+      </button>
+      <span class="ops-preview-badge">Live API</span>
+    </div>
+  </header>
+
+  @if (success()) {
+    <p class="ok-banner" role="status">{{ success() }}</p>
+  }
+  @if (error()) {
+    <p class="err-banner" role="alert">{{ error() }}</p>
+  }
+
+  <div class="metric-row">
+    @for (m of metrics(); track m.label) {
+      <article class="metric-card">
+        <span class="metric-icon" [class]="m.tone">
+          <span class="material-icons-outlined">{{ m.icon }}</span>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">{{ m.label }}</span>
+          <strong class="metric-value">{{ m.value }}</strong>
+          <span class="metric-sub" [class]="m.subTone">{{ m.sub }}</span>
+        </div>
+      </article>
+    }
+  </div>
+
+  <div class="kyc-layout">
+    <section class="queue-panel panel">
+      <div class="tab-row">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'Pending'"
+          (click)="setTab('Pending')"
+        >
+          Pending
+          <span class="tab-count">{{ pendingCount() }}</span>
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'Verified'"
+          (click)="setTab('Verified')"
+        >
+          Approved
+          <span class="tab-count">{{ approvedCount() }}</span>
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'Rejected'"
+          (click)="setTab('Rejected')"
+        >
+          Rejected
+          <span class="tab-count">{{ rejectedCount() }}</span>
+        </button>
+      </div>
+
+      <div class="filters">
+        <label class="search-field">
+          <span class="material-icons-outlined">search</span>
+          <input
+            [(ngModel)]="searchQuery"
+            name="search"
+            placeholder="Search applicants…"
+            (input)="applyFilters()"
+          />
+        </label>
+        <select [(ngModel)]="countryFilter" name="country" (change)="applyFilters()">
+          <option value="">All countries</option>
+          @for (c of countries; track c.code) {
+            <option [value]="c.code">{{ c.label }}</option>
+          }
+        </select>
+        <select [(ngModel)]="idTypeFilter" name="idType" (change)="applyFilters()">
+          <option value="">All ID types</option>
+          @for (t of idTypeOptions(); track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+        <select [(ngModel)]="riskFilter" name="risk" (change)="applyFilters()">
+          <option value="">All risk levels</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+      </div>
+
+      @if (busy() && items().length === 0) {
+        <p class="loading">Loading applicants…</p>
+      } @else if (filteredItems().length === 0) {
+        <div class="empty-state">
+          <span class="material-icons-outlined">inbox</span>
+          <p>No applicants match this view.</p>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="applicant-table">
+            <thead>
+              <tr>
+                <th>Applicant</th>
+                <th>Country</th>
+                <th>ID Type</th>
+                <th>Submitted</th>
+                <th>Risk</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredItems(); track item.userId) {
+                <tr
+                  [class.selected]="selectedId() === item.userId"
+                  (click)="selectApplicant(item)"
+                >
+                  <td class="applicant-cell">
+                    <span class="avatar">{{ applicantInitials(item.displayName) }}</span>
+                    <span>
+                      <strong>{{ item.displayName }}</strong>
+                      <span class="sub">{{ item.email }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="country-cell">
+                      <span class="flag">{{ countryFlag(item.countryCode) }}</span>
+                      {{ item.countryLabel }}
+                    </span>
+                  </td>
+                  <td>{{ item.idDocumentType }}</td>
+                  <td>
+                    @if (item.submittedOnUtc) {
+                      {{ item.submittedOnUtc | date:'d MMM y, HH:mm' }}
+                    } @else if (kycDetail()?.submittedAtUtc && selectedId() === item.userId) {
+                      {{ kycDetail()!.submittedAtUtc | date:'d MMM y, HH:mm' }}
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td>
+                    <span class="risk-pill" [class]="riskTone(item.riskLevel)">{{ item.riskLevel }}</span>
+                  </td>
+                  <td class="action-cell">
+                    <button
+                      type="button"
+                      class="review-btn"
+                      [class.active]="selectedId() === item.userId"
+                      (click)="selectApplicant(item); $event.stopPropagation()"
+                    >
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+
+    <aside class="detail-panel">
+      @if (kycDetail(); as detail) {
+        <section class="panel detail-card">
+          <header class="detail-head">
+            <div class="detail-title">
+              <span class="avatar lg">{{ applicantInitials(detail.displayName) }}</span>
+              <div>
+                <h2>{{ detail.displayName }}</h2>
+                <p>
+                  @if (detail.suiteNumber) {
+                    Suite #{{ detail.suiteNumber }} ·
+                  }
+                  {{ detail.destinationCountryLabel }}
+                  · {{ detail.phone || 'No phone' }}
+                </p>
+                <p class="detail-email">{{ detail.email }}</p>
+              </div>
+            </div>
+            <span class="status-badge" [class]="kycStatusTone(detail.kycStatus)">
+              {{ detail.kycStatus === 'Pending' ? 'Pending review' : detail.kycStatus }}
+            </span>
+          </header>
+
+          @if (detailBusy()) {
+            <p class="loading inline">Loading details…</p>
+          }
+
+          <div class="detail-grid">
+            <div class="doc-preview">
+              <span class="doc-label">Document preview</span>
+              <div class="doc-card">
+                @if (documentImageUrl(activeDocSide()); as previewUrl) {
+                  <img class="doc-image" [src]="previewUrl" [alt]="activeDocSide() + ' document'" />
+                } @else {
+                  <div class="doc-mock">
+                    <span class="material-icons-outlined">badge</span>
+                    <strong>{{ detail.idDocumentType }}</strong>
+                    <span>{{ detail.destinationCountryLabel }}</span>
+                  </div>
+                }
+                <div class="doc-thumbs">
+                  @for (doc of detail.documents; track doc.documentId) {
+                    <button
+                      type="button"
+                      class="thumb"
+                      [class.active]="activeDocSide() === doc.side"
+                      [title]="doc.side"
+                      (click)="selectDocSide(doc.side)"
+                    ></button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="face-match">
+              <span class="doc-label">Selfie / face match</span>
+              <div class="face-row">
+                @if (documentImageUrl('selfie'); as selfieUrl) {
+                  <img class="selfie-image" [src]="selfieUrl" alt="Selfie" />
+                } @else {
+                  <div class="selfie-mock">
+                    <span class="material-icons-outlined">person</span>
+                  </div>
+                }
+                @if (detail.faceMatchScore) {
+                  <div class="match-gauge">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="45" class="gauge-bg"></circle>
+                      <circle cx="50" cy="50" r="45" class="gauge-fill" [attr.stroke-dasharray]="faceMatchDash(detail.faceMatchScore)"></circle>
+                    </svg>
+                    <strong>{{ detail.faceMatchScore }}%</strong>
+                    <span>Face match</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Verification checklist</h3>
+            @if (detail.checks.length === 0) {
+              <p class="note">No verification checks yet. Checks run when the customer submits KYC.</p>
+            } @else {
+              <ul class="checklist">
+                @for (check of detail.checks; track check.type) {
+                  <li [class]="checkStatusClass(check.status)">
+                    <span class="material-icons-outlined">
+                      @if (checkStatusClass(check.status) === 'pass') { check_circle }
+                      @else if (checkStatusClass(check.status) === 'warn') { warning }
+                      @else { cancel }
+                    </span>
+                    <span>
+                      {{ checkLabel(check.type) }}
+                      @if (check.detail) { <em>{{ check.detail }}</em> }
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div class="detail-section risk-section">
+            <h3>Risk assessment</h3>
+            <div class="risk-panel">
+              <div class="risk-gauge-wrap">
+                <div class="risk-gauge" [class]="riskTone(detailRiskLevel())">
+                  <strong>{{ detailRiskLevel() }}</strong>
+                  <span>Risk</span>
+                </div>
+              </div>
+              <ul class="screen-list">
+                @for (check of detail.checks; track check.type + check.status) {
+                  @if (check.type === 'PepScreening' || check.type === 'SanctionsScreening' || check.type === 'AdverseMedia') {
+                    <li>
+                      <span>{{ checkLabel(check.type) }}</span>
+                      <strong [class]="checkStatusClass(check.status) === 'pass' ? 'green' : checkStatusClass(check.status) === 'warn' ? 'amber' : 'red'">
+                        {{ checkStatusClass(check.status) === 'pass' ? 'Clear' : checkStatusClass(check.status) === 'warn' ? 'Flagged' : 'Failed' }}
+                      </strong>
+                    </li>
+                  }
+                }
+              </ul>
+              @if (detail.submittedAtUtc) {
+                <p class="screened-at">Last screened: {{ detail.submittedAtUtc | date:'d MMM y, HH:mm' }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Data fields</h3>
+            <dl class="data-fields">
+              <div><dt>ID number</dt><dd>{{ detail.idNumber }}</dd></div>
+              <div><dt>Document type</dt><dd>{{ detail.idDocumentType }}</dd></div>
+              <div><dt>Issuing country</dt><dd>{{ detail.destinationCountryLabel }}</dd></div>
+              @if (detail.idDocumentExpiryUtc) {
+                <div><dt>Expiry date</dt><dd>{{ detail.idDocumentExpiryUtc | date:'d MMM y' }}</dd></div>
+              }
+              @if (detail.rejectionReason) {
+                <div><dt>Rejection reason</dt><dd>{{ detail.rejectionReason }}</dd></div>
+              }
+              <div><dt>Customer since</dt><dd>{{ detail.memberSinceUtc | date:'d MMM y' }}</dd></div>
+            </dl>
+          </div>
+
+          <div class="detail-section">
+            <h3>Reviewer notes</h3>
+            <textarea [(ngModel)]="reviewerNotes" name="notes" rows="3" maxlength="1000" placeholder="Add internal notes about this review…"></textarea>
+            <span class="char-count">{{ reviewerNotes.length }}/1000</span>
+          </div>
+
+          @if (detail.kycStatus === 'Pending') {
+            <div class="detail-actions">
+              <button type="button" class="ops-btn ops-btn-primary approve-btn" [disabled]="busy()" (click)="approveSelected()">Approve KYC</button>
+              <button type="button" class="ops-btn reject-btn" [disabled]="busy()" (click)="rejectSelected()">Reject</button>
+              <button type="button" class="ops-btn ops-btn-outline" [disabled]="busy()" (click)="requestMoreInfo()">Request more info</button>
+            </div>
+          } @else {
+            <div class="detail-actions readonly-actions">
+              <a [routerLink]="['/ops/accounts', detail.userId]" class="ops-btn ops-btn-outline">View account</a>
+              <p class="note">This application has already been {{ detail.kycStatus | lowercase }}.</p>
+            </div>
+          }
+        </section>
+      } @else if (selectedApplicant()) {
+        <section class="panel detail-empty"><p class="loading">Loading KYC submission…</p></section>
+      } @else {
+        <section class="panel detail-empty">
+          <span class="material-icons-outlined">fact_check</span>
+          <h2>Select an applicant</h2>
+          <p>Choose a row from the queue to review documents, risk signals, and verification checks.</p>
+        </section>
+      }
+    </aside>
+  </div>
+</div>

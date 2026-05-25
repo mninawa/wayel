@@ -1,12 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, from, map, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import type {
   AuthProvider,
   CustomerAccount,
+  CustomerKycStatus,
   CustomerProfile,
   DeliveryAddress,
+  KycDocumentInfo,
+  KycDocumentSide,
+  KycDocumentUploadTicket,
+  PickupBranch,
   DeliveryMethod,
   IdDocumentType,
   KycStatus,
@@ -39,6 +44,7 @@ interface WireProfile {
   idDocumentType: string;
   preferredDeliveryMethod: string;
   kycStatus: string;
+  kycRejectionReason?: string | null;
   memberSince: string;
   authProvider: string;
 }
@@ -60,6 +66,8 @@ interface WireSuiteAddress {
 
 interface WireDeliveryAddress {
   id: string;
+  branchId: string;
+  branchName: string;
   label: string;
   fullName: string;
   phone: string;
@@ -70,6 +78,16 @@ interface WireDeliveryAddress {
   countryCode: string;
   countryLabel: string;
   isDefault: boolean;
+}
+
+interface WirePickupBranch {
+  id: string;
+  name: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  region: string;
+  description: string;
 }
 
 interface WireNotifications {
@@ -92,9 +110,34 @@ export class CustomerAccountApiService {
       .pipe(map(mapWireAccount));
   }
 
+  listPickupBranches(): Observable<PickupBranch[]> {
+    return this.http
+      .get<WirePickupBranch[]>(`${this.base}/borderbox/pickup-branches`)
+      .pipe(
+        map((list) =>
+          list.map((b) => ({
+            id: b.id,
+            name: b.name,
+            line1: b.line1,
+            line2: b.line2,
+            city: b.city,
+            region: b.region,
+            description: b.description,
+          })),
+        ),
+      );
+  }
+
   updateProfile(body: UpdateProfileRequest): Observable<CustomerAccount> {
     return this.http
-      .patch<WireCustomerAccount>(`${this.base}/borderbox/account/profile`, body)
+      .patch<WireCustomerAccount>(`${this.base}/borderbox/account/profile`, {
+        firstName: body.firstName.trim(),
+        lastName: body.lastName.trim(),
+        phone: body.phone.trim(),
+        idNumber: body.idNumber.trim(),
+        idDocumentType: body.idDocumentType,
+        preferredDeliveryMethod: body.preferredDeliveryMethod,
+      })
       .pipe(map(mapWireAccount));
   }
 
@@ -109,18 +152,92 @@ export class CustomerAccountApiService {
       .pipe(map(mapWireAccount));
   }
 
+  submitKyc(): Observable<CustomerAccount> {
+    return this.http
+      .post<WireCustomerAccount>(`${this.base}/borderbox/account/kyc/submit`, {})
+      .pipe(map(mapWireAccount));
+  }
+
+  getKycStatus(): Observable<CustomerKycStatus> {
+    return this.http.get<CustomerKycStatus>(`${this.base}/borderbox/account/kyc/status`);
+  }
+
+  createKycUploadTicket(
+    side: KycDocumentSide,
+    file: File,
+  ): Observable<KycDocumentUploadTicket> {
+    return this.http.post<KycDocumentUploadTicket>(
+      `${this.base}/borderbox/account/kyc/documents/upload-ticket`,
+      {
+        side,
+        fileName: file.name,
+        contentType: file.type,
+        sizeBytes: file.size,
+      },
+    );
+  }
+
+  confirmKycUpload(
+    documentId: string,
+    file: File,
+  ): Observable<KycDocumentInfo> {
+    return this.http.post<KycDocumentInfo>(
+      `${this.base}/borderbox/account/kyc/documents/${documentId}/confirm`,
+      {
+        fileName: file.name,
+        contentType: file.type,
+        sizeBytes: file.size,
+      },
+    );
+  }
+
+  uploadKycDocument(side: KycDocumentSide, file: File): Observable<KycDocumentInfo> {
+    return this.createKycUploadTicket(side, file).pipe(
+      switchMap((ticket) =>
+        from(this.putKycBytes(ticket, file)).pipe(
+          switchMap(() => this.confirmKycUpload(ticket.documentId, file)),
+        ),
+      ),
+    );
+  }
+
+  private async putKycBytes(ticket: KycDocumentUploadTicket, file: File): Promise<void> {
+    const headers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(ticket.requiredHeaders ?? {})) {
+      if (key.toLowerCase() === 'content-length') continue;
+      headers[key] = value;
+    }
+    if (!headers['Content-Type'] && file.type) {
+      headers['Content-Type'] = file.type;
+    }
+
+    const xsrf = readXsrfCookie();
+    if (xsrf) {
+      headers['X-XSRF-TOKEN'] = xsrf;
+    }
+
+    const response = await fetch(ticket.uploadUrl, {
+      method: 'PUT',
+      body: file,
+      credentials: 'include',
+      headers,
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(body || `Upload failed (${response.status}).`);
+    }
+  }
+
   upsertDeliveryAddress(
     id: string | null,
     body: UpsertDeliveryAddressRequest,
   ): Observable<CustomerAccount> {
     const payload = {
+      branchId: body.branchId,
       label: body.label,
       fullName: body.fullName,
       phone: body.phone,
-      line1: body.line1,
-      line2: body.line2,
-      city: body.city,
-      region: body.region,
       isDefault: body.isDefault,
     };
     if (id) {
@@ -178,8 +295,9 @@ function mapProfile(p: WireProfile): CustomerProfile {
     destinationCountryLabel: p.destinationCountryLabel,
     idNumber: p.idNumber,
     idDocumentType: (p.idDocumentType || 'NationalId') as IdDocumentType,
-    preferredDeliveryMethod: (p.preferredDeliveryMethod || 'Door-to-Door') as DeliveryMethod,
+    preferredDeliveryMethod: 'PUDO' as DeliveryMethod,
     kycStatus: (p.kycStatus || 'NotStarted') as KycStatus,
+    kycRejectionReason: p.kycRejectionReason ?? null,
     memberSince: p.memberSince,
     authProvider: (p.authProvider === 'google' ? 'google' : 'password') as AuthProvider,
   };
@@ -205,6 +323,8 @@ function mapSuite(s: WireSuiteAddress): SuiteAddress {
 function mapDelivery(d: WireDeliveryAddress): DeliveryAddress {
   return {
     id: d.id,
+    branchId: d.branchId ?? '',
+    branchName: d.branchName ?? '',
     label: d.label,
     fullName: d.fullName,
     phone: d.phone,
@@ -216,4 +336,13 @@ function mapDelivery(d: WireDeliveryAddress): DeliveryAddress {
     countryLabel: d.countryLabel,
     isDefault: d.isDefault,
   };
+}
+
+function readXsrfCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find((c) => c.startsWith('XSRF-TOKEN='));
+  if (!match) return null;
+  return decodeURIComponent(match.slice('XSRF-TOKEN='.length));
 }

@@ -4,58 +4,59 @@ import {
   OnInit,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs/operators';
+import { filter, map, interval, startWith, catchError, of } from 'rxjs';
 import { AccountSessionService } from '@wayel/shared/services/account-session.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../../brand';
 import { CustomerAccountService } from '../../services/customer-account.service';
+import { BorderboxApiService } from '../../services/borderbox-api.service';
+import {
+  CustomerInAppNotificationsApiService,
+  type CustomerInAppNotification,
+} from '../../services/customer-inapp-notifications-api.service';
+import { SimulatedPaystackSheetComponent } from '../payments/simulated-paystack-sheet.component';
 
 interface NavItem {
   path: string;
   label: string;
   icon: string;
-  exact?: boolean;
 }
 
-const NAV: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard', exact: true },
-  { path: '/my-address', label: 'My Address', icon: 'pin_drop' },
-  { path: '/received-parcels', label: 'Parcels', icon: 'inventory_2' },
-  { path: '/shipments/create', label: 'Shipments', icon: 'local_shipping' },
-  { path: '/shipping/quote/QUO-24789', label: 'Quotes', icon: 'request_quote' },
-  { path: '/suite-access/checkout', label: 'Payments', icon: 'payments' },
-  { path: '/tracking-support', label: 'Tracking & Support', icon: 'headset_mic' },
-];
+function buildNav(): NavItem[] {
+  return [
+    { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
+    { path: '/my-address', label: 'My Address', icon: 'pin_drop' },
+    { path: '/received-parcels', label: 'Parcels', icon: 'inventory_2' },
+    { path: '/quotes/list', label: 'Quotes', icon: 'request_quote' },
+    { path: '/suite-access/checkout', label: 'Payments', icon: 'payments' },
+    { path: '/tracking-support', label: 'Tracking & Support', icon: 'headset_mic' },
+  ];
+}
 
 @Component({
   selector: 'app-portal-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, SimulatedPaystackSheetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
       <aside class="sidebar">
         <a routerLink="/dashboard" class="brand">
-          <span class="brand-icon" aria-hidden="true">
-            <svg viewBox="0 0 36 36" width="36" height="36">
-              <rect width="36" height="36" rx="8" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)"/>
-              <path d="M10 18h16M10 13h11M10 23h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </span>
+          <span class="brand-wordmark">{{ productName }}</span>
           <span class="brand-text">
-            <strong>{{ productName }}</strong>
             <small>{{ productTagline }}</small>
           </span>
         </a>
 
         <nav class="nav">
-          @for (item of nav; track item.path + item.label) {
+          @for (item of nav(); track item.path + item.label) {
             <a
               [routerLink]="item.path"
               routerLinkActive="active"
-              [routerLinkActiveOptions]="{ exact: !!item.exact }"
+              [routerLinkActiveOptions]="navActiveOptions(item)"
             >
               <span class="material-icons-outlined">{{ item.icon }}</span>
               {{ item.label }}
@@ -80,10 +81,54 @@ const NAV: NavItem[] = [
           </label>
 
           <div class="topbar-actions">
-            <button type="button" class="icon-btn" aria-label="Notifications">
-              <span class="material-icons-outlined">notifications</span>
-              <span class="badge">3</span>
-            </button>
+            <div class="notif-wrap">
+              <button
+                type="button"
+                class="icon-btn"
+                aria-label="Notifications"
+                [attr.aria-expanded]="notifOpen()"
+                (click)="toggleNotifications()"
+              >
+                <span class="material-icons-outlined">notifications</span>
+                @if (unreadCount() > 0) {
+                  <span class="badge">{{ unreadBadge() }}</span>
+                }
+              </button>
+              @if (notifOpen()) {
+                <div class="notif-panel" role="dialog" aria-label="Notifications">
+                  <div class="notif-head">
+                    <strong>Notifications</strong>
+                    @if (unreadCount() > 0) {
+                      <button type="button" class="notif-mark-all" (click)="markAllNotificationsRead()">
+                        Mark all read
+                      </button>
+                    }
+                  </div>
+                  @if (notificationsLoading()) {
+                    <p class="notif-empty">Loading…</p>
+                  } @else if (notifications().length === 0) {
+                    <p class="notif-empty">No notifications yet.</p>
+                  } @else {
+                    <ul class="notif-list">
+                      @for (n of notifications(); track n.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="notif-item"
+                            [class.unread]="!n.readAtUtc"
+                            (click)="openNotification(n)"
+                          >
+                            <span class="notif-title">{{ n.title }}</span>
+                            <span class="notif-body">{{ n.body }}</span>
+                            <span class="notif-time">{{ formatNotifTime(n.createdAtUtc) }}</span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
             <button type="button" class="country-btn">
               <span class="flag">🇸🇿</span> Eswatini
               <span class="material-icons-outlined">expand_more</span>
@@ -101,6 +146,7 @@ const NAV: NavItem[] = [
         </main>
       </div>
     </div>
+    <app-simulated-paystack-sheet />
   `,
   styles: `
     .shell {
@@ -124,12 +170,21 @@ const NAV: NavItem[] = [
 
     .brand {
       display: flex;
-      gap: 0.65rem;
+      flex-direction: column;
+      gap: 0.5rem;
       text-decoration: none;
       color: inherit;
       padding: 0 0.35rem 1.25rem;
       border-bottom: 1px solid var(--sidebar-border);
       margin-bottom: 1rem;
+    }
+
+    .brand-wordmark {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--bb-brand-purple, #845ec2);
     }
 
     .brand-text {
@@ -138,15 +193,10 @@ const NAV: NavItem[] = [
       line-height: 1.2;
     }
 
-    .brand-text strong {
-      font-size: 0.95rem;
-      font-weight: 700;
-    }
-
     .brand-text small {
       font-size: 0.65rem;
-      opacity: 0.65;
-      margin-top: 0.2rem;
+      color: rgba(255, 255, 255, 0.58);
+      margin-top: 0.15rem;
       line-height: 1.3;
     }
 
@@ -263,7 +313,76 @@ const NAV: NavItem[] = [
       border-radius: var(--bb-radius-sm);
       background: #f8fafc;
       color: var(--bb-muted);
+      cursor: pointer;
     }
+
+    .notif-wrap { position: relative; }
+
+    .notif-panel {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      right: 0;
+      width: min(360px, 92vw);
+      max-height: 420px;
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius-sm);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      z-index: 50;
+    }
+
+    .notif-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--bb-border);
+      font-size: 0.85rem;
+    }
+
+    .notif-mark-all {
+      border: none;
+      background: transparent;
+      color: var(--bb-brand-purple, #845ec2);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .notif-empty {
+      margin: 0;
+      padding: 1.25rem 1rem;
+      color: var(--bb-muted);
+      font-size: 0.82rem;
+    }
+
+    .notif-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .notif-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.2rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-bottom: 1px solid var(--bb-border);
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: #f5f3ff; }
+    .notif-title { font-size: 0.82rem; font-weight: 600; color: var(--bb-text); }
+    .notif-body { font-size: 0.78rem; color: var(--bb-muted); line-height: 1.35; }
+    .notif-time { font-size: 0.7rem; color: var(--bb-muted); margin-top: 0.15rem; }
 
     .badge {
       position: absolute;
@@ -321,11 +440,18 @@ const NAV: NavItem[] = [
 export class PortalShellComponent implements OnInit {
   readonly productName = PRODUCT_NAME;
   readonly productTagline = PRODUCT_TAGLINE;
-  readonly nav = NAV;
+  readonly nav = signal(buildNav());
 
   private readonly session = inject(AccountSessionService);
   private readonly accountApi = inject(CustomerAccountService);
+  private readonly borderboxApi = inject(BorderboxApiService);
+  private readonly notificationsApi = inject(CustomerInAppNotificationsApiService);
   private readonly router = inject(Router);
+
+  readonly notifOpen = signal(false);
+  readonly notificationsLoading = signal(false);
+  readonly notifications = signal<CustomerInAppNotification[]>([]);
+  readonly unreadCount = signal(0);
 
   private readonly url = toSignal(
     this.router.events.pipe(
@@ -346,6 +472,84 @@ export class PortalShellComponent implements OnInit {
     if (!this.accountApi.account()) {
       this.accountApi.loadAccount().subscribe();
     }
+    this.refreshUnreadCount();
+    interval(60_000)
+      .pipe(startWith(0))
+      .subscribe(() => this.refreshUnreadCount());
+  }
+
+  unreadBadge(): string {
+    const n = this.unreadCount();
+    return n > 99 ? '99+' : String(n);
+  }
+
+  toggleNotifications(): void {
+    const open = !this.notifOpen();
+    this.notifOpen.set(open);
+    if (open) {
+      this.loadNotifications();
+    }
+  }
+
+  private loadNotifications(): void {
+    this.notificationsLoading.set(true);
+    this.notificationsApi.list(15).subscribe({
+      next: (res) => {
+        this.notifications.set(res.items);
+        this.unreadCount.set(res.unreadCount);
+        this.notificationsLoading.set(false);
+      },
+      error: () => this.notificationsLoading.set(false),
+    });
+  }
+
+  private refreshUnreadCount(): void {
+    this.notificationsApi
+      .unreadCount()
+      .pipe(catchError(() => of({ unreadCount: 0 })))
+      .subscribe((res) => this.unreadCount.set(res.unreadCount));
+  }
+
+  openNotification(n: CustomerInAppNotification): void {
+    if (!n.readAtUtc) {
+      this.notificationsApi.markRead(n.id).subscribe({
+        next: () => {
+          this.notifications.update((list) =>
+            list.map((item) =>
+              item.id === n.id ? { ...item, readAtUtc: new Date().toISOString() } : item,
+            ),
+          );
+          this.unreadCount.update((c) => Math.max(0, c - 1));
+        },
+      });
+    }
+    this.notifOpen.set(false);
+    if (n.linkPath) {
+      void this.router.navigateByUrl(n.linkPath);
+    }
+  }
+
+  markAllNotificationsRead(): void {
+    this.notificationsApi.markAllRead().subscribe({
+      next: () => {
+        const now = new Date().toISOString();
+        this.notifications.update((list) => list.map((n) => ({ ...n, readAtUtc: n.readAtUtc ?? now })));
+        this.unreadCount.set(0);
+      },
+    });
+  }
+
+  formatNotifTime(iso: string): string {
+    try {
+      const d = new Date(iso);
+      const diff = Date.now() - d.getTime();
+      if (diff < 60_000) return 'Just now';
+      if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+      if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+      return d.toLocaleDateString();
+    } catch {
+      return '';
+    }
   }
 
   initials = computed(() => {
@@ -357,5 +561,15 @@ export class PortalShellComponent implements OnInit {
   signOut(): void {
     this.session.clear();
     void this.router.navigate(['/sign-in']);
+  }
+
+  navActiveOptions(item: NavItem): { exact: boolean } {
+    if (item.path.startsWith('/quotes') || item.path === '/suite-access/checkout') {
+      return { exact: false };
+    }
+    if (item.path === '/dashboard') {
+      return { exact: true };
+    }
+    return { exact: false };
   }
 }

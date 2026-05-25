@@ -1,0 +1,50 @@
+# Full-stack deploy — use with base compose:
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
+#
+# Single URL: http://localhost:8080 (portal nginx → BFF → API)
+# Ops dashboard: http://localhost:8081
+
+services:
+  mongo:
+    restart: unless-stopped
+
+  api:
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Seed__TestParcels__Enabled: ${SEED_ALLOW_TEST_PARCELS:-true}
+      Kyc__AutoVerifyOnSubmit: ${KYC_AUTO_VERIFY_ON_SUBMIT:-false}
+      Kyc__AutoApproveOnProviderPass: ${KYC_AUTO_APPROVE_ON_PROVIDER_PASS:-false}
+      Kyc__IdAnalyzerEnabled: ${KYC_IDANALYZER_ENABLED:-false}
+      Kyc__IdAnalyzerApiKey: ${IDANALYZER_API_KEY:-}
+      Kyc__IdAnalyzerProfileId: ${IDANALYZER_PROFILE_ID:-security_medium}
+      Kyc__IdAnalyzerBaseUrl: ${IDANALYZER_BASE_URL:-https://api2.idanalyzer.com}
+      Kyc__OpsApiKey: ${KYC_OPS_API_KEY:-weyell-local-kyc-ops}
+      Kyc__OpsRoleByApiKey__weyell-local-kyc-ops: lead
+      Kyc__OpsRoleByApiKey__weyell-ops-clerk: clerk
+      Kyc__OpsRoleByApiKey__weyell-ops-finance: finance
+
+  bff-customer:
+    restart: unless-stopped
+    ports: []
+    environment:
+      # Keep Development for local Docker — Production requires GoogleOidc:ClientSecret.
+      ASPNETCORE_ENVIRONMENT: Development
+      Bff__SpaBaseUri: ${PUBLIC_URL:-http://localhost:8080}
+      Bff__RequireHttpsCookie: "false"
+
+  portal:
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: apps/customer-portal/Dockerfile.deploy
+    ports:
+      - "${PORTAL_PORT:-8080}:80"
+
+  ops-dash:
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: apps/we-yell-ops-dash/Dockerfile.deploy
+    ports:
+      - "${OPS_DASH_PORT:-8081}:80"

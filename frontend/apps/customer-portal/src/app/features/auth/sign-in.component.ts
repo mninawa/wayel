@@ -7,22 +7,21 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { BrandWatermarkBackdropComponent } from '@wayel/shared/components/brand-watermark-backdrop.component';
 import { resetHttpErrorUnauthorizedLatch } from '@wayel/shared/interceptors/http-error.interceptor';
 import { AccountsBridgeService } from '@wayel/shared/services/accounts-bridge.service';
-import { AccountSessionService } from '@wayel/shared/services/account-session.service';
 import { BffAuthService } from '@wayel/shared/services/bff-auth.service';
-import type { MockAccount } from '@wayel/shared/core/mock/mock-accounts';
+import { ConnectivityService } from '@wayel/shared/services/connectivity.service';
 import { environment } from '../../../environments/environment';
-import { provisionFullDemoUser } from '../../data/customer-account.mock';
 import { CustomerAccountService } from '../../services/customer-account.service';
-import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service';
 
 @Component({
   selector: 'app-sign-in',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [BrandWatermarkBackdropComponent, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <nk-brand-watermark-backdrop />
     <div class="auth">
       <aside class="brand-panel">
         <a routerLink="/" class="logo">
@@ -58,7 +57,13 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service
             <div class="session-note" role="status">Your session expired. Please sign in again.</div>
           }
 
-          <button type="button" class="google primary-google" (click)="signInWithGoogle()" [disabled]="busy()">
+          <button
+            type="button"
+            class="google primary-google"
+            (click)="signInWithGoogle()"
+            [disabled]="busy() || connectivity.isDisconnected()"
+            [title]="connectivity.isDisconnected() ? connectivity.message() : null"
+          >
             <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
               <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.5-5.9 7.7-11.3 7.7-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.3-3.5z"/>
               <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34 5.5 29.3 3.5 24 3.5 16.3 3.5 9.7 8 6.3 14.7z"/>
@@ -69,18 +74,6 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service
           </button>
 
           <p class="google-note">We use Google to create your WeYell account securely. No password needed.</p>
-
-          @if (environment.useMock) {
-            <div class="dev-block">
-              <p class="dev-label">Development shortcuts</p>
-              <button type="button" class="dev-btn" (click)="signInWithGoogleMock()" [disabled]="busy()">
-                Simulate new Google sign-up
-              </button>
-              <button type="button" class="dev-btn secondary" (click)="enterFullDemo()" [disabled]="busy()">
-                Skip to full demo (profile + suite)
-              </button>
-            </div>
-          }
 
           @if (showPassword()) {
             <div class="or"><span>or use email (dev)</span></div>
@@ -108,7 +101,18 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service
     </div>
   `,
   styles: `
-    .auth { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+    :host {
+      display: block;
+      position: relative;
+      min-height: 100vh;
+    }
+    .auth {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
     @media (max-width: 960px) { .auth { grid-template-columns: 1fr; } .brand-panel { display: none; } }
     .brand-panel {
       background: var(--bb-navy);
@@ -163,15 +167,19 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service
       align-items: center;
       justify-content: center;
       padding: 2rem;
-      background: #f8fafc;
+      background: transparent;
     }
     .form-card {
       width: 100%;
       max-width: 420px;
-      background: #fff;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius);
-      box-shadow: var(--bb-shadow-md);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 4px;
+      box-shadow:
+        0 1px 0 rgba(15, 23, 42, 0.06),
+        0 24px 48px -20px rgba(15, 23, 42, 0.22);
       padding: 2rem;
     }
     .form-card h2 { margin: 0; font-size: 1.45rem; font-weight: 700; }
@@ -246,77 +254,55 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '../../services/borderbox-mock.service
   `,
 })
 export class SignInComponent implements OnInit {
-  readonly environment = environment;
-
   private readonly accounts = inject(AccountsBridgeService);
   private readonly journey = inject(CustomerAccountService);
-  private readonly session = inject(AccountSessionService);
   private readonly bffAuth = inject(BffAuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  readonly connectivity = inject(ConnectivityService);
 
-  email = signal(DEMO_EMAIL);
-  password = signal(DEMO_PASSWORD);
+  email = signal('');
+  password = signal('');
   busy = signal(false);
   showPwd = signal(false);
   serverError = signal<string | null>(null);
   sessionExpired = signal(false);
-  showPassword = () => environment.useMock && environment.passwordSignInEnabled;
+  showPassword = () => environment.passwordSignInEnabled;
 
   ngOnInit(): void {
     this.sessionExpired.set(
       this.route.snapshot.queryParamMap.get('reason') === 'session-expired',
     );
+    const ssoError = this.route.snapshot.queryParamMap.get('sso_error');
+    if (ssoError) {
+      const lower = ssoError.toLowerCase();
+      this.serverError.set(
+        lower.includes('invalid_client')
+          ? 'Google sign-in failed: invalid OAuth client secret. Set GOOGLEOIDC__CLIENTSECRET in your root .env (from Google Cloud Console), then restart bff-customer.'
+          : lower.includes('idx10500') || lower.includes('signature validation')
+          ? 'Google sign-in could not be verified (missing signing keys). Restart the BFF after deploy, then try again — or use email and password below.'
+          : lower.includes('name or service not known') || lower.includes('idx208')
+            ? 'Google sign-in could not reach accounts.google.com from the server (Docker DNS/network). Sign in with email and password below, or restart Docker and try Google again.'
+            : 'Google sign-in did not complete. Try again or use email and password below.',
+      );
+    }
   }
 
   signInWithGoogle(): void {
     this.serverError.set(null);
-    if (environment.useMock) {
-      this.signInWithGoogleMock();
+    if (this.connectivity.isDisconnected()) {
+      this.serverError.set(this.connectivity.message());
       return;
     }
     if (environment.useBffAuth) {
-      this.bffAuth.signInWithGoogle('/sign-in');
+      const returnUrl =
+        this.route.snapshot.queryParamMap.get('next') ?? '/dashboard';
+      this.bffAuth.signInWithGoogle(returnUrl);
       return;
     }
     this.serverError.set(
-      'Google SSO requires BFF mode. Run npm run dev:portal:bff or use the mock shortcut below.',
+      'Google SSO requires BFF mode. Run npm run dev:portal:bff to enable it.',
     );
-  }
-
-  signInWithGoogleMock(): void {
-    this.busy.set(true);
-    this.journey.signInWithGoogleMock().subscribe({
-      next: (acc) => {
-        resetHttpErrorUnauthorizedLatch();
-        this.busy.set(false);
-        void this.router.navigateByUrl(this.journey.getPostAuthRoute({
-          profileComplete: acc.profileComplete,
-          suiteEligible: acc.suiteEligible,
-          hasSuite: acc.hasSuite,
-        }));
-      },
-      error: () => {
-        this.busy.set(false);
-        this.serverError.set('Could not complete Google sign-in.');
-      },
-    });
-  }
-
-  enterFullDemo(): void {
-    this.busy.set(true);
-    this.journey.signInAsFullDemoMock().subscribe({
-      next: (acc) => {
-        resetHttpErrorUnauthorizedLatch();
-        this.busy.set(false);
-        void this.router.navigateByUrl(this.journey.getPostAuthRoute({
-          profileComplete: acc.profileComplete,
-          suiteEligible: acc.suiteEligible,
-          hasSuite: acc.hasSuite,
-        }));
-      },
-      error: () => this.busy.set(false),
-    });
   }
 
   onSubmit(): void {
@@ -325,9 +311,6 @@ export class SignInComponent implements OnInit {
     this.serverError.set(null);
     this.accounts.login({ email: this.email().trim(), password: this.password() }).subscribe({
       next: () => {
-        if (environment.useMock && this.email().trim().toLowerCase() === DEMO_EMAIL) {
-          provisionFullDemoUser();
-        }
         this.journey.loadAccount().subscribe({
           next: (acc) => {
             resetHttpErrorUnauthorizedLatch();

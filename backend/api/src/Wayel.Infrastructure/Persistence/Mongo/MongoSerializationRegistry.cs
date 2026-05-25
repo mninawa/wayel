@@ -11,6 +11,7 @@ using Wayel.Domain.Sessions;
 using Wayel.Domain.Shipments;
 using Wayel.Domain.SuitePlans;
 using Wayel.Domain.SuiteSubscriptions;
+using Wayel.Domain.SupportTickets;
 using Wayel.Domain.Users;
 
 namespace Wayel.Infrastructure.Persistence.Mongo;
@@ -48,6 +49,7 @@ public static class MongoSerializationRegistry
             RegisterId<ParcelId>(g => new ParcelId(g));
             RegisterId<ShipmentId>(g => new ShipmentId(g));
             RegisterId<QuoteId>(g => new QuoteId(g));
+            RegisterId<SupportTicketId>(g => new SupportTicketId(g));
 
             _initialised = true;
         }

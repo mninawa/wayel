@@ -23,4 +23,6 @@ export const environment = {
    * Production-mode API.
    */
   passwordSignInEnabled: true,
+  enableKycOpsReview: true,
+  enableParcelReceive: true,
 };

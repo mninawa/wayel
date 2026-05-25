@@ -34,20 +34,19 @@ Remote: [github.com/mninawa/wayel](https://github.com/mninawa/wayel.git)
 
 ## Quick start
 
-**Docker (recommended)** — from repo root:
+**Docker deploy** — from repo root:
 
 ```bash
-cp .env.example .env   # optional
-docker compose up --build
+./deploy/up.sh
+# → http://localhost:8080 (portal + BFF + API + Mongo)
 ```
 
 | Service | URL |
 |---------|-----|
-| API | http://localhost:5099 |
-| BFF | http://localhost:5299 |
-| Portal | `docker compose --profile portal up` → http://localhost:8080 |
+| **App** | http://localhost:8080 |
+| API (debug) | http://localhost:5099 |
 
-Details: [docs/DOCKER.md](docs/DOCKER.md).
+Dev split ports: `docker compose up --build` — see [docs/DOCKER.md](docs/DOCKER.md).
 
 **Frontend** (`frontend/`):
 

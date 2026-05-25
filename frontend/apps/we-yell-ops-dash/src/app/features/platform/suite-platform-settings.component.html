@@ -1,0 +1,379 @@
+<div class="platform-page">
+  <header class="page-head">
+    <div>
+      <a [routerLink]="routes.dashboard" class="back-link">← Platform Dashboard</a>
+      <h1>Regional Suite Configuration</h1>
+      <p>
+        Configure SA warehouse addresses, per-corridor suite capacity, and suite number rules for each
+        destination market.
+      </p>
+    </div>
+    <div class="head-actions">
+      <span class="scope-pill">WeYell Platform</span>
+      <span class="ops-preview-badge">{{ platformTotals().activeCorridors }} live corridor(s)</span>
+    </div>
+  </header>
+
+  @if (message()) {
+    <p class="ok-banner">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="err-banner">{{ error() }}</p>
+  }
+
+  @if (regions().length > 0) {
+    <section class="region-overview">
+      <div class="region-overview-head">
+        <div>
+          <h2>Destination markets</h2>
+          <p>Select a corridor to edit warehouse, capacity, and suite numbering for that region.</p>
+        </div>
+        <div class="platform-totals">
+          <span><strong>{{ platformTotals().assigned | number }}</strong> suites assigned</span>
+          <span><strong>{{ platformTotals().capacity | number }}</strong> total capacity</span>
+        </div>
+      </div>
+
+      <div class="region-grid">
+        @for (region of regions(); track region.regionCode) {
+          <button
+            type="button"
+            class="region-card"
+            [class.active]="selectedRegionCode() === region.regionCode"
+            [class.inactive]="!region.isActive"
+            (click)="selectRegion(region.regionCode)"
+          >
+            <div class="region-card-top">
+              <span class="region-flag">{{ regionFlag(region.regionCode) }}</span>
+              <span class="region-status" [class.live]="region.isActive">
+                {{ region.isActive ? 'Live' : 'Planned' }}
+              </span>
+            </div>
+            <strong class="region-name">{{ region.destinationCountryLabel }}</strong>
+            <span class="region-corridor">{{ region.corridorLabel }}</span>
+            <div class="region-bar"><span [style.width.%]="regionUsedPct(region)"></span></div>
+            <div class="region-meta">
+              <span>{{ region.assignedSuiteCount | number }} / {{ region.totalSuiteCapacity | number }}</span>
+              <span class="mono">{{ region.numberPrefix }}</span>
+            </div>
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  @if (config(); as cfg) {
+    <div class="selected-corridor-banner">
+      <span class="region-flag large">{{ regionFlag(cfg.regionCode) }}</span>
+      <div>
+        <strong>{{ cfg.corridorLabel }}</strong>
+        <span>
+          Customers with destination {{ cfg.destinationCountryLabel }} receive suite numbers from this pool.
+          Warehouse origin: South Africa ({{ cfg.originCountryCode }}).
+        </span>
+      </div>
+      <label class="toggle-active">
+        <input
+          type="checkbox"
+          [ngModel]="form().isActive"
+          (ngModelChange)="patchForm({ isActive: $event })"
+          name="isActive"
+        />
+        <span>Corridor live — allow new suite sign-ups</span>
+      </label>
+    </div>
+
+    <div class="metric-row">
+      <article class="metric-card">
+        <span class="metric-icon purple"><span class="material-icons-outlined">home_work</span></span>
+        <div class="metric-body">
+          <span class="metric-label">Assigned Suites</span>
+          <strong class="metric-value">{{ cfg.assignedSuiteCount | number }}</strong>
+          <span class="metric-sub">{{ cfg.destinationCountryLabel }} customers</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon green"><span class="material-icons-outlined">inventory</span></span>
+        <div class="metric-body">
+          <span class="metric-label">Available Capacity</span>
+          <strong class="metric-value">{{ editedAvailableCount() | number }}</strong>
+          <span class="metric-sub">{{ capacityUsedPct() }}% of corridor pool used</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon indigo"><span class="material-icons-outlined">tag</span></span>
+        <div class="metric-body">
+          <span class="metric-label">Next Suite Number</span>
+          <strong class="metric-value mono">{{ exampleSuiteNumber() }}</strong>
+          <span class="metric-sub">{{ form().generationMode === 'Sequential' ? 'Sequential mode' : 'User ID suffix mode' }}</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon navy"><span class="material-icons-outlined">schedule</span></span>
+        <div class="metric-body">
+          <span class="metric-label">Last Updated</span>
+          <strong class="metric-value small">{{ cfg.updatedAtUtc | date:'d MMM y, HH:mm' }}</strong>
+          <span class="metric-sub">{{ cfg.isActive ? 'Live corridor' : 'Planned corridor' }}</span>
+        </div>
+      </article>
+    </div>
+
+    <form class="config-layout" (ngSubmit)="save()">
+      <div class="config-main">
+        <section class="panel">
+          <header class="panel-head">
+            <div class="panel-title">
+              <span class="material-icons-outlined">location_on</span>
+              <div>
+                <h2>Origin Warehouse (South Africa)</h2>
+                <p>Shared SA receiving address for the {{ cfg.corridorLabel }} corridor.</p>
+              </div>
+            </div>
+          </header>
+
+          <label class="field">
+            <span>Warehouse name</span>
+            <input
+              type="text"
+              [ngModel]="form().warehouseName"
+              (ngModelChange)="patchForm({ warehouseName: $event })"
+              name="warehouseName"
+              required
+            />
+          </label>
+          <label class="field">
+            <span>Address line 1</span>
+            <input
+              type="text"
+              [ngModel]="form().addressLine1"
+              (ngModelChange)="patchForm({ addressLine1: $event })"
+              name="addressLine1"
+              required
+            />
+          </label>
+          <label class="field">
+            <span>Address line 2 <em>Optional</em></span>
+            <input
+              type="text"
+              [ngModel]="form().addressLine2"
+              (ngModelChange)="patchForm({ addressLine2: $event || null })"
+              name="addressLine2"
+            />
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>City</span>
+              <input
+                type="text"
+                [ngModel]="form().city"
+                (ngModelChange)="patchForm({ city: $event })"
+                name="city"
+                required
+              />
+            </label>
+            <label class="field">
+              <span>Province</span>
+              <input
+                type="text"
+                [ngModel]="form().province"
+                (ngModelChange)="patchForm({ province: $event })"
+                name="province"
+                required
+              />
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span>Postal code</span>
+              <input
+                type="text"
+                [ngModel]="form().postalCode"
+                (ngModelChange)="patchForm({ postalCode: $event })"
+                name="postalCode"
+                required
+              />
+            </label>
+            <label class="field">
+              <span>Country code</span>
+              <input
+                type="text"
+                [ngModel]="form().countryCode"
+                (ngModelChange)="patchForm({ countryCode: $event })"
+                name="countryCode"
+                maxlength="2"
+                required
+              />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <div class="panel-title">
+              <span class="material-icons-outlined">pin</span>
+              <div>
+                <h2>Regional Suite Capacity</h2>
+                <p>Maximum suites for customers shipping to {{ cfg.destinationCountryLabel }}.</p>
+              </div>
+            </div>
+          </header>
+
+          <label class="field">
+            <span>Total available suites ({{ cfg.regionCode }})</span>
+            <input
+              type="number"
+              min="1"
+              [ngModel]="form().totalSuiteCapacity"
+              (ngModelChange)="patchForm({ totalSuiteCapacity: +$event })"
+              name="totalSuiteCapacity"
+              required
+            />
+          </label>
+
+          <div class="capacity-visual">
+            <div class="capacity-bar">
+              <span [style.width.%]="capacityUsedPct()"></span>
+            </div>
+            <div class="capacity-meta">
+              <span>{{ cfg.assignedSuiteCount | number }} assigned</span>
+              <span>{{ editedAvailableCount() | number }} remaining</span>
+            </div>
+          </div>
+          <p class="note">Capacity cannot be set below assigned suites for this corridor ({{ cfg.assignedSuiteCount }}).</p>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <div class="panel-title">
+              <span class="material-icons-outlined">settings</span>
+              <div>
+                <h2>Suite Number Generation</h2>
+                <p>Format assigned when a {{ cfg.destinationCountryLabel }} customer activates their first suite.</p>
+              </div>
+            </div>
+          </header>
+
+          <label class="field field-narrow">
+            <span>Prefix</span>
+            <input
+              type="text"
+              [ngModel]="form().numberPrefix"
+              (ngModelChange)="patchForm({ numberPrefix: $event })"
+              name="numberPrefix"
+              maxlength="12"
+              required
+            />
+          </label>
+
+          <div class="mode-cards">
+            <button
+              type="button"
+              class="mode-card"
+              [class.active]="form().generationMode === 'UserIdSuffix'"
+              (click)="setGenerationMode('UserIdSuffix')"
+            >
+              <span class="material-icons-outlined">fingerprint</span>
+              <strong>User ID suffix</strong>
+              <span>Example: {{ form().numberPrefix || 'WY' }}-019E4AE2</span>
+              <span class="mode-badge">Default</span>
+            </button>
+            <button
+              type="button"
+              class="mode-card"
+              [class.active]="form().generationMode === 'Sequential'"
+              (click)="setGenerationMode('Sequential')"
+            >
+              <span class="material-icons-outlined">format_list_numbered</span>
+              <strong>Sequential</strong>
+              <span>Example: {{ form().numberPrefix || 'WY' }}-000001</span>
+            </button>
+          </div>
+
+          @if (form().generationMode === 'UserIdSuffix') {
+            <label class="field field-narrow">
+              <span>User ID suffix length</span>
+              <input
+                type="number"
+                min="4"
+                max="32"
+                [ngModel]="form().userIdSuffixLength"
+                (ngModelChange)="patchForm({ userIdSuffixLength: +$event })"
+                name="userIdSuffixLength"
+              />
+            </label>
+            <p class="note">Uses the first characters of the customer user ID, uppercased, after the prefix.</p>
+          } @else {
+            <div class="field-row">
+              <label class="field">
+                <span>Sequence pad length</span>
+                <input
+                  type="number"
+                  min="4"
+                  max="12"
+                  [ngModel]="form().sequencePadLength"
+                  (ngModelChange)="patchForm({ sequencePadLength: +$event })"
+                  name="sequencePadLength"
+                />
+              </label>
+              <label class="field">
+                <span>Next sequence number</span>
+                <input
+                  type="number"
+                  min="1"
+                  [ngModel]="form().nextSequenceNumber"
+                  (ngModelChange)="patchForm({ nextSequenceNumber: +$event })"
+                  name="nextSequenceNumber"
+                />
+              </label>
+            </div>
+            <p class="note">Sequential numbers are allocated per corridor when a subscription is activated.</p>
+          }
+        </section>
+      </div>
+
+      <aside class="config-side">
+        <section class="panel preview-panel">
+          <header class="panel-head">
+            <h2>Address Preview</h2>
+          </header>
+          <div class="address-preview">
+            <span class="material-icons-outlined">home</span>
+            <address>
+              @for (line of addressPreviewLines(); track line) {
+                <span>{{ line }}</span>
+              }
+            </address>
+          </div>
+          <p class="note">Customer name and suite number are added when the suite is created.</p>
+        </section>
+
+        <section class="panel preview-panel">
+          <header class="panel-head">
+            <h2>Suite Number Preview</h2>
+          </header>
+          <div class="suite-preview">
+            <span class="preview-label">{{ cfg.corridorLabel }}</span>
+            <strong>{{ exampleSuiteNumber() }}</strong>
+            <span class="pill indigo">{{ form().generationMode === 'Sequential' ? 'Sequential' : 'User ID suffix' }}</span>
+          </div>
+          <ul class="rules-list">
+            <li><span class="material-icons-outlined">check_circle</span> Each corridor has its own capacity pool</li>
+            <li><span class="material-icons-outlined">check_circle</span> Prefix can differ per destination market</li>
+            <li><span class="material-icons-outlined">check_circle</span> Existing customers keep their suite number</li>
+          </ul>
+        </section>
+
+        <section class="panel sticky-actions">
+          <button type="submit" class="ops-btn ops-btn-primary full-width" [disabled]="busy()">
+            Save {{ cfg.destinationCountryLabel }} settings
+          </button>
+          <button type="button" class="ops-btn ops-btn-outline full-width" [disabled]="busy()" (click)="load()">
+            Reset changes
+          </button>
+        </section>
+      </aside>
+    </form>
+  } @else if (busy()) {
+    <p class="loading">Loading configuration…</p>
+  }
+</div>

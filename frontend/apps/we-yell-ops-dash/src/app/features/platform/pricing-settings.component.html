@@ -1,0 +1,285 @@
+<div class="ops-page pricing-page">
+  <header class="page-head">
+    <div>
+      <a [routerLink]="routes.dashboard" class="back-link">
+        <span class="material-icons-outlined">arrow_back</span> Back to platform
+      </a>
+      <h1>Pricing Configuration</h1>
+      <p class="lead">
+        Quote pricing knobs applied to every BorderBox parcel: flat freight fees, weight
+        surcharges, duty and VAT, handling/freight splits. Changes apply to new quotes
+        immediately — past quotes are not re-priced.
+      </p>
+    </div>
+    @if (config(); as cfg) {
+      <span class="updated-pill">Updated {{ cfg.updatedAtUtc | date:'d MMM y, HH:mm' }}</span>
+    }
+  </header>
+
+  @if (busy()) {
+    <p class="hint">Loading pricing configuration…</p>
+  } @else if (error() && !config()) {
+    <div class="banner banner-err">{{ error() }}</div>
+  } @else {
+    @if (message()) { <div class="banner banner-ok">{{ message() }}</div> }
+    @if (error() && config()) { <div class="banner banner-err">{{ error() }}</div> }
+
+    <form class="pricing-grid" (ngSubmit)="save()">
+      <!-- Freight & fees -->
+      <section class="panel">
+        <header class="panel-head">
+          <div class="panel-title">
+            <span class="material-icons-outlined">local_shipping</span>
+            <h2>Freight & flat fees</h2>
+          </div>
+          <p class="panel-sub">Base fees added to every quote, per delivery method.</p>
+        </header>
+
+        <div class="field-grid">
+          <label>
+            <span>PUDO flat fee (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [ngModel]="form().pudoFlatFeeZar"
+              (ngModelChange)="patch('pudoFlatFeeZar', $event)"
+              name="pudoFlatFeeZar"
+            />
+            <small>Charged on PUDO collection orders.</small>
+          </label>
+
+          <label>
+            <span>Door-to-door flat fee (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [ngModel]="form().doorToDoorFlatFeeZar"
+              (ngModelChange)="patch('doorToDoorFlatFeeZar', $event)"
+              name="doorToDoorFlatFeeZar"
+            />
+            <small>Charged on door delivery orders.</small>
+          </label>
+
+          <label>
+            <span>Per-kg surcharge (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              [ngModel]="form().perKgSurchargeZar"
+              (ngModelChange)="patch('perKgSurchargeZar', $event)"
+              name="perKgSurchargeZar"
+              [disabled]="!form().chargeWeightSurcharge"
+            />
+            <small>Only applied when the weight surcharge toggle is on.</small>
+          </label>
+
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              [checked]="form().chargeWeightSurcharge"
+              (change)="toggle('chargeWeightSurcharge')"
+            />
+            <span>
+              <strong>Apply weight surcharge</strong>
+              <small>Adds per-kg cost to the freight fee.</small>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Duty & VAT -->
+      <section class="panel">
+        <header class="panel-head">
+          <div class="panel-title">
+            <span class="material-icons-outlined">gavel</span>
+            <h2>Duty & VAT</h2>
+          </div>
+          <p class="panel-sub">Tariff rates applied to declared goods value.</p>
+        </header>
+
+        <div class="field-grid">
+          <label>
+            <span>Duty rate</span>
+            <div class="rate-input">
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                [ngModel]="form().dutyRate"
+                (ngModelChange)="patch('dutyRate', $event)"
+                name="dutyRate"
+              />
+              <span class="rate-suffix">{{ form().dutyRate | percent:'1.0-2' }}</span>
+            </div>
+            <small>Applied only when declared value exceeds the threshold below.</small>
+          </label>
+
+          <label>
+            <span>Duty threshold (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="100"
+              [ngModel]="form().dutyGoodsValueThresholdZar"
+              (ngModelChange)="patch('dutyGoodsValueThresholdZar', $event)"
+              name="dutyGoodsValueThresholdZar"
+            />
+            <small>Parcels below this declared value are duty-free.</small>
+          </label>
+
+          <label>
+            <span>VAT rate</span>
+            <div class="rate-input">
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                [ngModel]="form().vatRate"
+                (ngModelChange)="patch('vatRate', $event)"
+                name="vatRate"
+                [disabled]="!form().chargeVat"
+              />
+              <span class="rate-suffix">{{ form().vatRate | percent:'1.0-2' }}</span>
+            </div>
+            <small>Standard SA VAT is 15%.</small>
+          </label>
+
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              [checked]="form().chargeVat"
+              (change)="toggle('chargeVat')"
+            />
+            <span>
+              <strong>Charge VAT</strong>
+              <small>Disable to exempt all quotes (e.g. promotional periods).</small>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Handling / service shares -->
+      <section class="panel">
+        <header class="panel-head">
+          <div class="panel-title">
+            <span class="material-icons-outlined">payments</span>
+            <h2>Service fees & revenue share</h2>
+          </div>
+          <p class="panel-sub">Handling/freight split applied to declared goods value.</p>
+        </header>
+
+        <div class="field-grid">
+          <label>
+            <span>Service fee rate</span>
+            <div class="rate-input">
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                [ngModel]="form().paymentHandlingFeeRate"
+                (ngModelChange)="patch('paymentHandlingFeeRate', $event)"
+                name="paymentHandlingFeeRate"
+              />
+              <span class="rate-suffix">{{ form().paymentHandlingFeeRate | percent:'1.0-2' }}</span>
+            </div>
+            <small>Combined handling + freight margin.</small>
+          </label>
+
+          <label>
+            <span>Handling share (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [ngModel]="form().handlingFeeShareZar"
+              (ngModelChange)="patch('handlingFeeShareZar', $event)"
+              name="handlingFeeShareZar"
+            />
+            <small>Portion of the service fee booked as handling.</small>
+          </label>
+
+          <label>
+            <span>Freight share (ZAR)</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [ngModel]="form().pickupFeeShareZar"
+              (ngModelChange)="patch('pickupFeeShareZar', $event)"
+              name="pickupFeeShareZar"
+            />
+            <small>Portion of the service fee booked as freight.</small>
+          </label>
+
+          <div class="share-summary">
+            <strong>Total share base:</strong>
+            <span [class.bad]="serviceShareTotal() <= 0">
+              R{{ serviceShareTotal() | number:'1.0-2' }}
+            </span>
+            @if (serviceShareTotal() <= 0) {
+              <small class="err">Handling + freight must sum to more than zero.</small>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Sample preview -->
+      <section class="panel preview-panel">
+        <header class="panel-head">
+          <div class="panel-title">
+            <span class="material-icons-outlined">calculate</span>
+            <h2>Sample quote preview</h2>
+          </div>
+          <p class="panel-sub">
+            Estimated cost for a parcel weighing
+            <strong>{{ samplePreview().sampleWeightKg }}kg</strong>
+            with declared value
+            <strong>R{{ samplePreview().sampleGoodsValueZar | number }}</strong>.
+          </p>
+        </header>
+
+        <dl class="preview-grid">
+          <div>
+            <dt>Duty</dt>
+            <dd>R{{ samplePreview().dutyDue | number:'1.0-2' }}</dd>
+          </div>
+          <div>
+            <dt>VAT</dt>
+            <dd>R{{ samplePreview().vat | number:'1.0-2' }}</dd>
+          </div>
+          <div>
+            <dt>Weight surcharge</dt>
+            <dd>R{{ samplePreview().weightSurcharge | number:'1.0-2' }}</dd>
+          </div>
+          <div>
+            <dt>Service fee</dt>
+            <dd>R{{ samplePreview().handlingFee | number:'1.0-2' }}</dd>
+          </div>
+          <div class="totals">
+            <dt>PUDO total</dt>
+            <dd><strong>R{{ samplePreview().pudoTotal | number:'1.0-2' }}</strong></dd>
+          </div>
+          <div class="totals">
+            <dt>Door-to-door total</dt>
+            <dd><strong>R{{ samplePreview().doorToDoorTotal | number:'1.0-2' }}</strong></dd>
+          </div>
+        </dl>
+      </section>
+
+      <footer class="form-actions">
+        <button type="button" class="ops-btn ops-btn-outline" (click)="reset()" [disabled]="saving()">
+          Reset changes
+        </button>
+        <button type="submit" class="ops-btn ops-btn-primary" [disabled]="saving() || !isValid()">
+          {{ saving() ? 'Saving…' : 'Save pricing configuration' }}
+        </button>
+      </footer>
+    </form>
+  }
+</div>

@@ -15,6 +15,9 @@ internal sealed class UserDocument
     public bool IsDisabled { get; set; }
     public DateTime CreatedOnUtc { get; set; }
     public DateTime? LastLoginUtc { get; set; }
+    public DateTime? KycSubmittedAtUtc { get; set; }
+    public DateTime? KycVerifiedAtUtc { get; set; }
+    public string? KycRejectionReason { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string IdNumber { get; set; } = string.Empty;
@@ -38,6 +41,9 @@ internal sealed class UserDocument
         IsDisabled = user.IsDisabled,
         CreatedOnUtc = user.CreatedOnUtc,
         LastLoginUtc = user.LastLoginUtc,
+        KycSubmittedAtUtc = user.KycSubmittedAtUtc,
+        KycVerifiedAtUtc = user.KycVerifiedAtUtc,
+        KycRejectionReason = user.KycRejectionReason,
         FirstName = user.FirstName,
         LastName = user.LastName,
         IdNumber = user.IdNumber,
@@ -77,6 +83,9 @@ internal sealed class UserDocument
             NotifyEmail,
             NotifySms,
             NotifyWhatsApp,
-            NotifyMarketing);
+            NotifyMarketing,
+            KycSubmittedAtUtc,
+            KycVerifiedAtUtc,
+            KycRejectionReason);
     }
 }

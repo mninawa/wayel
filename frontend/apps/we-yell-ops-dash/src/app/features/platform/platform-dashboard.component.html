@@ -1,0 +1,241 @@
+<div class="platform-page">
+  <header class="page-head">
+    <div>
+      <h1>Platform Dashboard</h1>
+      <p>Monitor platform performance, suite revenue, and projected shipment earnings.</p>
+    </div>
+    <div class="head-actions">
+      <span class="scope-pill">{{ scopeLabel() }}</span>
+      <button type="button" class="ops-btn ops-btn-outline refresh-btn" (click)="refresh()" [disabled]="busy()">
+        <span class="material-icons-outlined">refresh</span>
+      </button>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="err-banner">{{ error() }}</p>
+  }
+  @if (busy() && !dashboard()) {
+    <p class="loading">Loading platform metrics…</p>
+  }
+
+  <div class="metric-row">
+    @for (m of metrics(); track m.label) {
+      <article class="metric-card">
+        <span class="metric-icon" [class]="m.tone">
+          <span class="material-icons-outlined">{{ m.icon }}</span>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">{{ m.label }}</span>
+          <strong class="metric-value">{{ m.value }}</strong>
+          @if (m.trend) {
+            <span class="metric-trend" [class]="m.trendTone">{{ m.trend }}</span>
+          }
+          @if (m.sub) {
+            <span class="metric-sub" [class]="m.subTone">{{ m.sub }}</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  <div class="grid-row grid-row-2">
+    <section class="panel chart-panel">
+      <header class="panel-head">
+        <h2>Monthly Revenue Overview</h2>
+        <div class="legend">
+          <span><i class="dot purple"></i> Suite Revenue</span>
+          <span><i class="dot green"></i> Shipment Revenue</span>
+          <span><i class="dot line"></i> Total Revenue</span>
+        </div>
+      </header>
+
+      <div class="combo-chart" aria-hidden="true">
+        @for (month of revenueMonths(); track month.label) {
+          <div class="chart-col">
+            <div class="bar-stack" [style.height.%]="totalHeight(month)">
+              <div class="bar suite" [style.flex]="month.suiteRevenueZar || 1"></div>
+              <div class="bar shipment" [style.flex]="month.shipmentRevenueZar || 1"></div>
+            </div>
+            <span class="line-point" [style.bottom.%]="totalHeight(month)"></span>
+            <span class="chart-label">{{ month.label }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Next Shipment Forecast</h2>
+        <span class="panel-sub">Next 7 days</span>
+      </header>
+      <ul class="forecast-list">
+        @for (item of forecastItems(); track item.label) {
+          <li>
+            <span>{{ item.label }}</span>
+            <strong>
+              {{ item.value }}
+              @if (item.badge) {
+                <span class="pill" [class]="item.badgeTone">{{ item.badge }}</span>
+              }
+            </strong>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <div class="grid-row grid-row-3">
+    <section class="panel">
+      <header class="panel-head"><h2>Revenue Breakdown</h2></header>
+      <div class="donut-wrap">
+        <div class="donut" [style.background]="donutGradient()">
+          <div class="donut-hole">
+            <strong>{{ donutTotalLabel() }}</strong>
+            <span>Total</span>
+          </div>
+        </div>
+        <ul class="breakdown-list">
+          @for (row of revenueBreakdown(); track row.label) {
+            <li>
+              <span class="swatch" [style.background]="row.color"></span>
+              <span>{{ row.label }}</span>
+              <strong>{{ row.pct }}%</strong>
+              <span class="amount">R{{ row.amountZar | number:'1.0-0' }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head"><h2>Suite Performance</h2></header>
+      <div class="perf-grid">
+        @for (item of suitePerformance(); track item.label) {
+          <article>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            @if (item.trend) {
+              <em [class]="item.tone">{{ item.trend }}</em>
+            }
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <header class="panel-head">
+        <h2>Upcoming Shipment Earnings</h2>
+      </header>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Batch ID</th>
+              <th>Destination</th>
+              <th>Parcels</th>
+              <th>Expected Revenue</th>
+              <th>Dispatch</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of shipmentBatches(); track row.id) {
+              <tr>
+                <td><code>{{ row.id }}</code></td>
+                <td>{{ row.flag }} {{ row.destination }}</td>
+                <td>{{ row.parcels }}</td>
+                <td><strong>R{{ row.revenueZar | number:'1.0-0' }}</strong></td>
+                <td>{{ row.dispatchDate }}</td>
+                <td><span class="pill" [class]="row.statusTone">{{ row.status }}</span></td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-cell">No upcoming shipment batches yet.</td>
+              </tr>
+            }
+          </tbody>
+          @if (shipmentBatches().length > 0) {
+            <tfoot>
+              <tr>
+                <td colspan="2"><strong>Total</strong></td>
+                <td><strong>{{ shipmentBatchParcelTotal() }}</strong></td>
+                <td colspan="3"><strong>R{{ shipmentBatchRevenueTotalZar() | number:'1.0-0' }}</strong></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid-row grid-row-3">
+    <section class="panel">
+      <header class="panel-head"><h2>Top Corridors by Revenue</h2></header>
+      <ul class="corridor-list">
+        @for (c of corridors(); track c.route) {
+          <li>
+            <div class="corridor-head">
+              <span>{{ c.route }}</span>
+              <strong>R{{ c.revenueZar | number:'1.0-0' }}</strong>
+            </div>
+            <div class="corridor-bar"><span [style.width.%]="c.pct"></span></div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Quotes Awaiting Payment</h2>
+        <span class="pill amber">{{ quotesPendingTotal() }} pending</span>
+      </header>
+      <ul class="quote-list">
+        @for (bucket of quoteBuckets(); track bucket.label) {
+          <li>
+            <div>
+              <strong>{{ bucket.count }}</strong>
+              <span>{{ bucket.label }}</span>
+            </div>
+            <span>R{{ bucket.revenueZar | number:'1.0-0' }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel alert-panel">
+      <header class="panel-head">
+        <h2>
+          <span class="material-icons-outlined warn-icon">warning</span>
+          Expired suites with parcels in storage
+        </h2>
+        <span class="pill red">{{ expiredAttentionTotal() }} parcels require attention</span>
+      </header>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Parcels</th>
+              <th>Days expired</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of expiredCustomers(); track row.customer) {
+              <tr>
+                <td>{{ row.customer }}</td>
+                <td>{{ row.parcels }}</td>
+                <td><span class="pill red">{{ row.daysExpired }} days</span></td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="empty-cell">No expired suites with stored parcels.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <a [routerLink]="routes.accounts" class="link-btn">View accounts →</a>
+    </section>
+  </div>
+</div>

@@ -35,9 +35,16 @@ Implements Phase 1 rules: expired suites can receive parcels and upload invoices
 | GET | `/api/v1/borderbox/dashboard` | Dashboard summary |
 | GET | `/api/v1/borderbox/suite-plans` | List plans |
 | POST | `/api/v1/borderbox/suite-access/checkout` | Activate/renew suite (requires complete profile) |
-| GET | `/api/v1/borderbox/parcels` | List parcels |
-| POST | `/api/v1/borderbox/shipments` | Create shipment (blocked when expired) |
+| GET | `/api/v1/borderbox/parcels` | List parcels (auto-seeds sample data when suite active) |
+| GET | `/api/v1/borderbox/parcels/{id}` | Parcel detail + invoice status |
+| POST | `/api/v1/borderbox/parcels/{id}/invoice` | Upload invoice file (multipart → S3 bucket `we-yell-courier-platform` under `{suiteNumber}/invoices/{parcelId}/…`, or in-memory) |
+| GET | `/api/v1/borderbox/parcels/{id}/invoice/download` | Download invoice PDF/image |
+| POST | `/api/v1/borderbox/shipments` | Create shipment + quote (blocked when expired) |
+| GET | `/api/v1/borderbox/quotes` | List quotes |
+| GET | `/api/v1/borderbox/quotes/{id}` | Quote detail + breakdown |
 | POST | `/api/v1/borderbox/quotes/{id}/approve` | Approve quote (blocked when expired) |
+| GET | `/api/v1/borderbox/tracking-support` | Active shipment tracking, ticket, notification prefs |
+| POST | `/api/v1/borderbox/support/tickets` | Open support ticket |
 
 ## Run locally
 
@@ -48,4 +55,4 @@ docker compose up api bff-customer
 # API :5099, BFF :5299
 ```
 
-Mongo database defaults to `borderbox`. Suite plans seed on first startup.
+Mongo database name comes from `Mongo__DatabaseName` / `MONGO_DATABASE_NAME` (e.g. `courier_platform` on Atlas). Suite plans seed on first startup.

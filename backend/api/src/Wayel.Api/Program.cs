@@ -46,6 +46,7 @@ try
 
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+    builder.Services.AddScoped<IOpsCallerContext, OpsCallerContext>();
 
     builder.Services.AddProblemDetails();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -124,6 +125,7 @@ try
         ServiceDescriptor.Singleton<IConfigureOptions<JwtBearerOptions>, JwtBearerOptionsSetup>());
 
     builder.Services.AddAuthorization(options => options.AddWayelPolicies());
+    builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, KycOpsAuthorizationHandler>();
 
     builder.Services.AddOpenApi(options =>
     {

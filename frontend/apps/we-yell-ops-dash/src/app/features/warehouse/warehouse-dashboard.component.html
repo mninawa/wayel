@@ -1,0 +1,291 @@
+<div class="board-page">
+  <header class="project-header">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      Ops / Warehouse / <span>Board</span>
+    </nav>
+    <div class="project-title-row">
+      <h1>Warehouse Board</h1>
+    </div>
+    <div class="project-meta">
+      <span class="meta-chip">
+        <span class="material-icons-outlined">inventory_2</span>
+        {{ totalItems() }} items
+      </span>
+      <span class="meta-chip">
+        <span class="material-icons-outlined">local_shipping</span>
+        {{ shipmentCount() }} shipments
+      </span>
+      @if (exceptionCount() > 0) {
+        <span class="meta-chip status">
+          <span class="material-icons-outlined">warning_amber</span>
+          {{ exceptionCount() }} on hold
+        </span>
+      } @else {
+        <span class="meta-chip status">
+          <span class="material-icons-outlined">sync</span>
+          Live workflow
+        </span>
+      }
+    </div>
+  </header>
+
+  <div class="board-toolbar">
+    <div class="view-tabs">
+      <button type="button" class="view-tab" [class.active]="view() === 'kanban'" (click)="view.set('kanban')">
+        <span class="material-icons-outlined">view_kanban</span>
+        Kanban
+      </button>
+      <button type="button" class="view-tab" [class.active]="view() === 'table'" (click)="view.set('table')">
+        <span class="material-icons-outlined">table_rows</span>
+        List
+      </button>
+    </div>
+    <div class="toolbar-filters">
+      <label class="search-field">
+        <span class="material-icons-outlined">search</span>
+        <input
+          [(ngModel)]="searchFilter"
+          name="boardSearch"
+          placeholder="Search board…"
+          (keyup.enter)="applyFilters()"
+        />
+      </label>
+      <select [(ngModel)]="destinationFilter" name="dest" (change)="applyFilters()">
+        <option value="">All destinations</option>
+        @for (d of destinationOptions(); track d) {
+          <option [value]="d">{{ d }}</option>
+        }
+      </select>
+      <select [(ngModel)]="serviceFilter" name="svc" (change)="applyFilters()">
+        <option value="">All services</option>
+        @for (s of serviceOptions(); track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+      <button type="button" class="icon-btn-sm" (click)="refresh()" [disabled]="busy()" title="Refresh">
+        <span class="material-icons-outlined">refresh</span>
+      </button>
+    </div>
+  </div>
+
+  @if (moveMessage() || error()) {
+    <div class="banner-row">
+      @if (moveMessage()) {
+        <p class="ok-banner">{{ moveMessage() }}</p>
+      }
+      @if (error()) {
+        <p class="err-banner">{{ error() }}</p>
+      }
+    </div>
+  }
+
+  @if (view() === 'kanban') {
+    <div class="kanban-canvas">
+      <div class="kanban-scroll">
+        @for (col of board()?.columns ?? []; track col.columnId) {
+          <section class="kanban-col" [attr.data-stage]="col.columnId">
+            <header class="col-head">
+              <span class="col-accent" aria-hidden="true"></span>
+              <span class="col-name">{{ col.label }}</span>
+              <span class="col-count-badge" [class.warn]="col.overdueCount > 0">{{ col.cards.length }}</span>
+              <div class="col-actions">
+                <button type="button" class="col-action-btn" title="Column options" tabindex="-1">
+                  <span class="material-icons-outlined">more_horiz</span>
+                </button>
+              </div>
+            </header>
+            <div
+              class="col-cards"
+              [class.drop-active]="dropTargetColumn() === col.columnId"
+              [class.drop-blocked]="dropBlockedColumn() === col.columnId"
+              (dragover)="onDragOver($event, col.columnId)"
+              (dragleave)="onDragLeave($event, col.columnId)"
+              (drop)="onDrop($event, col.columnId)"
+            >
+              @for (card of col.cards; track card.cardKey) {
+                <div
+                  class="board-card"
+                  role="button"
+                  tabindex="0"
+                  [attr.draggable]="canMove() ? true : null"
+                  [class.overdue]="card.isOverdue"
+                  [class.selected]="selectedCard()?.cardKey === card.cardKey"
+                  [class.dragging]="dragPayload()?.card?.cardKey === card.cardKey"
+                  (click)="selectCard(card)"
+                  (keydown.enter)="selectCard(card)"
+                  (dragstart)="onDragStart($event, card, col.columnId)"
+                  (dragend)="onDragEnd()"
+                >
+                  <div class="card-cover" [class.has-photo]="!!coverImageUrl(card)" [attr.data-stage]="card.columnId">
+                    @if (coverImageUrl(card); as coverUrl) {
+                      <img [src]="coverUrl" [alt]="cardTitle(card)" loading="lazy" />
+                    } @else {
+                      <div class="cover-fallback">
+                        <span class="material-icons-outlined cover-glyph">{{ coverIcon(card) }}</span>
+                      </div>
+                    }
+                  </div>
+                  <div class="card-body">
+                    <div class="card-tags">
+                      @if (showPriority(card)) {
+                        <span class="priority-tag" [class]="priorityClass(card)">{{ priorityLabel(card) }}</span>
+                      }
+                      <span class="category-tag">{{ categoryTag(card) }}</span>
+                      <span class="card-id">{{ card.displayId }}</span>
+                    </div>
+                    <h3 class="card-title">{{ cardTitle(card) }}</h3>
+                    @if (cardMeta(card); as meta) {
+                      <p class="card-meta">{{ meta }}</p>
+                    }
+                    <footer class="card-foot">
+                      <span class="status-pill" [class]="statusPillClass(card)">{{ card.statusLabel }}</span>
+                      <div class="card-stats">
+                        @if (card.weightKg != null) {
+                          <span class="stat-item" title="Weight">
+                            <span class="material-icons-outlined">scale</span>
+                            {{ card.weightKg | number:'1.0-1' }} kg
+                          </span>
+                        }
+                        @if (card.suiteNumber && card.cardType === 'PARCEL') {
+                          <span class="stat-item" title="Suite">
+                            <span class="material-icons-outlined">inbox</span>
+                            Suite {{ card.suiteNumber }}
+                          </span>
+                        }
+                        @if (card.parcelCount != null && card.cardType === 'SHIPMENT') {
+                          <span class="stat-item" title="Parcels">
+                            <span class="material-icons-outlined">layers</span>
+                            {{ card.parcelCount }}
+                          </span>
+                        }
+                      </div>
+                    </footer>
+                  </div>
+                </div>
+              } @empty {
+                <p class="col-empty">No items</p>
+              }
+            </div>
+          </section>
+        }
+      </div>
+
+      @if ((board()?.exceptionCards?.length ?? 0) > 0 || dragPayload()) {
+        <section
+          class="exception-section"
+          [class.drop-active]="dropTargetColumn() === 'exception_hold'"
+          (dragover)="onDragOver($event, 'exception_hold')"
+          (dragleave)="onDragLeave($event, 'exception_hold')"
+          (drop)="onDrop($event, 'exception_hold')"
+        >
+          <header>
+            <span class="material-icons-outlined">pause_circle</span>
+            <h3>Exception / Hold</h3>
+            <span class="col-count-badge warn">{{ board()?.exceptionCards?.length ?? 0 }}</span>
+          </header>
+          <div class="exception-cards">
+            @for (card of board()?.exceptionCards ?? []; track card.cardKey) {
+              <div
+                class="board-card hold"
+                role="button"
+                tabindex="0"
+                [attr.draggable]="canMove() ? true : null"
+                [class.selected]="selectedCard()?.cardKey === card.cardKey"
+                [class.dragging]="dragPayload()?.card?.cardKey === card.cardKey"
+                (click)="selectCard(card)"
+                (keydown.enter)="selectCard(card)"
+                (dragstart)="onDragStart($event, card, 'exception_hold')"
+                (dragend)="onDragEnd()"
+              >
+                <div class="card-cover has-photo exception" data-stage="exception_hold">
+                  @if (coverImageUrl(card); as coverUrl) {
+                    <img [src]="coverUrl" [alt]="card.title" loading="lazy" />
+                  } @else {
+                    <div class="cover-fallback">
+                      <span class="material-icons-outlined cover-glyph">pause_circle</span>
+                    </div>
+                  }
+                </div>
+                <div class="card-body">
+                  <div class="card-tags">
+                    <span class="priority-tag high">High</span>
+                    <span class="category-tag">Hold</span>
+                    <span class="card-id">{{ card.displayId }}</span>
+                  </div>
+                  <h3 class="card-title">{{ card.title }}</h3>
+                  @if (card.issueSummary) {
+                    <p class="card-meta">{{ card.issueSummary }}</p>
+                  }
+                </div>
+              </div>
+            }
+            @if ((board()?.exceptionCards?.length ?? 0) === 0 && dragPayload()) {
+              <p class="col-empty">Drop here to place on hold</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+
+    @if (selectedCard()) {
+      <div class="detail-backdrop" (click)="selectedCard.set(null)">
+        <ops-warehouse-board-detail
+          [card]="selectedCard()"
+          (closed)="selectedCard.set(null)"
+          (click)="$event.stopPropagation()"
+        />
+      </div>
+    }
+  } @else {
+    <section class="table-section">
+      <div class="table-wrap">
+        <table class="ops-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Stage</th>
+              <th>Title</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of tableRows(); track row.cardKey) {
+              <tr (click)="selectCard(row)" class="click-row">
+                <td><strong>{{ row.displayId }}</strong></td>
+                <td>{{ row.cardType }}</td>
+                <td>{{ columnLabel(row.columnId) }}</td>
+                <td>{{ row.title }}</td>
+                <td>{{ row.locationId ?? '—' }}</td>
+                <td><ops-pill [label]="row.statusLabel" [tone]="statusTone(row)" /></td>
+                <td>{{ row.eventAtUtc | date:'MMM d, h:mm a' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="empty">No board items yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if (selectedCard()) {
+      <div class="detail-backdrop" (click)="selectedCard.set(null)">
+        <ops-warehouse-board-detail
+          [card]="selectedCard()"
+          (closed)="selectedCard.set(null)"
+          (click)="$event.stopPropagation()"
+        />
+      </div>
+    }
+  }
+</div>
+
+@if (storePrompt(); as prompt) {
+  <ops-warehouse-board-store-modal
+    [card]="prompt.card"
+    (confirmed)="completeStoreMove($event, prompt.fromColumnId)"
+    (cancelled)="storePrompt.set(null)"
+  />
+}

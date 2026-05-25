@@ -1,0 +1,223 @@
+<div class="ops-page plans-page">
+  <header class="page-head">
+    <div>
+      <a [routerLink]="routes.dashboard" class="back-link">
+        <span class="material-icons-outlined">arrow_back</span> Back to platform
+      </a>
+      <h1>Suite Plans</h1>
+      <p class="lead">
+        Manage the suite subscription catalogue customers choose from at checkout.
+        Archived plans stay on existing subscriptions but are hidden from the customer-facing list.
+      </p>
+    </div>
+    <button type="button" class="ops-btn ops-btn-primary" (click)="startCreate()" [disabled]="busy() || editing()">
+      <span class="material-icons-outlined">add</span> Add plan
+    </button>
+  </header>
+
+  <div class="totals-strip">
+    <div class="stat">
+      <span class="stat-label">Active plans</span>
+      <span class="stat-value">{{ totals().active }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Recommended</span>
+      <span class="stat-value">{{ totals().recommended }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Total (incl. archived)</span>
+      <span class="stat-value">{{ totals().total }}</span>
+    </div>
+  </div>
+
+  @if (message()) { <div class="banner banner-ok">{{ message() }}</div> }
+  @if (error()) { <div class="banner banner-err">{{ error() }}</div> }
+
+  @if (editing(); as form) {
+    <section class="panel form-panel">
+      <header class="panel-head">
+        <div class="panel-title">
+          <span class="material-icons-outlined">{{ form.id ? 'edit' : 'add_circle' }}</span>
+          <h2>{{ form.id ? 'Edit plan' : 'New plan' }}</h2>
+        </div>
+      </header>
+
+      <div class="field-grid">
+        <label>
+          <span>Name</span>
+          <input
+            type="text"
+            [ngModel]="form.name"
+            (ngModelChange)="patch('name', $event)"
+            name="planName"
+            placeholder="e.g. Quarterly Plan"
+            maxlength="60"
+          />
+        </label>
+
+        <label>
+          <span>Duration (months)</span>
+          <input
+            type="number"
+            min="1"
+            max="36"
+            step="1"
+            [ngModel]="form.durationMonths"
+            (ngModelChange)="patch('durationMonths', $event)"
+            name="durationMonths"
+          />
+        </label>
+
+        <label>
+          <span>Price (ZAR)</span>
+          <input
+            type="number"
+            min="0"
+            step="10"
+            [ngModel]="form.priceZar"
+            (ngModelChange)="patch('priceZar', $event)"
+            name="priceZar"
+          />
+        </label>
+
+        <label class="toggle-row">
+          <input
+            type="checkbox"
+            [checked]="form.isRecommended"
+            (change)="patch('isRecommended', !form.isRecommended)"
+          />
+          <span>
+            <strong>Mark as recommended</strong>
+            <small>Highlights this plan in the customer checkout flow.</small>
+          </span>
+        </label>
+      </div>
+
+      <footer class="form-actions">
+        <button type="button" class="ops-btn ops-btn-outline" (click)="cancelEdit()" [disabled]="saving()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ops-btn ops-btn-primary"
+          (click)="save()"
+          [disabled]="saving() || !isValid()"
+        >
+          {{ saving() ? 'Saving…' : (form.id ? 'Update plan' : 'Create plan') }}
+        </button>
+      </footer>
+    </section>
+  }
+
+  @if (busy() && plans().length === 0) {
+    <p class="hint">Loading suite plans…</p>
+  } @else {
+    <section class="panel">
+      <header class="panel-head">
+        <div class="panel-title">
+          <span class="material-icons-outlined">workspace_premium</span>
+          <h2>Active plans</h2>
+        </div>
+        <p class="panel-sub">These appear in the customer checkout catalogue.</p>
+      </header>
+
+      @if (activePlans().length === 0) {
+        <p class="hint">No active plans yet. Add one above to publish the catalogue.</p>
+      } @else {
+        <table class="plans-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Duration</th>
+              <th>Price</th>
+              <th>Per month</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (plan of activePlans(); track plan.id) {
+              <tr>
+                <td>
+                  <strong>{{ plan.name }}</strong>
+                  @if (plan.isRecommended) {
+                    <span class="badge badge-recommended">Recommended</span>
+                  }
+                </td>
+                <td>{{ plan.durationMonths }} month{{ plan.durationMonths === 1 ? '' : 's' }}</td>
+                <td>R{{ plan.priceZar | number:'1.0-2' }}</td>
+                <td>R{{ (plan.priceZar / plan.durationMonths) | number:'1.0-2' }}</td>
+                <td>
+                  <button type="button" class="link-btn" (click)="startEdit(plan)" [disabled]="!!editing()">
+                    Edit
+                  </button>
+                </td>
+                <td>
+                  @if (confirmingId() === plan.id) {
+                    <span class="confirm-row">
+                      Archive?
+                      <button type="button" class="link-btn danger" (click)="archive(plan)" [disabled]="saving()">
+                        Yes
+                      </button>
+                      <button type="button" class="link-btn" (click)="cancelArchive()" [disabled]="saving()">
+                        No
+                      </button>
+                    </span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="link-btn danger"
+                      (click)="confirmArchive(plan)"
+                      [disabled]="saving() || !!editing()"
+                    >
+                      Archive
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    @if (archivedPlans().length > 0) {
+      <section class="panel archived-panel">
+        <header class="panel-head">
+          <div class="panel-title">
+            <span class="material-icons-outlined">inventory_2</span>
+            <h2>Archived plans</h2>
+          </div>
+          <p class="panel-sub">
+            Hidden from customers; existing subscriptions on these plans keep running.
+          </p>
+        </header>
+
+        <table class="plans-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Duration</th>
+              <th>Price</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (plan of archivedPlans(); track plan.id) {
+              <tr class="archived">
+                <td>{{ plan.name }}</td>
+                <td>{{ plan.durationMonths }} month{{ plan.durationMonths === 1 ? '' : 's' }}</td>
+                <td>R{{ plan.priceZar | number:'1.0-2' }}</td>
+                <td>
+                  <button type="button" class="link-btn" (click)="restore(plan)" [disabled]="saving()">
+                    Restore
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+</div>

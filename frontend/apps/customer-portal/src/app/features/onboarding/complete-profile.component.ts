@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { ProfileFormComponent } from '../account/profile-form.component';
 import type { UpdateProfileRequest } from '../../models/customer-account.models';
@@ -57,6 +58,7 @@ import { CustomerAccountService } from '../../services/customer-account.service'
             <app-profile-form
               [profile]="acc.profile"
               [saving]="saving()"
+              [saveError]="saveError()"
               (saved)="onSave($event)"
               (cancelled)="signOut()"
             />
@@ -143,6 +145,7 @@ export class CompleteProfileComponent implements OnInit {
 
   readonly account = this.accountApi.account;
   readonly saving = signal(false);
+  readonly saveError = signal<string | null>(null);
 
   ngOnInit(): void {
     if (!this.account()) {
@@ -152,6 +155,7 @@ export class CompleteProfileComponent implements OnInit {
 
   onSave(body: UpdateProfileRequest): void {
     this.saving.set(true);
+    this.saveError.set(null);
     this.accountApi.completeOnboardingProfile(body).subscribe({
       next: (acc) => {
         this.saving.set(false);
@@ -161,8 +165,23 @@ export class CompleteProfileComponent implements OnInit {
           hasSuite: acc.hasSuite,
         }));
       },
-      error: () => this.saving.set(false),
+      error: (err: unknown) => {
+        this.saving.set(false);
+        this.saveError.set(this.errorMessage(err));
+      },
     });
+  }
+
+  private errorMessage(err: unknown): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error as { detail?: string; title?: string } | string | null;
+      if (typeof body === 'string' && body.trim()) return body;
+      if (body && typeof body === 'object') {
+        return body.detail ?? body.title ?? 'Could not save profile. Try again.';
+      }
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return 'Could not save profile. Try again.';
   }
 
   signOut(): void {

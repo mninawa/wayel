@@ -24,6 +24,14 @@ internal sealed class MongoIndexInitializer(MongoContext context, ILogger<MongoI
                 new CreateIndexOptions { Unique = true, Name = "ux_suite_subscriptions_user" }),
             cancellationToken: cancellationToken);
 
+        await context.CustomerInAppNotifications.Indexes.CreateOneAsync(
+            new CreateIndexModel<CustomerInAppNotificationDocument>(
+                Builders<CustomerInAppNotificationDocument>.IndexKeys
+                    .Ascending(x => x.UserId)
+                    .Descending(x => x.CreatedAtUtc),
+                new CreateIndexOptions { Name = "ix_customer_inapp_notifications_user_created" }),
+            cancellationToken: cancellationToken);
+
         await context.Parcels.Indexes.CreateOneAsync(
             new CreateIndexModel<ParcelDocument>(
                 Builders<ParcelDocument>.IndexKeys
@@ -31,6 +39,16 @@ internal sealed class MongoIndexInitializer(MongoContext context, ILogger<MongoI
                     .Descending(x => x.ReceivedAtUtc),
                 new CreateIndexOptions { Name = "ix_parcels_user_received" }),
             cancellationToken: cancellationToken);
+
+        await context.ShipmentTrackingEvents.Indexes.CreateOneAsync(
+            new CreateIndexModel<ShipmentTrackingEventDocument>(
+                Builders<ShipmentTrackingEventDocument>.IndexKeys
+                    .Ascending(x => x.ShipmentId)
+                    .Descending(x => x.OccurredAtUtc),
+                new CreateIndexOptions { Name = "ix_shipment_tracking_events_shipment_occurred" }),
+            cancellationToken: cancellationToken);
+
+        // pickup_branches uses string slug as _id (via PickupBranchDocument.Id) — unique by default.
 
         logger.LogInformation("MongoDB indexes ready.");
     }

@@ -19,7 +19,8 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
         string label,
         string recipientName,
         string? phone,
-        bool isDefault)
+        bool isDefault,
+        string pickupBranchId)
         : base(id)
     {
         UserId = userId;
@@ -35,6 +36,7 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
         RecipientName = recipientName;
         Phone = phone;
         IsDefault = isDefault;
+        PickupBranchId = pickupBranchId;
     }
 
     public UserId UserId { get; }
@@ -44,33 +46,44 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
     public string City { get; private set; }
     public string Province { get; private set; }
     public string Country { get; }
-    public string PostalCode { get; }
+    public string PostalCode { get; private set; }
     public bool IsSuiteAddress { get; }
     public string Label { get; private set; }
     public string RecipientName { get; private set; }
     public string? Phone { get; private set; }
     public bool IsDefault { get; private set; }
+    /// <summary>Eswatini WeYell pickup branch id (delivery addresses only).</summary>
+    public string PickupBranchId { get; private set; }
 
-    public static CustomerAddress CreateSuite(UserId userId, string suiteNumber, string warehouseLine) =>
+    public static CustomerAddress CreateSuite(
+        UserId userId,
+        string suiteNumber,
+        string warehouseLine,
+        string city = "Sandton",
+        string province = "Gauteng",
+        string country = "ZA",
+        string postalCode = "2192") =>
         new(
             CustomerAddressId.New(),
             userId,
             "suite",
             warehouseLine,
             null,
-            "Johannesburg",
-            "Gauteng",
-            "ZA",
-            "2000",
+            city,
+            province,
+            country,
+            postalCode,
             true,
             "SA Suite",
             string.Empty,
             null,
-            false)
+            false,
+            string.Empty)
         { SuiteNumber = suiteNumber };
 
     public static CustomerAddress CreateDelivery(
         UserId userId,
+        string pickupBranchId,
         string label,
         string recipientName,
         string phone,
@@ -94,11 +107,13 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
             label.Trim(),
             recipientName.Trim(),
             phone.Trim(),
-            isDefault);
+            isDefault,
+            pickupBranchId.Trim());
 
     public string SuiteNumber { get; private set; } = string.Empty;
 
     public void UpdateDelivery(
+        string pickupBranchId,
         string label,
         string recipientName,
         string phone,
@@ -113,6 +128,7 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
             throw new InvalidOperationException("Cannot update a suite address as delivery.");
         }
 
+        PickupBranchId = pickupBranchId.Trim();
         Label = label.Trim();
         RecipientName = recipientName.Trim();
         Phone = phone.Trim();
@@ -124,6 +140,35 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
     }
 
     public void SetDefault(bool isDefault) => IsDefault = isDefault;
+
+    public void SyncSuiteRecipient(string recipientName, string? phone)
+    {
+        if (!IsSuiteAddress)
+        {
+            return;
+        }
+
+        RecipientName = recipientName.Trim();
+        Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+    }
+
+    public void SyncSuiteWarehouse(
+        string warehouseLine,
+        string city,
+        string province,
+        string postalCode)
+    {
+        if (!IsSuiteAddress)
+        {
+            throw new InvalidOperationException("Only suite addresses can be synced from platform warehouse settings.");
+        }
+
+        Line1 = warehouseLine.Trim();
+        Line2 = null;
+        City = city.Trim();
+        Province = province.Trim();
+        PostalCode = postalCode.Trim();
+    }
 
     public static CustomerAddress Rehydrate(
         CustomerAddressId id,
@@ -140,7 +185,8 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
         string label = "",
         string recipientName = "",
         string? phone = null,
-        bool isDefault = false) =>
-        new(id, userId, type, line1, line2, city, province, country, postalCode, isSuiteAddress, label, recipientName, phone, isDefault)
+        bool isDefault = false,
+        string pickupBranchId = "") =>
+        new(id, userId, type, line1, line2, city, province, country, postalCode, isSuiteAddress, label, recipientName, phone, isDefault, pickupBranchId)
         { SuiteNumber = suiteNumber };
 }

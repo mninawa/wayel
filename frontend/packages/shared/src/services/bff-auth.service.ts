@@ -168,6 +168,9 @@ export class BffAuthService {
         this._hasBffSession.set(false);
       }
       return me;
+    } catch {
+      this._hasBffSession.set(false);
+      return null;
     } finally {
       this._bootstrapped.set(true);
     }
@@ -374,7 +377,7 @@ export class BffAuthService {
     if (!raw.startsWith('/')) return '/';
     if (raw.startsWith('//')) return '/'; // Protocol-relative — never trust
     if (raw.startsWith('/bff/')) return '/'; // Don't bounce back into the BFF
-    if (raw.startsWith('/login')) return '/';
+    if (raw.startsWith('/login') || raw.startsWith('/sign-in')) return '/';
     return raw;
   }
 }

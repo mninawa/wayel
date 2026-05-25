@@ -51,7 +51,13 @@ public sealed class NotificationWaSenderOptions
     /// API root. Defaults to the public Wasender endpoint; override
     /// only if proxying through a private edge.
     /// </summary>
-    public string BaseUrl { get; init; } = "https://wasenderapi.com";
+    public string BaseUrl { get; init; } = "https://www.wasenderapi.com";
+
+    /// <summary>
+    /// Wasender session id from the dashboard URL (informational / logging).
+    /// The per-session <see cref="ApiKey"/> selects the linked WhatsApp account.
+    /// </summary>
+    public string? SessionId { get; init; }
 
     /// <summary>
     /// Optional safety-net: when non-empty, the sender will only deliver
@@ -60,4 +66,10 @@ public sealed class NotificationWaSenderOptions
     /// stray test invite can't actually message a customer.
     /// </summary>
     public IReadOnlyList<string> Allowlist { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// E.164 number that receives new support tickets from the portal (e.g. ops phone).
+    /// When set and <see cref="Enabled"/> is true, every ticket is forwarded here via WasenderAPI.
+    /// </summary>
+    public string? SupportInboxPhoneE164 { get; init; }
 }

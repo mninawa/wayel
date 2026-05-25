@@ -2,7 +2,6 @@ using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Domain.Common;
-using Wayel.Domain.Identities;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Account;
@@ -19,8 +18,8 @@ internal sealed class UpdateCustomerProfileCommandHandler(
     ICurrentUser current,
     IUserRepository users,
     ICustomerAddressRepository addresses,
-    IExternalIdentityRepository identities,
-    IUnitOfWork unitOfWork) : ICommandHandler<UpdateCustomerProfileCommand, CustomerAccountResponse>
+    IUnitOfWork unitOfWork,
+    CustomerAccountResponseBuilder accountResponse) : ICommandHandler<UpdateCustomerProfileCommand, CustomerAccountResponse>
 {
     public async Task<Result<CustomerAccountResponse>> Handle(
         UpdateCustomerProfileCommand request,
@@ -56,13 +55,16 @@ internal sealed class UpdateCustomerProfileCommandHandler(
             request.PreferredDeliveryMethod);
 
         await users.UpdateAsync(user, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, cancellationToken);
-        var allAddresses = await addresses.ListForUserAsync(user.Id, cancellationToken);
-        var linked = await identities.GetForUserAsync(user.Id, cancellationToken);
-        var hasGoogle = linked.Any(i => i.Provider == IdentityProvider.Google);
+        if (suiteAddress is not null)
+        {
+            suiteAddress.SyncSuiteRecipient(user.DisplayName, user.Phone);
+            await addresses.UpdateAsync(suiteAddress, cancellationToken);
+        }
 
-        return CustomerAccountMapper.Map(user, suiteAddress, allAddresses, hasGoogle);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await accountResponse.BuildAsync(user, cancellationToken);
     }
 }

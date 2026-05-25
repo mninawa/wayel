@@ -39,6 +39,14 @@ public interface IWhatsAppSender
     Task<WhatsAppSendResult> SendTextAsync(
         WhatsAppTextMessage message,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send an image message with an optional caption. The image URL must be
+    /// publicly reachable by the WhatsApp provider (e.g. CloudFront).
+    /// </summary>
+    Task<WhatsAppSendResult> SendImageAsync(
+        WhatsAppImageMessage message,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -51,7 +59,15 @@ public interface IWhatsAppSender
 public sealed record WhatsAppTextMessage(
     string ToPhoneE164,
     string Body,
-    string? CorrelationTag = null);
+    string? CorrelationTag = null,
+    bool BypassAllowlist = false);
+
+public sealed record WhatsAppImageMessage(
+    string ToPhoneE164,
+    string ImageUrl,
+    string? Caption,
+    string? CorrelationTag = null,
+    bool BypassAllowlist = false);
 
 /// <summary>
 /// Outcome of a single WhatsApp send. Distinct from "throw" so callers can

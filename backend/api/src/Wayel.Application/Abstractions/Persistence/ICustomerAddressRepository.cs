@@ -11,4 +11,7 @@ public interface ICustomerAddressRepository
     Task AddAsync(CustomerAddress address, CancellationToken cancellationToken = default);
     Task UpdateAsync(CustomerAddress address, CancellationToken cancellationToken = default);
     Task DeleteAsync(CustomerAddressId id, UserId userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CustomerAddress>> ListSuiteAddressesForRegionAsync(
+        string regionCode,
+        CancellationToken cancellationToken = default);
 }

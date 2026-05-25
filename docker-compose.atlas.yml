@@ -1,0 +1,8 @@
+# Use with Atlas (set MONGO_CONNECTION_STRING in .env):
+#   docker compose -f docker-compose.yml -f docker-compose.atlas.yml --profile portal up -d --build
+#
+# Skips the local `mongo` container; API connects to MongoDB Atlas.
+
+services:
+  api:
+    depends_on: {}

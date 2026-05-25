@@ -1,0 +1,135 @@
+/* WeYell Ops Dashboard — warehouse tools */
+
+:root {
+  --ops-navy: #001a41;
+  --ops-brand-purple: #845EC2;
+  --ops-brand-green: #81C784;
+  --ops-primary: #845EC2;
+  --ops-primary-hover: #734db3;
+  --ops-primary-soft: #f3eefb;
+  --ops-accent: #ff8c42;
+  --ops-success: #22c55e;
+  --ops-success-soft: #ecfdf3;
+  --ops-danger: #ef4444;
+  --ops-danger-soft: #fef2f2;
+  --ops-danger-border: #fecaca;
+  --ops-bg: #f4f6fa;
+  --ops-surface: #ffffff;
+  --ops-text: #0f172a;
+  --ops-muted: #64748b;
+  --ops-border: #e2e8f0;
+  --ops-radius: 12px;
+  --ops-radius-sm: 8px;
+  --ops-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--ops-text);
+  background: var(--ops-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.material-icons-outlined {
+  font-size: 20px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ops-primary);
+  outline-offset: 2px;
+}
+
+.ops-card {
+  background: var(--ops-surface);
+  border: 1px solid var(--ops-border);
+  border-radius: var(--ops-radius);
+  box-shadow: var(--ops-shadow);
+}
+
+.ops-card-pad {
+  padding: 1.15rem 1.25rem;
+}
+
+.ops-card-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ops-text);
+}
+
+.ops-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--ops-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  white-space: nowrap;
+}
+
+.ops-btn-primary {
+  background: var(--ops-primary);
+  color: #fff;
+}
+
+.ops-btn-primary:hover:not(:disabled) {
+  background: var(--ops-primary-hover);
+}
+
+.ops-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ops-btn-outline {
+  background: #fff;
+  border: 1px solid var(--ops-primary);
+  color: var(--ops-primary);
+}
+
+.ops-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--ops-border);
+  color: var(--ops-text);
+}
+
+.ops-btn-ghost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ops-btn .material-icons-outlined {
+  font-size: 18px;
+}
+
+.err-banner {
+  color: var(--ops-danger);
+  background: var(--ops-danger-soft);
+  border: 1px solid var(--ops-danger-border);
+  border-radius: var(--ops-radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+}

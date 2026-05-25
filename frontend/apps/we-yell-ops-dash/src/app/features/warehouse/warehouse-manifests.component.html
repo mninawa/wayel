@@ -1,0 +1,262 @@
+<div class="manifests-page">
+  <header class="page-head">
+    <div>
+      <h1>Dispatch Manifests</h1>
+      <p>Create, review, and hand over grouped shipments to courier partners.</p>
+    </div>
+    <div class="head-actions">
+      <button type="button" class="ops-btn ops-btn-outline" (click)="refresh()" [disabled]="busy()">
+        <span class="material-icons-outlined">refresh</span>
+      </button>
+      @if (canDispatch()) {
+        <a [routerLink]="routes.dispatchStaging" class="ops-btn ops-btn-primary">
+          <span class="material-icons-outlined">add</span>
+          Create manifest
+        </a>
+      }
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="err-banner">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="ok-banner">{{ success() }}</p>
+  }
+
+  <div class="metric-row">
+    @for (m of metrics(); track m.label) {
+      <article class="metric-card">
+        <span class="metric-icon" [class]="m.tone">
+          <span class="material-icons-outlined">{{ m.icon }}</span>
+        </span>
+        <div class="metric-body">
+          <span class="metric-label">{{ m.label }}</span>
+          <strong class="metric-value">{{ m.value }}</strong>
+          @if (m.sub) {
+            <span class="metric-sub" [class]="m.subTone">{{ m.sub }}</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  <div class="manifests-layout">
+    <section class="panel queue-panel">
+      <div class="filters">
+        <label class="search-field">
+          <span class="material-icons-outlined">search</span>
+          <input [(ngModel)]="searchQuery" name="search" placeholder="Search manifests…" />
+        </label>
+        <select [(ngModel)]="courierFilter" name="courier">
+          <option value="">All couriers</option>
+          @for (c of courierOptions; track c) {
+            @if (c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          }
+        </select>
+        <select [(ngModel)]="statusFilter" name="status">
+          <option value="">All statuses</option>
+          @for (s of statusOptions; track s) {
+            @if (s) {
+              <option [value]="s">{{ manifestStatusLabel(s) }}</option>
+            }
+          }
+        </select>
+      </div>
+
+      @if (busy() && items().length === 0) {
+        <p class="loading">Loading manifests…</p>
+      } @else if (filteredItems().length === 0) {
+        <div class="empty-state">
+          <span class="material-icons-outlined">assignment</span>
+          <p>No manifests match your filters.</p>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="manifest-table">
+            <thead>
+              <tr>
+                <th>Manifest ID</th>
+                <th>Courier</th>
+                <th>Dispatch date</th>
+                <th>Shipments</th>
+                <th>Packages</th>
+                <th>Weight</th>
+                <th>Status</th>
+                <th>Pickup window</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredItems(); track row.manifestId) {
+                <tr
+                  [class.selected]="selectedId() === row.manifestId"
+                  (click)="selectManifest(row)"
+                >
+                  <td><strong>{{ row.displayId }}</strong></td>
+                  <td>
+                    <span class="courier-cell">
+                      <span class="courier-dot" [class]="courierTone(row.courier)"></span>
+                      {{ row.courier }}
+                    </span>
+                  </td>
+                  <td>{{ row.dispatchDate | date:'d MMM y' }}</td>
+                  <td>{{ row.shipmentCount }}</td>
+                  <td>{{ estimatePackages(row) }}</td>
+                  <td>{{ estimateWeightKg(row) | number:'1.1-1' }} kg</td>
+                  <td>
+                    <span class="status-pill" [class]="manifestStatusTone(row.status)">
+                      {{ manifestStatusLabel(row.status) }}
+                    </span>
+                  </td>
+                  <td>{{ row.pickupWindow ?? '—' }}</td>
+                  <td class="action-cell">
+                    <button
+                      type="button"
+                      class="review-btn"
+                      [class.active]="selectedId() === row.manifestId"
+                      (click)="selectManifest(row); $event.stopPropagation()"
+                    >
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (statusDistribution().length > 0) {
+        <div class="status-bar-section">
+          <span class="status-bar-label">Manifest status distribution</span>
+          <div class="status-bar">
+            @for (seg of statusDistribution(); track seg.status) {
+              <span
+                class="status-seg"
+                [class]="seg.tone"
+                [style.flex]="seg.count"
+                [title]="seg.label + ': ' + seg.count"
+              ></span>
+            }
+          </div>
+          <div class="status-legend">
+            @for (seg of statusDistribution(); track seg.status) {
+              <span><i [class]="'dot ' + seg.tone"></i>{{ seg.label }} {{ seg.count }} ({{ seg.pct }}%)</span>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <aside class="detail-panel">
+      @if (selectedManifest(); as manifest) {
+        @if (detailPreview(); as detail) {
+          <section class="panel detail-card">
+            <header class="detail-head">
+              <div>
+                <h2>{{ manifest.displayId }}</h2>
+                <p>{{ manifest.courier }} · {{ manifest.dispatchDate | date:'d MMM y' }}</p>
+              </div>
+              <span class="status-badge" [class]="manifestStatusTone(manifest.status)">
+                {{ manifestStatusLabel(manifest.status) }}
+              </span>
+            </header>
+
+            <dl class="info-grid">
+              <div><dt>Courier</dt><dd>{{ manifest.courier }}</dd></div>
+              <div><dt>Dispatch date</dt><dd>{{ manifest.dispatchDate | date:'d MMM y' }}</dd></div>
+              <div><dt>Pickup window</dt><dd>{{ manifest.pickupWindow ?? '—' }}</dd></div>
+              <div><dt>Destination region</dt><dd>{{ detail.destinationRegion }}</dd></div>
+              <div><dt>Created</dt><dd>{{ manifest.createdAtUtc | date:'d MMM y, HH:mm' }}</dd></div>
+              @if (manifest.handedOverAtUtc) {
+                <div><dt>Handed over</dt><dd>{{ manifest.handedOverAtUtc | date:'d MMM y, HH:mm' }}</dd></div>
+              }
+            </dl>
+
+            <div class="detail-section">
+              <h3>Shipments in manifest</h3>
+              <div class="shipments-table-wrap">
+                <table class="shipments-table">
+                  <thead>
+                    <tr>
+                      <th>Shipment</th>
+                      <th>Customer</th>
+                      <th>Destination</th>
+                      <th>Pkgs</th>
+                      <th>Weight</th>
+                      <th>Label</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of detail.shipments; track s.shipmentId) {
+                      <tr>
+                        <td><strong>{{ s.displayId }}</strong></td>
+                        <td>{{ s.customer }}</td>
+                        <td>{{ s.destination }}</td>
+                        <td>{{ s.packages }}</td>
+                        <td>{{ s.weightKg | number:'1.1-1' }} kg</td>
+                        <td>
+                          <span class="label-pill" [class]="s.labelStatus === 'Printed' ? 'green' : 'amber'">
+                            {{ s.labelStatus }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <p class="totals">
+                {{ detail.shipments.length }} shipments ·
+                {{ detail.totalPackages }} packages ·
+                {{ detail.totalWeightKg | number:'1.1-1' }} kg total
+              </p>
+            </div>
+
+            <div class="detail-section">
+              <h3>Handover checklist</h3>
+              <ul class="checklist">
+                @for (check of detail.checks; track check.label) {
+                  <li [class.done]="check.done">
+                    <span class="material-icons-outlined">{{ check.done ? 'check_box' : 'check_box_outline_blank' }}</span>
+                    {{ check.label }}
+                  </li>
+                }
+              </ul>
+            </div>
+
+            <div class="detail-actions">
+              <button type="button" class="ops-btn ops-btn-outline" (click)="printPreview()">
+                Print manifest
+              </button>
+              <button type="button" class="ops-btn ops-btn-outline" (click)="printPreview()">
+                Download PDF
+              </button>
+              @if (canDispatch() && manifest.status !== 'HANDED_OVER') {
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-primary"
+                  [disabled]="busyId() === manifest.manifestId"
+                  (click)="confirmHandover()"
+                >
+                  Confirm handover
+                </button>
+              }
+              @if (canDispatch()) {
+                <a [routerLink]="routes.dispatchStaging" class="ops-btn ops-btn-outline">Edit manifest</a>
+              }
+            </div>
+          </section>
+        }
+      } @else {
+        <section class="panel detail-empty">
+          <span class="material-icons-outlined">assignment</span>
+          <h2>Select a manifest</h2>
+          <p>Open a row to review shipments, handover checklist, and courier details.</p>
+        </section>
+      }
+    </aside>
+  </div>
+</div>

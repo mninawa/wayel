@@ -11,7 +11,12 @@ namespace Wayel.Application.Features.Quotes;
 
 public sealed record ApproveQuoteCommand(Guid QuoteId) : ICommand<QuoteDto>;
 
-public sealed record QuoteDto(Guid Id, Guid ShipmentId, decimal TotalLandedCost, string ApprovalStatus, string? ApprovalLockedReason);
+public sealed record QuoteDto(
+    Guid Id,
+    Guid? ShipmentId,
+    decimal TotalLandedCost,
+    string Status,
+    string? StatusReason);
 
 internal sealed class ApproveQuoteCommandHandler(
     ICurrentUser current,
@@ -35,14 +40,14 @@ internal sealed class ApproveQuoteCommandHandler(
         }
 
         var quote = await quotes.GetByIdAsync(new QuoteId(request.QuoteId), cancellationToken);
-        if (quote is null)
+        if (quote is null || quote.UserId != user.Id)
         {
             return Error.NotFound("quote.not_found", "Quote not found.");
         }
 
         var subscription = await subscriptions.GetForUserAsync(user.Id, cancellationToken);
         var caps = SuiteAccessEvaluator.Evaluate(subscription, clock.UtcNow);
-        var approval = quote.Approve(caps.ShipOutLocked, caps.CustomerMessage);
+        var approval = quote.Approve(caps.ShipOutLocked, caps.CustomerMessage, clock.UtcNow);
         if (approval.IsFailure)
         {
             return Result.Failure<QuoteDto>(approval.Error);
@@ -53,9 +58,9 @@ internal sealed class ApproveQuoteCommandHandler(
 
         return new QuoteDto(
             quote.Id.Value,
-            quote.ShipmentId.Value,
+            quote.ShipmentId?.Value,
             quote.TotalLandedCost,
-            quote.ApprovalStatus.ToString(),
-            quote.ApprovalLockedReason);
+            QuoteStatusRules.ToDisplayLabel(quote.Status),
+            quote.StatusReason);
     }
 }

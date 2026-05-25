@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BrandWatermarkBackdropComponent } from './brand-watermark-backdrop.component';
 
 /**
  * Reason codes the SPA's auth interceptor (or the inactivity timer)
@@ -84,8 +85,10 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
 @Component({
   selector: 'app-session-expired',
   standalone: true,
+  imports: [BrandWatermarkBackdropComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <nk-brand-watermark-backdrop />
     <main class="page" role="main">
       <section class="card" aria-labelledby="se-title">
         <div class="emblem" aria-hidden="true">
@@ -125,27 +128,31 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
   `,
   styles: [
     `
-      :host { display: block; min-height: 100vh; }
+      :host {
+        display: block;
+        min-height: 100vh;
+        position: relative;
+      }
       .page {
+        position: relative;
+        z-index: 1;
         min-height: 100vh;
         display: grid;
         place-items: center;
         padding: 1.5rem;
-        background:
-          radial-gradient(circle at 20% 10%, rgba(91, 168, 224, 0.12), transparent 55%),
-          radial-gradient(circle at 80% 90%, rgba(99, 102, 241, 0.10), transparent 60%),
-          linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
       }
       .card {
         width: 100%;
         max-width: 480px;
-        background: #fff;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: 4px;
         padding: 2.4rem 2rem 2rem;
         box-shadow:
-          0 1px 1px rgba(15, 23, 42, 0.04),
-          0 12px 32px -12px rgba(15, 23, 42, 0.18);
+          0 1px 0 rgba(15, 23, 42, 0.06),
+          0 24px 48px -20px rgba(15, 23, 42, 0.22);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -158,11 +165,13 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
         to   { opacity: 1; transform: translateY(0); }
       }
       .emblem {
-        width: 64px; height: 64px; border-radius: 50%;
-        display: grid; place-items: center;
-        background: linear-gradient(135deg, #5ba8e0 0%, #6366f1 100%);
+        width: 64px;
+        height: 64px;
+        border-radius: 0;
+        display: grid;
+        place-items: center;
+        background: #0f62fe;
         color: #fff;
-        box-shadow: 0 4px 14px rgba(91, 168, 224, 0.35);
         margin-bottom: 0.25rem;
       }
       .emblem .material-icons-outlined { font-size: 32px; }
@@ -182,22 +191,26 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
       }
       .btn-primary {
         margin-top: 0.85rem;
-        display: inline-flex; align-items: center; gap: 0.4rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
         padding: 0.7rem 1.2rem;
-        border-radius: 10px;
+        border-radius: 0;
         border: none;
-        background: linear-gradient(135deg, #5ba8e0 0%, #4f7cf3 100%);
+        background: #0f62fe;
         color: #fff;
         font: inherit;
         font-weight: 600;
         font-size: 0.95rem;
         cursor: pointer;
-        box-shadow: 0 6px 14px -6px rgba(79, 124, 243, 0.55);
-        transition: transform 0.08s ease, box-shadow 0.08s ease;
+        transition: background 0.12s ease;
       }
-      .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 18px -8px rgba(79, 124, 243, 0.6); }
-      .btn-primary:active { transform: translateY(0); }
-      .btn-primary:focus-visible { outline: 3px solid rgba(79, 124, 243, 0.45); outline-offset: 2px; }
+      .btn-primary:hover { background: #0353e9; }
+      .btn-primary:active { background: #002d9c; }
+      .btn-primary:focus-visible {
+        outline: 2px solid #0f62fe;
+        outline-offset: 2px;
+      }
       .btn-primary .material-icons-outlined { font-size: 18px; }
       .return-hint {
         margin: 0.4rem 0 0;

@@ -1,6 +1,10 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, ErrorHandler, Provider, inject } from '@angular/core';
+import { BRAND_WATERMARK_OPTIONS } from '@wayel/shared/branding/brand-watermark.tokens';
+import { CONNECTIVITY_OPTIONS } from '@wayel/shared/connectivity/connectivity.options';
 import { provideRouter, TitleStrategy, withInMemoryScrolling } from '@angular/router';
+import { bffApiInterceptor } from '@wayel/shared/interceptors/bff-api.interceptor';
+import { connectivityInterceptor } from '@wayel/shared/interceptors/connectivity.interceptor';
 import { accountAuthInterceptor } from '@wayel/shared/interceptors/account-auth.interceptor';
 import {
   HTTP_ERROR_CONFIG,
@@ -17,7 +21,6 @@ import { ExternalBffSessionSink } from './auth/external-bff-session-sink';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { provideCustomerAccountBootstrap } from './providers/account-bootstrap';
-import { provideBorderboxMockBootstrap } from './providers/mock-bootstrap';
 import { WayelTitleStrategy } from './title-strategy';
 
 /**
@@ -71,17 +74,49 @@ function bffProviders(): Provider[] {
   ];
 }
 
+function brandProviders(): Provider[] {
+  return [
+    {
+      provide: BRAND_WATERMARK_OPTIONS,
+      useValue: { imageUrl: '/brand-watermark.png' },
+    },
+  ];
+}
+
+function connectivityProviders(): Provider[] {
+  return [
+    {
+      provide: CONNECTIVITY_OPTIONS,
+      useValue: {
+        enabled: environment.useBffAuth,
+        pingUrl: '/bff/auth/me',
+        pingIntervalMs: 25_000,
+      },
+    },
+  ];
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
+    ...brandProviders(),
+    ...connectivityProviders(),
     provideRouter(
       routes,
       withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
     ),
     provideHttpClient(
-      withInterceptors([accountAuthInterceptor, httpErrorInterceptor]),
+      withInterceptors(
+        environment.useBffAuth
+          ? [
+              connectivityInterceptor,
+              bffApiInterceptor,
+              accountAuthInterceptor,
+              httpErrorInterceptor,
+            ]
+          : [connectivityInterceptor, accountAuthInterceptor, httpErrorInterceptor],
+      ),
     ),
     ...bffProviders(),
-    ...provideBorderboxMockBootstrap(),
     ...provideCustomerAccountBootstrap(),
     { provide: TitleStrategy, useClass: WayelTitleStrategy },
     { provide: ErrorHandler, useClass: GlobalErrorHandler },

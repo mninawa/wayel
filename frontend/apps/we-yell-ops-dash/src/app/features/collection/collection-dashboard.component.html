@@ -1,0 +1,161 @@
+<div class="board-shell">
+<div class="board-page">
+  <header class="project-header">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      Ops / Eswatini / <span>Collection Board</span>
+    </nav>
+    <div class="project-title-row">
+      <h1>Collection Board</h1>
+    </div>
+    <p class="subtitle">Last-mile pickup after RSA dispatch — Mbabane & Manzini hubs</p>
+  </header>
+
+  <div class="board-toolbar">
+    <form class="scan-panel" (ngSubmit)="scanArrival()">
+      <span class="material-icons-outlined scan-icon">qr_code_scanner</span>
+      <input
+        [(ngModel)]="scanValue"
+        name="scanValue"
+        placeholder="Scan shipment ID, tracking, or suite…"
+        [disabled]="!canMove() || scanBusy()"
+        (keyup.enter)="scanArrival()"
+      />
+      <select [(ngModel)]="scanHubCity" name="scanHub" [disabled]="!canMove()">
+        @for (hub of hubOptions; track hub) {
+          <option [value]="hub">{{ hub }} hub</option>
+        }
+      </select>
+      <button type="submit" class="scan-btn" [disabled]="!canMove() || scanBusy() || !scanValue.trim()">
+        Mark ready for collection
+      </button>
+    </form>
+    <div class="toolbar-filters">
+      <label class="search-field">
+        <span class="material-icons-outlined">search</span>
+        <input
+          [(ngModel)]="searchFilter"
+          name="search"
+          placeholder="Filter board…"
+          (keyup.enter)="applyFilters()"
+        />
+      </label>
+      <select [(ngModel)]="hubFilter" name="hubFilter" (change)="applyFilters()">
+        <option value="">All hubs</option>
+        @for (hub of board()?.hubOptions ?? hubOptions; track hub) {
+          <option [value]="hub">{{ hub }}</option>
+        }
+      </select>
+      <button type="button" class="icon-btn-sm" (click)="refresh()" [disabled]="busy()" title="Refresh">
+        <span class="material-icons-outlined">refresh</span>
+      </button>
+    </div>
+  </div>
+
+  @if (message() || error()) {
+    <div class="banner-row">
+      @if (message()) {
+        <p class="ok-banner">{{ message() }}</p>
+      }
+      @if (error()) {
+        <p class="err-banner">{{ error() }}</p>
+      }
+    </div>
+  }
+
+  <div class="kanban-canvas">
+    <div class="kanban-scroll">
+      @for (col of board()?.columns ?? []; track col.columnId) {
+        <section class="kanban-col" [attr.data-stage]="col.columnId">
+          <header class="col-head">
+            <span class="col-accent" aria-hidden="true"></span>
+            <span class="col-name">{{ col.label }}</span>
+            <span class="col-count-badge">{{ col.count }}</span>
+            @if (canBulkAdvance(col.columnId) && col.count > 0 && canMove()) {
+              <button
+                type="button"
+                class="col-bulk-btn"
+                [disabled]="moving()"
+                (click)="bulkAdvance(col.columnId)"
+                [title]="bulkAdvanceLabel(col.columnId)"
+              >
+                <span class="material-icons-outlined">fast_forward</span>
+              </button>
+            }
+          </header>
+          <div
+            class="col-cards"
+            [class.drop-active]="dropTargetColumn() === col.columnId"
+            [class.drop-blocked]="dropBlockedColumn() === col.columnId"
+            (dragover)="onDragOver($event, col.columnId)"
+            (dragleave)="onDragLeave($event, col.columnId)"
+            (drop)="onDrop($event, col.columnId)"
+          >
+            @for (card of col.cards; track card.cardKey) {
+              <article
+                class="board-card"
+                [class.hub-manzini]="hubAccent(card.hubCity) === 'manzini'"
+                [class.dragging]="dragPayload()?.card?.cardKey === card.cardKey"
+                [attr.draggable]="canMove() ? true : null"
+                (dragstart)="onDragStart($event, card, col.columnId)"
+                (dragend)="onDragEnd()"
+              >
+                <div class="card-cover" [class.has-photo]="!!coverImageUrl(card)" [attr.data-hub]="hubAccent(card.hubCity)">
+                  @if (coverImageUrl(card); as coverUrl) {
+                    <img [src]="coverUrl" [alt]="card.customerDisplayName" loading="lazy" />
+                  } @else {
+                    <div class="cover-fallback">
+                      <span class="material-icons-outlined cover-glyph">store</span>
+                    </div>
+                  }
+                </div>
+                <div class="card-body">
+                  <div class="card-tags">
+                    <span class="hub-tag">{{ card.hubCity }}</span>
+                    <span class="card-id">{{ card.displayId }}</span>
+                  </div>
+                  <h3 class="card-title">{{ card.customerDisplayName }}</h3>
+                  <p class="card-meta">
+                    {{ card.hubName }}
+                    @if (card.suiteNumber) {
+                      · Suite {{ card.suiteNumber }}
+                    }
+                    · {{ card.parcelCount }} parcel{{ card.parcelCount === 1 ? '' : 's' }}
+                  </p>
+                  <footer class="card-foot">
+                    <span class="status-pill" [class]="col.columnId">{{ card.statusLabel }}</span>
+                    @if (card.notificationSent && col.columnId === 'ready_for_collection') {
+                      <span class="notified" title="Customer notified">
+                        <span class="material-icons-outlined">notifications_active</span>
+                      </span>
+                    }
+                    @if (col.columnId === 'ready_for_collection' && canMove()) {
+                      <button type="button" class="collect-btn" (click)="openPickup(card)">
+                        Collect
+                      </button>
+                    }
+                    @if (col.columnId === 'collected' && card.collectorIdNumberMasked) {
+                      <span class="id-proof" title="ID on file">{{ card.collectorIdType }} {{ card.collectorIdNumberMasked }}</span>
+                    }
+                  </footer>
+                </div>
+              </article>
+            } @empty {
+              <p class="col-empty">No items</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+</div>
+
+@if (pickupCard(); as card) {
+  <ops-collection-pickup-modal
+    [card]="card"
+    [busy]="busy()"
+    [error]="pickupError()"
+    (confirmed)="confirmPickup($event)"
+    (cancelled)="pickupCard.set(null)"
+  />
+}
+</div>

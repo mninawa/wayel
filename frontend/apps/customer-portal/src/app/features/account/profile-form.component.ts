@@ -63,20 +63,27 @@ import type {
       </div>
 
       <label>
-        <span>Preferred delivery method</span>
-        <select [(ngModel)]="deliveryMethod" name="deliveryMethod">
-          <option value="Door-to-Door">Door-to-Door</option>
-          <option value="PUDO">PUDO (Pick up / drop off)</option>
-        </select>
+        <span>Delivery</span>
+        <input type="text" value="Pick up (PUDO)" disabled />
+        <small>Shipments are collected at a partner pick-up point in Eswatini.</small>
       </label>
 
       @if (error()) {
         <p class="err" role="alert">{{ error() }}</p>
       }
+      @if (saveError()) {
+        <p class="err" role="alert">{{ saveError() }}</p>
+      }
+      @if (saveSuccess()) {
+        <p class="save-ok" role="status">Profile saved.</p>
+      }
 
       <div class="actions">
-        <button type="button" class="bb-btn bb-btn-ghost" (click)="cancelled.emit()">Cancel</button>
-        <button type="submit" class="bb-btn bb-btn-primary" [disabled]="saving()">
+        <button type="button" class="bb-btn bb-btn-ghost" (click)="cancelled.emit()" [disabled]="saving()">
+          Cancel
+        </button>
+        <button type="submit" class="bb-btn bb-btn-primary" [disabled]="saving() || !canSave()">
+          <span class="material-icons-outlined">save</span>
           {{ saving() ? 'Saving…' : 'Save profile' }}
         </button>
       </div>
@@ -98,11 +105,27 @@ import type {
     input:disabled { background: #f8fafc; color: var(--bb-muted); }
     .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
     .err { color: #b91c1c; font-size: 0.85rem; margin: 0; }
+    .save-ok {
+      color: var(--bb-success);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .actions .bb-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .actions .material-icons-outlined {
+      font-size: 1.1rem;
+    }
   `,
 })
 export class ProfileFormComponent {
   readonly profile = input.required<CustomerProfile>();
   readonly saving = input(false);
+  readonly saveError = input<string | null>(null);
+  readonly saveSuccess = input(false);
   readonly saved = output<UpdateProfileRequest>();
   readonly cancelled = output<void>();
 
@@ -111,8 +134,10 @@ export class ProfileFormComponent {
   phone = '';
   idNumber = '';
   idDocumentType: IdDocumentType = 'NationalId';
-  deliveryMethod: DeliveryMethod = 'Door-to-Door';
+  deliveryMethod: DeliveryMethod = 'PUDO';
   error = signal<string | null>(null);
+
+  private snapshot = '';
 
   constructor() {
     effect(() => {
@@ -122,8 +147,13 @@ export class ProfileFormComponent {
       this.phone = p.phone;
       this.idNumber = p.idNumber;
       this.idDocumentType = p.idDocumentType;
-      this.deliveryMethod = p.preferredDeliveryMethod;
+      this.deliveryMethod = 'PUDO';
+      this.snapshot = this.serialize();
     });
+  }
+
+  canSave(): boolean {
+    return this.serialize() !== this.snapshot;
   }
 
   submit(): void {
@@ -131,12 +161,31 @@ export class ProfileFormComponent {
       this.error.set('First and last name are required.');
       return;
     }
+    if (!this.phone.trim()) {
+      this.error.set('Phone number is required.');
+      return;
+    }
+    if (!this.idNumber.trim()) {
+      this.error.set('ID or passport number is required.');
+      return;
+    }
     this.error.set(null);
     this.saved.emit({
-      firstName: this.firstName,
-      lastName: this.lastName,
-      phone: this.phone,
-      idNumber: this.idNumber,
+      firstName: this.firstName.trim(),
+      lastName: this.lastName.trim(),
+      phone: this.phone.trim(),
+      idNumber: this.idNumber.trim(),
+      idDocumentType: this.idDocumentType,
+      preferredDeliveryMethod: 'PUDO',
+    });
+  }
+
+  private serialize(): string {
+    return JSON.stringify({
+      firstName: this.firstName.trim(),
+      lastName: this.lastName.trim(),
+      phone: this.phone.trim(),
+      idNumber: this.idNumber.trim(),
       idDocumentType: this.idDocumentType,
       preferredDeliveryMethod: this.deliveryMethod,
     });

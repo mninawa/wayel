@@ -55,6 +55,9 @@ public sealed class User : AggregateRoot<UserId>
     public bool IsDisabled { get; private set; }
     public DateTime CreatedOnUtc { get; }
     public DateTime? LastLoginUtc { get; private set; }
+    public DateTime? KycSubmittedAtUtc { get; private set; }
+    public DateTime? KycVerifiedAtUtc { get; private set; }
+    public string? KycRejectionReason { get; private set; }
 
     public string FirstName { get; private set; }
     public string LastName { get; private set; }
@@ -136,7 +139,10 @@ public sealed class User : AggregateRoot<UserId>
         bool notifyEmail = true,
         bool notifySms = true,
         bool notifyWhatsApp = false,
-        bool notifyMarketing = false) =>
+        bool notifyMarketing = false,
+        DateTime? kycSubmittedAtUtc = null,
+        DateTime? kycVerifiedAtUtc = null,
+        string? kycRejectionReason = null) =>
         new(
             id,
             email,
@@ -158,6 +164,9 @@ public sealed class User : AggregateRoot<UserId>
         {
             IsDisabled = isDisabled,
             LastLoginUtc = lastLoginUtc,
+            KycSubmittedAtUtc = kycSubmittedAtUtc,
+            KycVerifiedAtUtc = kycVerifiedAtUtc,
+            KycRejectionReason = kycRejectionReason,
         };
 
     public Result Authenticate(Func<string, bool> passwordVerifier, DateTime nowUtc)
@@ -215,6 +224,42 @@ public sealed class User : AggregateRoot<UserId>
         NotifySms = sms;
         NotifyWhatsApp = whatsApp;
         NotifyMarketing = marketing;
+    }
+
+    public Result SubmitKycForReview()
+    {
+        if (KycStatus == KycStatus.Verified)
+        {
+            return Error.Validation("kyc.already_verified", "Your identity is already verified.");
+        }
+
+        if (KycStatus == KycStatus.Pending)
+        {
+            return Error.Validation("kyc.already_pending", "Your KYC submission is already under review.");
+        }
+
+        KycStatus = KycStatus.Pending;
+        KycSubmittedAtUtc = DateTime.UtcNow;
+        KycRejectionReason = null;
+        return Result.Success();
+    }
+
+    public void MarkKycVerified(DateTime nowUtc)
+    {
+        KycStatus = KycStatus.Verified;
+        KycVerifiedAtUtc = nowUtc;
+        KycRejectionReason = null;
+    }
+
+    public void MarkKycRejected(string? reason = null)
+    {
+        if (KycStatus == KycStatus.Verified)
+        {
+            return;
+        }
+
+        KycStatus = KycStatus.Rejected;
+        KycRejectionReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
 
     private static (string First, string Last) SplitDisplayName(string displayName)

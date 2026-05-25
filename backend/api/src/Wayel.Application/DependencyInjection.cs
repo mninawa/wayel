@@ -1,9 +1,13 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Behaviors;
 using Wayel.Application.Configuration;
+using Wayel.Application.Features.Account;
+using Wayel.Application.Features.SuitePlatform;
+using Wayel.Application.Features.Tracking;
 using Wayel.Application.Security;
 
 namespace Wayel.Application;
@@ -33,6 +37,10 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(AuthOptions.SectionName));
 
         services.AddScoped<ISsoAdmissionPolicy, ConfigBackedSsoAdmissionPolicy>();
+        services.AddScoped<ISuiteNumberAllocator, SuiteNumberAllocator>();
+        services.AddScoped<CustomerAccountResponseBuilder>();
+        services.AddScoped<ShipmentTrackingDetailLoader>();
+        services.AddScoped<ShipmentTrackingEventWriter>();
 
         return services;
     }

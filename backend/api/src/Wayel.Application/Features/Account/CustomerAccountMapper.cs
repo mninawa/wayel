@@ -1,5 +1,6 @@
 using Wayel.Application.BorderBox;
 using Wayel.Domain.Addresses;
+using Wayel.Domain.PickupBranches;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Account;
@@ -10,17 +11,20 @@ internal static class CustomerAccountMapper
         User user,
         CustomerAddress? suiteAddress,
         IReadOnlyList<CustomerAddress> allAddresses,
-        bool hasGoogleIdentity)
+        bool hasGoogleIdentity,
+        IReadOnlyList<PickupBranch> pickupBranches,
+        string? suiteWarehouseName = null)
     {
         var profileComplete = CustomerProfileRules.IsComplete(user);
         var hasSuite = suiteAddress is not null && !string.IsNullOrWhiteSpace(suiteAddress.SuiteNumber);
+        var branchNames = pickupBranches.ToDictionary(b => b.Id, b => b.Name, StringComparer.Ordinal);
 
         return new CustomerAccountResponse(
             MapProfile(user, hasGoogleIdentity),
-            suiteAddress is null ? null : MapSuite(user, suiteAddress),
+            suiteAddress is null ? null : MapSuite(user, suiteAddress, suiteWarehouseName),
             allAddresses
                 .Where(a => !a.IsSuiteAddress)
-                .Select(MapDelivery)
+                .Select(a => MapDelivery(a, branchNames))
                 .ToList(),
             new NotificationPreferencesDto(
                 user.NotifyEmail,
@@ -44,17 +48,18 @@ internal static class CustomerAccountMapper
             CountryLabel(user.DestinationCountry),
             user.IdNumber,
             string.IsNullOrWhiteSpace(user.IdDocumentType) ? "NationalId" : user.IdDocumentType,
-            string.IsNullOrWhiteSpace(user.PreferredDeliveryMethod) ? "Door-to-Door" : user.PreferredDeliveryMethod,
+            string.IsNullOrWhiteSpace(user.PreferredDeliveryMethod) ? "PUDO" : user.PreferredDeliveryMethod,
             user.KycStatus.ToString(),
+            user.KycRejectionReason,
             user.CreatedOnUtc.ToString("o"),
             hasGoogleIdentity && !user.HasPasswordCredential ? "google" : "password");
 
-    private static SuiteAddressDto MapSuite(User user, CustomerAddress suite) =>
+    private static SuiteAddressDto MapSuite(User user, CustomerAddress suite, string? warehouseName) =>
         new(
             suite.SuiteNumber,
             "SA Suite Address",
             user.DisplayName,
-            "WeYell Johannesburg Warehouse",
+            string.IsNullOrWhiteSpace(warehouseName) ? "WeYell Sandton Warehouse" : warehouseName,
             suite.Line1,
             suite.Line2,
             suite.City,
@@ -64,9 +69,13 @@ internal static class CustomerAccountMapper
             suite.Country,
             FormatSuite(suite, user.DisplayName, suite.SuiteNumber));
 
-    private static DeliveryAddressDto MapDelivery(CustomerAddress address) =>
+    private static DeliveryAddressDto MapDelivery(
+        CustomerAddress address,
+        IReadOnlyDictionary<string, string> branchNames) =>
         new(
             address.Id.Value.ToString(),
+            address.PickupBranchId,
+            branchNames.GetValueOrDefault(address.PickupBranchId) ?? string.Empty,
             address.Label,
             address.RecipientName,
             address.Phone ?? string.Empty,
@@ -78,23 +87,33 @@ internal static class CustomerAccountMapper
             CountryLabel(address.Country),
             address.IsDefault);
 
-    private static string FormatSuite(CustomerAddress suite, string recipient, string suiteNumber) =>
-        string.Join(
+    private static string FormatSuite(CustomerAddress suite, string recipient, string suiteNumber)
+    {
+        var street = string.IsNullOrWhiteSpace(suite.Line2)
+            ? suite.Line1
+            : $"{suite.Line1.Trim()}, {suite.Line2.Trim()}";
+
+        return string.Join(
             "\n",
             new[]
             {
                 recipient,
                 $"Suite {suiteNumber}",
-                suite.Line1,
+                street,
                 $"{suite.City}, {suite.Province} {suite.PostalCode}",
                 "South Africa",
             }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
 
     private static string CountryLabel(string code) =>
         code.ToUpperInvariant() switch
         {
             "SZ" => "Eswatini",
+            "BW" => "Botswana",
+            "NA" => "Namibia",
             "ZA" => "South Africa",
             _ => code,
         };
+
+    internal static string DestinationCountryLabel(string code) => CountryLabel(code);
 }

@@ -3,28 +3,25 @@ using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Domain.Addresses;
 using Wayel.Domain.Common;
-using Wayel.Domain.Identities;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Account;
 
 public sealed record UpsertDeliveryAddressCommand(
     Guid? Id,
+    string BranchId,
     string Label,
     string FullName,
     string Phone,
-    string Line1,
-    string? Line2,
-    string City,
-    string Region,
     bool IsDefault) : ICommand<CustomerAccountResponse>;
 
 internal sealed class UpsertDeliveryAddressCommandHandler(
     ICurrentUser current,
     IUserRepository users,
     ICustomerAddressRepository addresses,
-    IExternalIdentityRepository identities,
-    IUnitOfWork unitOfWork) : ICommandHandler<UpsertDeliveryAddressCommand, CustomerAccountResponse>
+    IPickupBranchRepository pickupBranches,
+    IUnitOfWork unitOfWork,
+    CustomerAccountResponseBuilder accountResponse) : ICommandHandler<UpsertDeliveryAddressCommand, CustomerAccountResponse>
 {
     public async Task<Result<CustomerAccountResponse>> Handle(
         UpsertDeliveryAddressCommand request,
@@ -42,18 +39,38 @@ internal sealed class UpsertDeliveryAddressCommandHandler(
             return UserErrors.NotFound(userId);
         }
 
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            return Error.Validation("address.phone_required", "Phone number is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            return Error.Validation("address.recipient_required", "Full name is required.");
+        }
+
+        var branch = await pickupBranches.GetByIdAsync(request.BranchId, cancellationToken);
+        if (branch is null || !branch.IsActive)
+        {
+            return Error.Validation("address.branch_invalid", "Select a valid WeYell pickup branch.");
+        }
+
+        var label = string.IsNullOrWhiteSpace(request.Label) ? branch.Name : request.Label.Trim();
+        var branchId = branch.Id;
+
         CustomerAddress address;
         if (request.Id is null)
         {
             address = CustomerAddress.CreateDelivery(
                 user.Id,
-                request.Label,
+                branchId,
+                label,
                 request.FullName,
                 request.Phone,
-                request.Line1,
-                request.Line2,
-                request.City,
-                request.Region,
+                branch.Line1,
+                branch.Line2,
+                branch.City,
+                branch.Region,
                 user.DestinationCountry,
                 request.IsDefault);
             await addresses.AddAsync(address, cancellationToken);
@@ -67,13 +84,14 @@ internal sealed class UpsertDeliveryAddressCommandHandler(
             }
 
             existing.UpdateDelivery(
-                request.Label,
+                branchId,
+                label,
                 request.FullName,
                 request.Phone,
-                request.Line1,
-                request.Line2,
-                request.City,
-                request.Region,
+                branch.Line1,
+                branch.Line2,
+                branch.City,
+                branch.Region,
                 request.IsDefault);
             address = existing;
             await addresses.UpdateAsync(address, cancellationToken);
@@ -85,7 +103,7 @@ internal sealed class UpsertDeliveryAddressCommandHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return await BuildResponseAsync(user, cancellationToken);
+        return await accountResponse.BuildAsync(user, cancellationToken);
     }
 
     private async Task ClearOtherDefaultsAsync(UserId userId, CustomerAddressId keepId, CancellationToken ct)
@@ -97,15 +115,6 @@ internal sealed class UpsertDeliveryAddressCommandHandler(
             await addresses.UpdateAsync(item, ct);
         }
     }
-
-    private async Task<CustomerAccountResponse> BuildResponseAsync(User user, CancellationToken ct)
-    {
-        var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, ct);
-        var allAddresses = await addresses.ListForUserAsync(user.Id, ct);
-        var linked = await identities.GetForUserAsync(user.Id, ct);
-        var hasGoogle = linked.Any(i => i.Provider == IdentityProvider.Google);
-        return CustomerAccountMapper.Map(user, suiteAddress, allAddresses, hasGoogle);
-    }
 }
 
 public sealed record DeleteDeliveryAddressCommand(Guid Id) : ICommand<CustomerAccountResponse>;
@@ -114,8 +123,8 @@ internal sealed class DeleteDeliveryAddressCommandHandler(
     ICurrentUser current,
     IUserRepository users,
     ICustomerAddressRepository addresses,
-    IExternalIdentityRepository identities,
-    IUnitOfWork unitOfWork) : ICommandHandler<DeleteDeliveryAddressCommand, CustomerAccountResponse>
+    IUnitOfWork unitOfWork,
+    CustomerAccountResponseBuilder accountResponse) : ICommandHandler<DeleteDeliveryAddressCommand, CustomerAccountResponse>
 {
     public async Task<Result<CustomerAccountResponse>> Handle(
         DeleteDeliveryAddressCommand request,
@@ -141,12 +150,7 @@ internal sealed class DeleteDeliveryAddressCommandHandler(
         await addresses.DeleteAsync(existing.Id, user.Id, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, cancellationToken);
-        var allAddresses = await addresses.ListForUserAsync(user.Id, cancellationToken);
-        var linked = await identities.GetForUserAsync(user.Id, cancellationToken);
-        var hasGoogle = linked.Any(i => i.Provider == IdentityProvider.Google);
-
-        return CustomerAccountMapper.Map(user, suiteAddress, allAddresses, hasGoogle);
+        return await accountResponse.BuildAsync(user, cancellationToken);
     }
 }
 
@@ -156,8 +160,8 @@ internal sealed class SetDefaultDeliveryAddressCommandHandler(
     ICurrentUser current,
     IUserRepository users,
     ICustomerAddressRepository addresses,
-    IExternalIdentityRepository identities,
-    IUnitOfWork unitOfWork) : ICommandHandler<SetDefaultDeliveryAddressCommand, CustomerAccountResponse>
+    IUnitOfWork unitOfWork,
+    CustomerAccountResponseBuilder accountResponse) : ICommandHandler<SetDefaultDeliveryAddressCommand, CustomerAccountResponse>
 {
     public async Task<Result<CustomerAccountResponse>> Handle(
         SetDefaultDeliveryAddressCommand request,
@@ -189,10 +193,6 @@ internal sealed class SetDefaultDeliveryAddressCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, cancellationToken);
-        var linked = await identities.GetForUserAsync(user.Id, cancellationToken);
-        var hasGoogle = linked.Any(i => i.Provider == IdentityProvider.Google);
-
-        return CustomerAccountMapper.Map(user, suiteAddress, all, hasGoogle);
+        return await accountResponse.BuildAsync(user, cancellationToken);
     }
 }

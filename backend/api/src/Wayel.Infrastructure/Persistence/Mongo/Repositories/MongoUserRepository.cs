@@ -39,4 +39,61 @@ internal sealed class MongoUserRepository(MongoContext context, IDomainEventColl
         await context.Users.ReplaceOneAsync(x => x.Id == user.Id, UserDocument.FromDomain(user), cancellationToken: cancellationToken);
         events.CollectFrom(user);
     }
+
+    public async Task<IReadOnlyList<User>> ListByKycStatusAsync(
+        KycStatus status,
+        CancellationToken cancellationToken = default)
+    {
+        var docs = await context.Users
+            .Find(x => x.KycStatus == status && x.Role == UserRole.Customer)
+            .SortByDescending(x => x.KycSubmittedAtUtc)
+            .ThenByDescending(x => x.CreatedOnUtc)
+            .ToListAsync(cancellationToken);
+        return docs.ConvertAll(d => d.ToDomain());
+    }
+
+    public async Task<CustomerAccountPage> ListCustomersPageAsync(
+        string? search,
+        KycStatus? kycStatus,
+        string? countryCode,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<UserDocument>.Filter.Eq(x => x.Role, UserRole.Customer);
+
+        if (kycStatus is not null)
+        {
+            filter &= Builders<UserDocument>.Filter.Eq(x => x.KycStatus, kycStatus.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(countryCode))
+        {
+            filter &= Builders<UserDocument>.Filter.Eq(x => x.DestinationCountry, countryCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var regex = new MongoDB.Bson.BsonRegularExpression(term, "i");
+            filter &= Builders<UserDocument>.Filter.Or(
+                Builders<UserDocument>.Filter.Regex(x => x.Email, regex),
+                Builders<UserDocument>.Filter.Regex(x => x.DisplayName, regex),
+                Builders<UserDocument>.Filter.Regex(x => x.FirstName, regex),
+                Builders<UserDocument>.Filter.Regex(x => x.LastName, regex),
+                Builders<UserDocument>.Filter.Regex(x => x.Phone!, regex),
+                Builders<UserDocument>.Filter.Regex(x => x.IdNumber, regex));
+        }
+
+        var total = (int)await context.Users.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        var skip = Math.Max(0, (page - 1) * pageSize);
+        var docs = await context.Users
+            .Find(filter)
+            .SortByDescending(x => x.CreatedOnUtc)
+            .Skip(skip)
+            .Limit(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new CustomerAccountPage(docs.ConvertAll(d => d.ToDomain()), total);
+    }
 }

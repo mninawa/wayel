@@ -1,30 +1,34 @@
+using MediatR;
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
-using Wayel.Application.Abstractions.Time;
-using Wayel.Application.BorderBox;
+using Wayel.Application.Features.Quotes;
 using Wayel.Domain.Common;
-using Wayel.Domain.Parcels;
-using Wayel.Domain.Shipments;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Shipments;
 
+/// <summary>
+/// Legacy route — creates a <see cref="Quotes.CreateQuoteRequestCommand"/> (no shipment until payment).
+/// </summary>
 public sealed record CreateShipmentCommand(
     IReadOnlyList<Guid> ParcelIds,
     string DeliveryMethod) : ICommand<ShipmentDto>;
 
-public sealed record ShipmentDto(Guid Id, string Status, string? ShipOutLockedReason);
+public sealed record ShipmentDto(
+    Guid Id,
+    Guid QuoteId,
+    string Status,
+    string? ShipOutLockedReason);
 
 internal sealed class CreateShipmentCommandHandler(
     ICurrentUser current,
     IUserRepository users,
-    ISuiteSubscriptionRepository subscriptions,
-    IShipmentRepository shipments,
-    IUnitOfWork unitOfWork,
-    IClock clock) : ICommandHandler<CreateShipmentCommand, ShipmentDto>
+    IMediator mediator) : ICommandHandler<CreateShipmentCommand, ShipmentDto>
 {
-    public async Task<Result<ShipmentDto>> Handle(CreateShipmentCommand request, CancellationToken cancellationToken)
+    public async Task<Result<ShipmentDto>> Handle(
+        CreateShipmentCommand request,
+        CancellationToken cancellationToken)
     {
         if (current.UserId is null)
         {
@@ -37,26 +41,22 @@ internal sealed class CreateShipmentCommandHandler(
             return UserErrors.NotFound(current.UserId.Value);
         }
 
-        var subscription = await subscriptions.GetForUserAsync(user.Id, cancellationToken);
-        var caps = SuiteAccessEvaluator.Evaluate(subscription, clock.UtcNow);
+        var quoteResult = await mediator.Send(
+            new CreateQuoteRequestCommand(request.ParcelIds, request.DeliveryMethod),
+            cancellationToken);
 
-        var parcelIds = request.ParcelIds.Select(id => new ParcelId(id)).ToList();
-        var creation = Shipment.Create(
-            user.Id,
-            parcelIds,
-            request.DeliveryMethod,
-            caps.ShipOutLocked,
-            caps.CustomerMessage);
-
-        if (creation.IsFailure)
+        if (quoteResult.IsFailure)
         {
-            return Result.Failure<ShipmentDto>(creation.Error);
+            return Result.Failure<ShipmentDto>(quoteResult.Error);
         }
 
-        var shipment = creation.Value;
-        await shipments.AddAsync(shipment, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return new ShipmentDto(shipment.Id.Value, shipment.Status.ToString(), shipment.ShipOutLockedReason);
+        var quote = quoteResult.Value;
+        return new ShipmentDto(
+            Guid.Empty,
+            quote.QuoteId,
+            quote.Status,
+            quote.Status.Contains("expired", StringComparison.OrdinalIgnoreCase)
+                ? "Renew suite access to approve and pay."
+                : null);
     }
 }

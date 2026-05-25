@@ -1,7 +1,8 @@
 /** WeYell customer account — profile + addresses (Phase 1). */
 
 export type KycStatus = 'NotStarted' | 'Pending' | 'Verified' | 'Rejected';
-export type DeliveryMethod = 'Door-to-Door' | 'PUDO';
+/** Ship-out is pick-up (PUDO) only. Legacy accounts may still have Door-to-Door stored. */
+export type DeliveryMethod = 'PUDO' | 'Door-to-Door';
 export type IdDocumentType = 'NationalId' | 'Passport';
 
 export type AuthProvider = 'google' | 'password';
@@ -19,6 +20,7 @@ export interface CustomerProfile {
   idDocumentType: IdDocumentType;
   preferredDeliveryMethod: DeliveryMethod;
   kycStatus: KycStatus;
+  kycRejectionReason?: string | null;
   memberSince: string;
   authProvider: AuthProvider;
 }
@@ -51,8 +53,20 @@ export interface SuiteAddress {
   formatted: string;
 }
 
+export interface PickupBranch {
+  id: string;
+  name: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  region: string;
+  description: string;
+}
+
 export interface DeliveryAddress {
   id: string;
+  branchId: string;
+  branchName: string;
   label: string;
   fullName: string;
   phone: string;
@@ -94,12 +108,40 @@ export interface UpdateProfileRequest {
 }
 
 export interface UpsertDeliveryAddressRequest {
+  branchId: string;
   label: string;
   fullName: string;
   phone: string;
-  line1: string;
-  line2: string | null;
-  city: string;
-  region: string;
   isDefault: boolean;
+}
+
+export type KycDocumentSide = 'front' | 'back' | 'selfie';
+
+export interface KycDocumentUploadTicket {
+  documentId: string;
+  side: string;
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+  expiresAtUtc: string;
+}
+
+export interface KycDocumentInfo {
+  documentId: string;
+  side: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAtUtc: string;
+  confirmed: boolean;
+  downloadUrl: string | null;
+}
+
+export interface CustomerKycStatus {
+  kycStatus: KycStatus;
+  rejectionReason: string | null;
+  canSubmit: boolean;
+  canUploadDocuments: boolean;
+  requiredSides: string[];
+  documents: KycDocumentInfo[];
+  submittedAtUtc: string | null;
 }

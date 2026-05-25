@@ -76,9 +76,15 @@ internal sealed class BffAntiforgeryMiddleware(
         // sessionStorage and is read by SPA code, so an attacker can't
         // forge one via a cross-site form/submit. Skipping here lets the
         // password-login SPAs POST without first priming an XSRF cookie.
+        //
+        // WeYell internal ops (parcel receiving, KYC queue, etc.) is
+        // authenticated with X-Wayel-Ops-Key on the API — not a BFF cookie.
+        // The ops SPA sets that header from localStorage; cross-site forms
+        // cannot forge custom headers, so CSRF does not apply.
         if (!IsSafeMethod(context.Request.Method) &&
             IsProtectedPath(path) &&
             !IsBypassedPath(path) &&
+            !IsBorderBoxOpsApiPath(path) &&
             !HasBearerAuthorization(context))
         {
             try
@@ -128,6 +134,9 @@ internal sealed class BffAntiforgeryMiddleware(
             && auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsBorderBoxOpsApiPath(string path) =>
+        path.StartsWith("/api/v1/borderbox/ops/", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsBypassedPath(string path)
     {
         // OIDC handshakes can't carry our antiforgery token — they're driven
@@ -146,6 +155,7 @@ internal sealed class BffAntiforgeryMiddleware(
             // recipient is anonymous and has no XSRF cookie; the API
             // validates the one-shot token + creates the user atomically.
             || path.Equals("/api/v1/staff-invitations/accept-password", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/v1/borderbox/ops/auth/", StringComparison.OrdinalIgnoreCase)
             // BFF wrapper that performs the same accept and additionally
             // mints the cookie session — same anonymous threat model.
             || path.Equals("/bff/invitations/accept-password", StringComparison.OrdinalIgnoreCase);

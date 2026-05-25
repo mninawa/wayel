@@ -15,6 +15,9 @@ public sealed class JwtOptions
     [Required]
     public string Audience { get; init; } = "wayel-clients";
 
+    /// <summary>Audience for WeYell warehouse ops JWTs.</summary>
+    public string OpsAudience { get; init; } = "wayel-ops";
+
     [Range(1, 24 * 60)]
     public int AccessTokenLifetimeMinutes { get; init; } = 60;
 }

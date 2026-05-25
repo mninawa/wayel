@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 
-const SUFFIX = 'Wayel Kids';
+const SUFFIX = 'WeYell';
 
 @Injectable({ providedIn: 'root' })
 export class WayelTitleStrategy extends TitleStrategy {

@@ -10,4 +10,7 @@ export const environment = {
    * in Production.
    */
   passwordSignInEnabled: false,
+  /** Internal ops screens; gate with X-Wayel-Ops-Key. Disable in public cloud prod when not needed. */
+  enableKycOpsReview: true,
+  enableParcelReceive: true,
 };

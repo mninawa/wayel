@@ -2,7 +2,6 @@ using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Domain.Common;
-using Wayel.Domain.Identities;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Account;
@@ -12,8 +11,7 @@ public sealed record GetCustomerAccountQuery : IQuery<CustomerAccountResponse>;
 internal sealed class GetCustomerAccountQueryHandler(
     ICurrentUser current,
     IUserRepository users,
-    ICustomerAddressRepository addresses,
-    IExternalIdentityRepository identities)
+    CustomerAccountResponseBuilder accountResponse)
     : IQueryHandler<GetCustomerAccountQuery, CustomerAccountResponse>
 {
     public async Task<Result<CustomerAccountResponse>> Handle(
@@ -31,11 +29,6 @@ internal sealed class GetCustomerAccountQueryHandler(
             return UserErrors.NotFound(current.UserId.Value);
         }
 
-        var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, cancellationToken);
-        var allAddresses = await addresses.ListForUserAsync(user.Id, cancellationToken);
-        var linked = await identities.GetForUserAsync(user.Id, cancellationToken);
-        var hasGoogle = linked.Any(i => i.Provider == IdentityProvider.Google);
-
-        return CustomerAccountMapper.Map(user, suiteAddress, allAddresses, hasGoogle);
+        return await accountResponse.BuildAsync(user, cancellationToken);
     }
 }

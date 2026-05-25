@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Wayel.Application.Configuration;
 using Wayel.Infrastructure.Security;
 
 namespace Wayel.Api.Infrastructure;
@@ -10,10 +11,13 @@ namespace Wayel.Api.Infrastructure;
 /// Wires JwtBearerOptions from <see cref="JwtOptions"/> via the IConfigureOptions pattern,
 /// so we never have to call <c>BuildServiceProvider</c> from <c>Program.cs</c>.
 /// </summary>
-internal sealed class JwtBearerOptionsSetup(IOptions<JwtOptions> jwtOptions)
+internal sealed class JwtBearerOptionsSetup(
+    IOptions<JwtOptions> jwtOptions,
+    IOptions<OpsAuthOptions> opsAuthOptions)
     : IConfigureNamedOptions<JwtBearerOptions>
 {
     private readonly JwtOptions _jwt = jwtOptions.Value;
+    private readonly OpsAuthOptions _opsAuth = opsAuthOptions.Value;
 
     public void Configure(JwtBearerOptions options) => Configure(JwtBearerDefaults.AuthenticationScheme, options);
 
@@ -38,7 +42,7 @@ internal sealed class JwtBearerOptionsSetup(IOptions<JwtOptions> jwtOptions)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = _jwt.Issuer,
-            ValidAudience = _jwt.Audience,
+            ValidAudiences = [_jwt.Audience, _opsAuth.JwtAudience],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey)),
             ClockSkew = TimeSpan.FromSeconds(30),
         };

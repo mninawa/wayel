@@ -56,4 +56,25 @@ internal sealed class MongoCustomerAddressRepository(MongoContext context, IDoma
     {
         await context.Addresses.DeleteOneAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<CustomerAddress>> ListSuiteAddressesForRegionAsync(
+        string regionCode,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = regionCode.Trim().ToUpperInvariant();
+        var userIds = await context.Users
+            .Find(x => x.DestinationCountry == normalized)
+            .Project(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (userIds.Count == 0)
+        {
+            return [];
+        }
+
+        var docs = await context.Addresses
+            .Find(x => x.IsSuiteAddress && userIds.Contains(x.UserId))
+            .ToListAsync(cancellationToken);
+        return docs.Select(d => d.ToDomain()).ToList();
+    }
 }

@@ -2,7 +2,6 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { AccountSessionService } from '@wayel/shared/services/account-session.service';
-import { environment } from '../../environments/environment';
 import { CustomerAccountService } from '../services/customer-account.service';
 
 function signedInOrSignIn(stateUrl: string): true | UrlTree {
@@ -38,9 +37,6 @@ function withAccountLoaded(
   if (gate !== true) return gate;
   const journey = inject(CustomerAccountService);
   const router = inject(Router);
-  if (environment.useMock) {
-    return decide(journey, router);
-  }
   return journey.ensureAccountLoaded().pipe(map(() => decide(journey, router)));
 }
 
@@ -88,9 +84,6 @@ export const guestOnlyWithJourneyGuard: CanActivateFn = () => {
   if (!session.isSignedIn()) return true;
   const journey = inject(CustomerAccountService);
   const router = inject(Router);
-  if (environment.useMock) {
-    return router.createUrlTree([journey.getPostAuthRoute()]);
-  }
   return journey.ensureAccountLoaded().pipe(
     map((acc) =>
       router.createUrlTree([

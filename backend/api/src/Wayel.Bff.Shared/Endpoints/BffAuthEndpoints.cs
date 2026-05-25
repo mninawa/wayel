@@ -176,7 +176,7 @@ public static class BffAuthEndpoints
     private static string? NormalizeAudience(string raw) => raw?.Trim().ToLowerInvariant() switch
     {
         "admin" => "Admin",
-        "client" => "Client",
+        "client" or "customer" => "Client",
         "external" => "External",
         _ => null,
     };
@@ -201,6 +201,11 @@ public static class BffAuthEndpoints
             return spaBaseUri.ToString();
         }
 
+        if (IsAuthEntryPath(raw))
+        {
+            return spaBaseUri.ToString();
+        }
+
         if (Uri.TryCreate(spaBaseUri, raw, out var combined) &&
             combined.Authority.Equals(spaBaseUri.Authority, StringComparison.OrdinalIgnoreCase))
         {
@@ -208,6 +213,14 @@ public static class BffAuthEndpoints
         }
 
         return spaBaseUri.ToString();
+    }
+
+    private static bool IsAuthEntryPath(string raw)
+    {
+        var path = raw.Split('?', '#')[0];
+        return path.Equals("/sign-in", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/login", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/bff/", StringComparison.OrdinalIgnoreCase);
     }
 
     public sealed record LoginQuery(string? ReturnUrl);

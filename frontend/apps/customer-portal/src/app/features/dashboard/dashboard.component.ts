@@ -1,11 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import {
-  MOCK_DASHBOARD_STATS,
-  MOCK_RECENT_ACTIVITY,
-  MOCK_SUITE,
-} from '../../data/borderbox-mock.data';
 import { CustomerAccountService } from '../../services/customer-account.service';
+import { BorderboxApiService, type TrackingSupportOverviewDto } from '../../services/borderbox-api.service';
+import { ParcelsService } from '../../services/parcels.service';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
 @Component({
@@ -22,7 +19,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     <app-suite-expired-banner />
 
     <section class="stats">
-      @for (s of statCards; track s.title) {
+      @for (s of statCards(); track s.title) {
         <article class="stat bb-card">
           <div class="stat-icon" [attr.data-color]="s.color">
             <span class="material-icons-outlined">{{ s.icon }}</span>
@@ -40,36 +37,43 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       <section class="bb-card bb-card-pad suite-card">
         <div class="card-head">
           <h2 class="bb-card-title">Suite Access</h2>
-          <span class="bb-badge bb-badge-danger">{{ suite.status }}</span>
+          <span class="bb-badge" [class.bb-badge-danger]="suiteAccess().shipOutLocked" [class.bb-badge-success]="!suiteAccess().shipOutLocked">{{ suiteAccess().status }}</span>
         </div>
         <dl class="kv">
-          <div><dt>Status</dt><dd class="danger">{{ suite.status }}</dd></div>
-          <div><dt>Suite Number</dt><dd>{{ suite.number }}</dd></div>
-          <div><dt>Plan</dt><dd>{{ suite.plan }}</dd></div>
-          <div><dt>Price</dt><dd>{{ suite.priceLabel }}</dd></div>
-          <div><dt>Expired on</dt><dd>{{ suite.expiredOn }}</dd></div>
-          <div><dt>Ship-out</dt><dd class="danger"><span class="material-icons-outlined">lock</span> Locked</dd></div>
+          <div><dt>Status</dt><dd [class.danger]="suiteAccess().shipOutLocked">{{ suiteAccess().status }}</dd></div>
+          <div><dt>Suite Number</dt><dd>{{ suiteAccess().suiteNumber ?? '—' }}</dd></div>
+          @if (suiteLastDay()) {
+            <div><dt>Valid until</dt><dd>{{ suiteLastDay() }}</dd></div>
+          }
+          <div><dt>Ship-out</dt>
+            <dd [class.danger]="suiteAccess().shipOutLocked">
+              @if (suiteAccess().shipOutLocked) {
+                <span class="material-icons-outlined">lock</span> Locked
+              } @else {
+                Available
+              }
+            </dd>
+          </div>
         </dl>
-        <p class="note">Receiving continues — ship-out is disabled until renewal.</p>
-        <div class="btn-row">
-          <a routerLink="/suite-access/checkout" class="bb-btn bb-btn-outline">{{ suite.renewMonthly.label }}</a>
-          <a routerLink="/suite-access/checkout" class="bb-btn bb-btn-primary">{{ suite.renewQuarterly.label }}</a>
-        </div>
+        <p class="note">{{ suiteAccess().customerMessage }}</p>
+        @if (canRenewSuite()) {
+          <div class="btn-row">
+            <a routerLink="/suite-access/checkout" [queryParams]="{ plan: 'monthly' }" class="bb-btn bb-btn-outline">Renew R100 / month</a>
+            <a routerLink="/suite-access/checkout" [queryParams]="{ plan: 'quarterly' }" class="bb-btn bb-btn-primary">Renew R200 / quarter</a>
+          </div>
+        }
       </section>
 
       <section class="bb-card bb-card-pad">
         <h2 class="bb-card-title">🇿🇦 Delivery Address</h2>
           <p class="addr-title">{{ suiteAddress()?.label }}</p>
           <p class="addr-line"><strong>{{ suiteAddress()?.recipientName }}</strong></p>
-          <p class="addr-line">{{ suiteAddress()?.warehouseName }}</p>
-          <p class="addr-line">{{ suiteAddress()?.line1 }}</p>
-          @if (suiteAddress()?.line2) {
-            <p class="addr-line">{{ suiteAddress()?.line2 }}</p>
-          }
+          <p class="addr-line">Suite {{ suiteAddress()?.suiteNumber }}</p>
+          <p class="addr-line">{{ suiteStreetLine() }}</p>
           <p class="addr-line">
             {{ suiteAddress()?.city }}, {{ suiteAddress()?.province }} {{ suiteAddress()?.postalCode }}
           </p>
-        <p class="info"><span class="material-icons-outlined">info</span> Use suite {{ suite.number }} on all deliveries.</p>
+        <p class="info"><span class="material-icons-outlined">info</span> Use suite {{ suiteAccess().suiteNumber }} on all deliveries.</p>
         <a routerLink="/my-address" [queryParams]="{ tab: 'suite' }" class="bb-link">View full address details →</a>
       </section>
 
@@ -78,18 +82,22 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
           <h2 class="bb-card-title">Recent Parcel Activity</h2>
           <a routerLink="/received-parcels" class="bb-link">View all</a>
         </div>
-        <ul class="activity">
-          @for (a of activity; track a.tracking) {
-            <li>
-              <div>
-                <strong>{{ a.item }}</strong>
-                <span class="track">{{ a.tracking }}</span>
-              </div>
-              <span class="bb-pill" [class]="pillClass(a.status)">{{ a.status }}</span>
-              <span class="date">{{ a.date }}</span>
-            </li>
-          }
-        </ul>
+        @if (recentActivity().length === 0) {
+          <p class="empty-activity">No parcels yet. Use your suite address when shopping in South Africa.</p>
+        } @else {
+          <ul class="activity">
+            @for (a of recentActivity(); track a.tracking) {
+              <li>
+                <div>
+                  <strong>{{ a.item }}</strong>
+                  <span class="track">{{ a.tracking }}</span>
+                </div>
+                <span class="bb-pill" [class]="pillClass(a.status)">{{ a.status }}</span>
+                <span class="date">{{ a.date }}</span>
+              </li>
+            }
+          </ul>
+        }
       </section>
     </div>
 
@@ -98,16 +106,24 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
         <h2 class="bb-card-title">Quick Actions</h2>
         <div class="actions">
           <a routerLink="/received-parcels" class="action"><span class="material-icons-outlined">upload_file</span> Upload Invoice</a>
-          <a routerLink="/shipping/quote/QUO-24789" class="action"><span class="material-icons-outlined">request_quote</span> View Quotes</a>
-          <a routerLink="/tracking-support" class="action"><span class="material-icons-outlined">timeline</span> Track Shipment</a>
-          <span class="action locked"><span class="material-icons-outlined">lock</span> Request Ship Out</span>
+          <a routerLink="/quotes/list" class="action"><span class="material-icons-outlined">request_quote</span> View Quotes</a>
+          @if (trackShipmentLink(); as trackLink) {
+            <a [routerLink]="trackLink" class="action"><span class="material-icons-outlined">timeline</span> Track Shipment</a>
+          } @else {
+            <a routerLink="/tracking-support" class="action"><span class="material-icons-outlined">timeline</span> Tracking &amp; Support</a>
+          }
+          @if (suiteAccess().shipOutLocked) {
+            <span class="action locked"><span class="material-icons-outlined">lock</span> Ship out locked</span>
+          } @else {
+            <a routerLink="/quotes/request" class="action"><span class="material-icons-outlined">local_shipping</span> Request ship out</a>
+          }
         </div>
       </section>
 
       <section class="bb-card bb-card-pad">
         <h2 class="bb-card-title">Shipment Status</h2>
         <ul class="timeline">
-          @for (t of timeline; track t.label) {
+          @for (t of shipmentTimeline(); track t.label) {
             <li [class.done]="t.done" [class.current]="t.current">
               <span class="dot"></span>
               <span>{{ t.label }}</span>
@@ -244,45 +260,133 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .timeline li.current .dot { background: var(--bb-primary); box-shadow: 0 0 0 3px var(--bb-primary-soft); }
     .help p { margin: 0 0 1rem; font-size: 0.85rem; color: var(--bb-muted); }
     .help-btns { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .empty-activity { margin: 0; font-size: 0.85rem; color: var(--bb-muted); }
   `,
 })
 export class DashboardComponent implements OnInit {
   private readonly accountApi = inject(CustomerAccountService);
+  private readonly parcelsApi = inject(ParcelsService);
+  private readonly borderboxApi = inject(BorderboxApiService);
 
-  readonly suite = MOCK_SUITE;
-  readonly activity = MOCK_RECENT_ACTIVITY;
-  readonly stats = MOCK_DASHBOARD_STATS;
+  readonly trackingOverview = signal<TrackingSupportOverviewDto | null>(null);
+
+  readonly suiteAccess = computed(
+    () =>
+      this.parcelsApi.dashboard()?.suiteAccess ?? {
+        status: 'Pending',
+        shipOutLocked: true,
+        customerMessage: 'Activate suite access to receive parcels.',
+        suiteNumber: null,
+        expiresAt: null,
+      },
+  );
+
+  readonly suiteLastDay = computed(() => {
+    const raw = this.suiteAccess().expiresAt;
+    if (!raw) return null;
+    return this.formatDisplayDate(raw);
+  });
+
+  readonly canRenewSuite = computed(() => {
+    const access = this.suiteAccess();
+    if (access.shipOutLocked) return true;
+    const raw = access.expiresAt;
+    if (!raw) return false;
+    return Date.parse(raw) <= Date.now();
+  });
 
   readonly suiteAddress = () => this.accountApi.account()?.suiteAddress;
+
+  suiteStreetLine(): string {
+    const suite = this.suiteAddress();
+    if (!suite) return '';
+    return suite.line2?.trim() ? `${suite.line1}, ${suite.line2}` : suite.line1;
+  }
+
   readonly firstName = () => {
     const p = this.accountApi.account()?.profile;
     return p?.firstName ?? p?.displayName.split(' ')[0] ?? 'there';
   };
 
+  readonly recentActivity = computed(() =>
+    this.parcelsApi.parcels().slice(0, 4).map((p) => ({
+      item: p.itemName,
+      tracking: p.trackingNumber ?? p.id,
+      status: p.status,
+      date: this.parcelsApi.displayDate(p.receivedAtUtc),
+    })),
+  );
+
+  readonly trackShipmentLink = computed((): string[] | null => {
+    const ship = this.trackingOverview()?.activeShipment;
+    if (ship?.shipmentId) {
+      return ['/shipments', ship.shipmentId, 'track'];
+    }
+    const withShipment = this.parcelsApi.parcels().find((p) => p.shipmentId);
+    if (withShipment?.shipmentId) {
+      return ['/shipments', withShipment.shipmentId, 'track'];
+    }
+    return null;
+  });
+
+  readonly shipmentTimeline = computed(() => {
+    const steps = this.trackingOverview()?.activeShipment?.timeline;
+    if (steps?.length) {
+      return steps.map((s) => ({
+        label: s.label,
+        done: s.done,
+        current: s.current,
+      }));
+    }
+    return [
+      { label: 'Received in South Africa', done: true, current: false },
+      { label: 'Awaiting shipment', done: false, current: true },
+    ];
+  });
+
+  readonly statCards = computed(() => {
+    const s = this.parcelsApi.summary();
+    const dash = this.parcelsApi.dashboard();
+    return [
+      { title: 'Received', value: String(s.total), label: 'Parcels in suite', icon: 'inventory_2', color: 'blue', link: '/received-parcels', cta: 'View parcels' },
+      { title: 'Ready', value: String(s.ready), label: 'Ready to ship', icon: 'local_shipping', color: 'orange', link: '/received-parcels', cta: 'View ready' },
+      { title: 'Invoices', value: String(s.pending), label: 'Pending upload', icon: 'upload_file', color: 'teal', link: '/received-parcels', cta: 'Upload' },
+      {
+        title: 'Suite',
+        value: dash?.suiteAccess.status ?? '—',
+        label: 'Access status',
+        icon: 'verified_user',
+        color: 'green',
+        link: this.canRenewSuite() ? '/suite-access/checkout' : '/dashboard',
+        cta: this.canRenewSuite() ? 'Renew' : 'Active',
+      },
+    ];
+  });
+
   ngOnInit(): void {
     if (!this.accountApi.account()) {
       this.accountApi.loadAccount().subscribe();
     }
+    this.parcelsApi.loadDashboard().subscribe();
+    this.parcelsApi.loadParcels().subscribe();
+    this.borderboxApi.getTrackingSupport().subscribe({
+      next: (o) => this.trackingOverview.set(o),
+      error: () => this.trackingOverview.set(null),
+    });
   }
-
-  readonly timeline = [
-    { label: 'Received in South Africa', done: true, current: false },
-    { label: 'In Transit to Eswatini', done: false, current: true },
-    { label: 'Arrived in Eswatini', done: false, current: false },
-    { label: 'Out for Delivery', done: false, current: false },
-  ];
-
-  readonly statCards = [
-    { title: 'Received', value: this.stats.received.value, label: this.stats.received.label, icon: 'inventory_2', color: 'blue', link: '/received-parcels', cta: 'View parcels' },
-    { title: 'Ready', value: this.stats.readyToShip.value, label: this.stats.readyToShip.label, icon: 'local_shipping', color: 'orange', link: '/received-parcels', cta: 'View ready' },
-    { title: 'Transit', value: this.stats.inTransit.value, label: this.stats.inTransit.label, icon: 'flight', color: 'teal', link: '/tracking-support', cta: 'Track' },
-    { title: 'Balance', value: this.stats.outstanding.value, label: this.stats.outstanding.label, icon: 'account_balance_wallet', color: 'green', link: '/suite-access/checkout', cta: 'Pay now' },
-  ];
 
   pillClass(status: string): string {
     if (status.includes('Ready')) return 'bb-pill-ready';
     if (status.includes('Transit')) return 'bb-pill-transit';
     if (status.includes('Delivered')) return 'bb-pill-received';
     return 'bb-pill-received';
+  }
+
+  private formatDisplayDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 }

@@ -35,6 +35,16 @@ public sealed class Shipment : AggregateRoot<ShipmentId>
         return new Shipment(ShipmentId.New(), userId, parcelIds, ShipmentStatus.Draft, deliveryMethod, null);
     }
 
+    public void MarkQuoted() => Status = ShipmentStatus.Quoted;
+
+    public void MarkAwaitingApproval() => Status = ShipmentStatus.AwaitingApproval;
+
+    public void MarkPaid() => Status = ShipmentStatus.Paid;
+
+    public void MarkInTransit() => Status = ShipmentStatus.InTransit;
+
+    public void MarkDelivered() => Status = ShipmentStatus.Delivered;
+
     public static Shipment Rehydrate(ShipmentId id, UserId userId, IReadOnlyList<ParcelId> parcelIds, ShipmentStatus status, string deliveryMethod, string? shipOutLockedReason) =>
         new(id, userId, parcelIds, status, deliveryMethod, shipOutLockedReason);
 }

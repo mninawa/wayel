@@ -2,6 +2,7 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { InjectionToken, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { ConnectivityService } from '../services/connectivity.service';
 import { ToastService } from '../services/toast.service';
 
 const SKIP_TOAST_PATHS: ReadonlyArray<string> = [
@@ -67,6 +68,7 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const config = inject(HTTP_ERROR_CONFIG);
   const toasts = inject(ToastService);
   const router = inject(Router);
+  const connectivity = inject(ConnectivityService);
   return next(req).pipe(
     catchError((err: unknown) => {
       if (!(err instanceof HttpErrorResponse)) return throwError(() => err);
@@ -116,11 +118,18 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
           const sep = target.includes('?') ? '&' : '?';
           void router.navigateByUrl(`${target}${sep}${params.toString()}`);
         }
-      } else if (err.status === 0 && !skipToast) {
-        toasts.error(
-          'Could not reach the server. Check your connection and try again.',
-          { title: 'Network error' },
-        );
+      } else if (err.status === 0) {
+        connectivity.markServerUnreachable();
+        if (!skipToast) {
+          const offline =
+            typeof navigator !== 'undefined' && navigator.onLine === false;
+          toasts.error(
+            offline
+              ? 'You appear to be offline. Connect to the internet and try again.'
+              : 'Could not reach the server. Check your connection and try again.',
+            { title: offline ? 'No internet' : 'Network error' },
+          );
+        }
       } else if (err.status >= 500 && !skipToast) {
         toasts.error(
           'The server hit an unexpected error. Please try again in a moment.',
