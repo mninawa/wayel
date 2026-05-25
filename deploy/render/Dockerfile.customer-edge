@@ -1,0 +1,95 @@
+# syntax=docker/dockerfile:1.7
+#
+# Render Docker web service: WeYell customer edge.
+#
+# Bundles three things into one container so the SPA, BFF and OIDC callbacks
+# all live on the same first-party origin (cookies must not cross subdomains):
+#
+#   * Angular customer-portal SPA (production build, `bff` configuration —
+#     same flavour the local docker stack uses, with BFF-cookie auth on).
+#   * .NET Wayel.Bff.Customer host (YARP reverse proxy + Google OIDC + cookie
+#     session management).
+#   * nginx in front of both — serves the SPA at `/` and proxies `/bff/`,
+#     `/api/` and `/signin-oidc` / `/signout-callback-oidc` to the BFF on
+#     127.0.0.1:8080.
+#
+# Build context: REPO ROOT (so both `backend/api/` and `frontend/` are
+# visible to COPY).
+#
+#   docker build -f deploy/render/Dockerfile.customer-edge .
+#
+# At runtime nginx listens on $PORT (Render injects this) and the BFF
+# listens on 127.0.0.1:8080 inside the container. See start-customer-edge.sh.
+
+# ──────────────────────────────────────────────────────────────────────────
+# Stage 1: build the Angular customer-portal in the `bff` configuration.
+# The build emits a static bundle under /spa/dist/customer-portal/browser/.
+# ──────────────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS spa-build
+WORKDIR /spa
+
+COPY frontend/package.json frontend/package-lock.json ./
+COPY frontend/apps/customer-portal/package.json apps/customer-portal/
+COPY frontend/packages/shared/package.json packages/shared/
+
+RUN npm ci
+
+COPY frontend/packages/shared packages/shared
+COPY frontend/apps/customer-portal apps/customer-portal
+
+RUN npm run build --workspace @weyell/customer-portal -- --configuration bff
+
+# ──────────────────────────────────────────────────────────────────────────
+# Stage 2: publish the Wayel.Bff.Customer .NET host.
+# ──────────────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS bff-build
+WORKDIR /src
+
+COPY backend/api/Directory.Build.props backend/api/Directory.Packages.props backend/api/global.json ./
+COPY backend/api/src/Wayel.Domain/Wayel.Domain.csproj                 src/Wayel.Domain/
+COPY backend/api/src/Wayel.Application/Wayel.Application.csproj       src/Wayel.Application/
+COPY backend/api/src/Wayel.Infrastructure/Wayel.Infrastructure.csproj src/Wayel.Infrastructure/
+COPY backend/api/src/Wayel.Api/Wayel.Api.csproj                       src/Wayel.Api/
+COPY backend/api/src/Wayel.Bff.Shared/Wayel.Bff.Shared.csproj         src/Wayel.Bff.Shared/
+COPY backend/api/src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj     src/Wayel.Bff.Customer/
+RUN dotnet restore src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj
+
+COPY backend/api/src/ src/
+RUN dotnet publish src/Wayel.Bff.Customer/Wayel.Bff.Customer.csproj \
+        -c Release -o /out/publish \
+        /p:UseAppHost=false /p:DebugType=none /p:DebugSymbols=false
+
+# ──────────────────────────────────────────────────────────────────────────
+# Stage 3: runtime — ASP.NET base image with nginx + gettext-base (envsubst).
+# ──────────────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends nginx gettext-base \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -f /etc/nginx/sites-enabled/default
+
+WORKDIR /app
+
+# BFF binaries live under /app/bff so the runtime picks up
+# appsettings*.json sitting next to the DLL (start-customer-edge.sh
+# `cd`s here before invoking dotnet).
+COPY --from=bff-build /out/publish /app/bff
+
+# Angular bundle is served straight from disk by nginx — no PHP/Node at
+# runtime.
+COPY --from=spa-build /spa/apps/customer-portal/dist/customer-portal/browser /usr/share/nginx/html
+
+COPY deploy/render/nginx.customer-edge.conf.template /etc/nginx/templates/nginx.conf.template
+COPY deploy/render/start-customer-edge.sh /start-customer-edge.sh
+RUN chmod +x /start-customer-edge.sh
+
+ENV BFF_ASSEMBLY=Wayel.Bff.Customer.dll \
+    ASPNETCORE_ENVIRONMENT=Production
+
+# Render injects $PORT (defaults to 10000); nginx will listen on it via
+# envsubst. The BFF is bound to a fixed loopback port inside the container.
+ENV PORT=10000
+
+EXPOSE 10000
+
+CMD ["/start-customer-edge.sh"]

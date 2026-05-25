@@ -1,0 +1,105 @@
+# WeYell customer edge — listens on $PORT (Render-injected), serves the
+# Angular customer-portal SPA at / and proxies BFF / API / OIDC paths to
+# the colocated .NET BFF on 127.0.0.1:8080.
+#
+# Headers preserve the original Host so OIDC `redirect_uri` matches the
+# Google Cloud authorized-redirects list verbatim, and so the API can build
+# absolute URLs (invoices, password-reset links, etc.) using the customer
+# host name.
+
+map $http_x_forwarded_proto $forwarded_proto {
+    "~^https?$" $http_x_forwarded_proto;
+    default $scheme;
+}
+
+map $http_x_forwarded_host $forwarded_host {
+    default $http_x_forwarded_host;
+    '' $host;
+}
+
+server {
+    listen ${PORT};
+    server_name _;
+
+    # YARP forwards larger headers than a default nginx will accept once
+    # OIDC state + cookie + CSRF token all stack up on a single request.
+    client_header_buffer_size 16k;
+    large_client_header_buffers 8 32k;
+
+    # Customer invoices (HTML download) can exceed the default nginx body
+    # limit during ops uploads. Match the API's body limit.
+    client_max_body_size 25m;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # ── BFF + API + OIDC callbacks ─────────────────────────────────────
+    # All three target the same BFF process; YARP and the cookie auth
+    # middleware decide what each path does internally.
+    location /bff/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+        proxy_read_timeout 60s;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+        proxy_read_timeout 60s;
+    }
+
+    location ~ ^/(signin-oidc|signout-callback-oidc)(/.*)?$ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $forwarded_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $forwarded_host;
+        proxy_buffering off;
+    }
+
+    # ── SPA ───────────────────────────────────────────────────────────
+    # Shell must NOT be cached — each deploy renames main-*.js / chunk-*.js
+    # so a sticky index.html would point browsers at chunks that no longer
+    # exist (the classic "Failed to fetch dynamically imported module" bug).
+    location = /index.html {
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Hashed JS / CSS bundles change every build; keep them validated each
+    # navigation but allow disk cache so warm reloads are cheap.
+    location ~* \.(js|css|mjs)$ {
+        add_header Cache-Control "no-cache, must-revalidate";
+        try_files $uri =404;
+    }
+
+    # Static images / fonts can be cached aggressively — file names are
+    # hashed by the Angular builder.
+    location ~* \.(png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+}

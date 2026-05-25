@@ -1,0 +1,151 @@
+# WeYell — Render Deployment Runbook
+
+This folder owns the Docker images and nginx templates that ship WeYell to
+[Render](https://render.com/). The matching Blueprint (`render.yaml` at the
+repo root) declares three Docker web services + an external MongoDB Atlas
+cluster.
+
+```
+            Browser  ──HTTPS──▶  wayel-customer.onrender.com
+                                  ├─ /            Angular customer-portal SPA
+                                  ├─ /bff/*       \
+                                  ├─ /api/*        ─→  Wayel.Bff.Customer (loopback :8080)
+                                  └─ /signin-oidc /
+
+            Browser  ──HTTPS──▶  wayel-ops.onrender.com
+                                  ├─ /            Angular ops dashboard SPA
+                                  └─ /api/*       ─→  wayel-api.onrender.com
+
+            Wayel.Bff.Customer  ──HTTPS──▶  wayel-api.onrender.com
+                                                   .NET Wayel.Api → MongoDB Atlas
+                                                                  → S3 (invoices, KYC, photos)
+                                                                  → Paystack / MTN MoMo
+                                                                  → Postmark / Resend / SES
+```
+
+The "edges" exist so the customer SPA + BFF stay on **one origin** (cookies
+must not cross subdomains) and so the ops SPA never has to make CORS calls.
+
+---
+
+## 1. Prerequisites — provision before the first deploy
+
+| What                       | How / where                                                                                                       |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------|
+| MongoDB Atlas cluster      | Free or M2/M10 tier. Add Render's static outbound IPs under **Network Access** (or `0.0.0.0/0` for a sandbox).    |
+| AWS IAM user               | Least privilege on the target S3 bucket: `s3:Get/Put/Head/Delete` on `arn:aws:s3:::<bucket>/*` + `s3:List*` on the bucket itself. Capture the access key id + secret. |
+| Paystack secret + public   | Dashboard → Settings → API Keys & Webhooks → copy Test (or Live) `sk_*` and `pk_*`.                               |
+| MTN MoMo subscription key  | Developer portal → Products → Collections → copy the Primary Key. Disbursements key optional.                     |
+| Google OAuth Web client    | Cloud Console → Credentials → "Web application". Used for both the BFF cookie flow *and* the API admission check. |
+| Google Identity Services   | Separate "Web application" client for the ops dashboard. Origins only — no redirect URI needed.                   |
+| Postmark server token      | Postmark dashboard → Servers → API Tokens. Server-scoped, NOT account-scoped.                                     |
+
+You can skip Postmark / WhatsApp / KYC providers at first deploy — those
+features fall back to "console only" sends and remain reachable from the
+admin tooling.
+
+---
+
+## 2. First deploy via Render Blueprint
+
+1. Push your branch to GitHub (or the matching Git remote configured in
+   Render).
+2. Render dashboard → **New +** → **Blueprint** → pick this repo.
+3. Render parses `render.yaml`, lists the three services, and prompts you
+   for every `sync: false` value. Paste them in:
+   * `wayel-api` — Mongo, AWS, Paystack, MoMo, Postmark, Google client ids.
+   * `wayel-customer` — Jwt__SigningKey (paste the value Render generated
+     for wayel-api), GoogleOidc client id + secret.
+   * `wayel-ops` — nothing required beyond defaults.
+4. Click **Apply**. Render builds all three Docker images in parallel —
+   expect ~7–10 minutes for the first build (the .NET SDK layer caches
+   after that).
+5. While the build runs, jump into Google Cloud Console:
+   * **Customer OAuth client** → Authorized JS origins
+     `https://wayel-customer.onrender.com` + Authorized redirect
+     `https://wayel-customer.onrender.com/signin-oidc`.
+   * **Ops Identity Services client** → Authorized JS origin
+     `https://wayel-ops.onrender.com`.
+6. Once builds complete, hit each service URL:
+   * `https://wayel-api.onrender.com/health/live` → `200`
+   * `https://wayel-customer.onrender.com/` → SPA loads
+   * `https://wayel-ops.onrender.com/` → ops shell loads
+7. Sign in via Google on the customer portal. The first ops email on
+   `OpsAuth__BootstrapLeadEmails__0` is auto-promoted to ops `lead`.
+
+---
+
+## 3. Service map cheat sheet
+
+| Service           | Image                                              | Public URL                              | Listens on |
+|-------------------|----------------------------------------------------|-----------------------------------------|------------|
+| `wayel-api`       | `backend/api/Dockerfile`                           | `https://wayel-api.onrender.com`        | `$PORT`    |
+| `wayel-customer`  | `deploy/render/Dockerfile.customer-edge`           | `https://wayel-customer.onrender.com`   | `$PORT`    |
+| `wayel-ops`       | `deploy/render/Dockerfile.ops-edge`                | `https://wayel-ops.onrender.com`        | `$PORT`    |
+
+If Render assigns a suffix to your hostname (collisions across accounts),
+update three pointers and redeploy:
+
+* `wayel-api`'s `BorderBox__CustomerPortalBaseUrl`, `Cors__AllowedOrigins__0/1`
+* `wayel-customer`'s `Bff__ApiBaseUri`
+* `wayel-ops`'s `API_UPSTREAM_HOST`
+
+---
+
+## 4. Local smoke test of the Render images
+
+Before pushing, you can build the same images locally to catch nginx-
+template or build-context typos:
+
+```bash
+# From the repo root
+docker build -f deploy/render/Dockerfile.customer-edge -t wayel-customer-edge .
+docker build -f deploy/render/Dockerfile.ops-edge      -t wayel-ops-edge .
+
+# Run the customer edge alone (BFF will fail Google OIDC without secrets,
+# but the SPA should serve and /api/health/live should 502 in a clean way).
+docker run --rm -p 10000:10000 \
+  -e Bff__ApiBaseUri=https://wayel-api.onrender.com \
+  -e Jwt__SigningKey=local-dev-signing-key-must-be-at-least-32-chars \
+  -e GoogleOidc__ClientId=dev \
+  -e GoogleOidc__ClientSecret=dev \
+  wayel-customer-edge
+
+curl -I http://localhost:10000/                # → 200 (SPA shell)
+curl -I http://localhost:10000/api/health/live # → 502 until BFF reaches API
+```
+
+---
+
+## 5. Rotating secrets
+
+* **Jwt__SigningKey** — rotates the API issuer key. Set the same new
+  value on **both** `wayel-api` and `wayel-customer` in one Render
+  deploy; rolling out one service first will invalidate the cookie
+  session of every in-flight customer.
+* **Paystack keys** — rotate in the Paystack dashboard, paste new
+  values into `Billing__Paystack__SecretKey` / `__PublicKey`. The API
+  picks them up at the next deploy.
+* **AWS keys** — rotate in IAM, paste into `AWS_ACCESS_KEY_ID` /
+  `AWS_SECRET_ACCESS_KEY`. The S3 client reads them at startup.
+* **Postmark token** — rotate in Postmark, paste into
+  `Notifications__Postmark__ServerToken`.
+
+After any rotation, redeploy the service from the Render dashboard
+(env var changes do **not** trigger an auto-deploy).
+
+---
+
+## 6. Troubleshooting
+
+| Symptom                                              | Likely cause                                                                                                                         |
+|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `502 Bad Gateway` on `/api/*` from the ops dashboard | `API_UPSTREAM_HOST` is wrong, or the API container is restarting. Check `https://wayel-api.onrender.com/health/live`.                |
+| `OIDC redirect_uri does not match` from Google       | The customer service's URL changed but Google Cloud Console still has the old URI registered. Add the new URI in Authorized redirects.|
+| Cookie set but `/api/*` calls 401                    | `Jwt__SigningKey` on `wayel-customer` differs from `wayel-api`. Both services must share the exact same value.                       |
+| `MTN MoMo: failed to acquire access token`           | Primary subscription key wrong on `Billing__MtnMomo__SubscriptionKey`, OR sandbox auto-provision is off and ApiUser/ApiKey are blank.|
+| Invoices `404` after restart                         | `MediaStorage__Provider` is still `in-memory` (i.e. S3 not configured). Set it to `s3` and provide the bucket + AWS credentials.     |
+
+For everything else: Render's **Logs** tab is the source of truth — both
+nginx and the .NET host print to stdout, so a single tail covers the full
+request path.

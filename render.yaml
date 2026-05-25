@@ -1,5 +1,308 @@
-# WeYell Phase 1 — Render Blueprint stub.
-# The previous multi-BFF / multi-SPA blueprint is preserved in render.legacy.yaml.
-# Update this file when deploying: wayel-api + wayel-bff-customer + customer-portal static site.
+# WeYell — Render Blueprint (Phase 1)
+# ====================================
+#
+# Three Docker web services + MongoDB Atlas (external):
+#
+#   wayel-api       Public .NET API. KYC, parcels, quotes, payments, etc.
+#   wayel-customer  Customer-facing edge: Angular SPA + Wayel.Bff.Customer
+#                   (Google OIDC) + nginx, all in one container. The SPA
+#                   talks back to the BFF on the same origin so cookies
+#                   stay first-party.
+#   wayel-ops       Ops dashboard SPA + nginx that reverse-proxies /api/
+#                   to wayel-api. Auth is Bearer JWT (no BFF, no cookies).
+#
+# Secrets are all `sync: false` — the Render dashboard prompts for them
+# at first deploy. Keep canonical staging values in `.secrets.local/`
+# (gitignored) so a rotation can be replayed quickly. The legacy
+# (kids-platform-era) blueprint is preserved at `render.legacy.yaml`
+# for reference.
+#
+# ─── Before first deploy ────────────────────────────────────────────────
+#   1. Mongo Atlas: cluster ready, Render's static outbound IPs allowed
+#      under Network Access (or 0.0.0.0/0 for a throwaway environment).
+#   2. AWS: IAM user scoped to the target S3 bucket (Get/Put/Head/Delete
+#      on objects, List on the bucket). Stash access key id + secret —
+#      they'll be pasted into wayel-api on first deploy.
+#   3. Paystack: dashboard → Settings → API Keys & Webhooks → copy the
+#      Test (or Live) Secret Key (`sk_*`) and Public Key (`pk_*`).
+#   4. MTN MoMo: developer portal → Products → Collections → copy the
+#      Primary Key. Sandbox can auto-provision the rest at startup
+#      (Billing__MtnMomo__AutoProvisionSandbox=true).
+#   5. Google Cloud Console: one OAuth Web client for the customer BFF
+#      (used by both the BFF cookie flow and direct ID-token sign-in to
+#      the API). For the ops dashboard a separate Google Identity
+#      Services client is fine.
+#
+# ─── After first deploy ─────────────────────────────────────────────────
+#   * For the customer BFF Google OAuth client add:
+#       - Authorized JS origin   https://wayel-customer.onrender.com
+#       - Authorized redirect    https://wayel-customer.onrender.com/signin-oidc
+#   * For the ops dashboard Google Identity Services client add the ops
+#     dashboard origin (https://wayel-ops.onrender.com).
+#   * Paste both client ids into wayel-api's GoogleAuth__ClientIds__0
+#     and __1 (0=customer, 1=ops). The API accepts ID tokens issued for
+#     either client.
+#   * Update Notifications__AcceptUrlBase / BorderBox__CustomerPortalBaseUrl
+#     to the customer-edge URL.
 
-services: []
+services:
+  # ─── Public API ───────────────────────────────────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-api
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./backend/api/Dockerfile
+    dockerContext: ./backend/api
+    healthCheckPath: /health/live
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # ─ MongoDB Atlas ─────────────────────────────────────────────────
+      - key: Mongo__ConnectionString
+        sync: false
+      - key: Mongo__DatabaseName
+        value: courier_platform
+
+      # ─ JWT signing ──────────────────────────────────────────────────
+      # Render generates a strong random value on first deploy and pins
+      # it forever. Rotating it invalidates every outstanding access
+      # token — copy the SAME value to wayel-customer below.
+      - key: Jwt__SigningKey
+        generateValue: true
+      - key: Jwt__Issuer
+        value: wayel-api
+      - key: Jwt__Audience
+        value: wayel-clients
+      - key: AuthSession__RefreshTokenLifetimeMinutes
+        value: "20160"
+
+      # ─ Google ID token admission ────────────────────────────────────
+      # Client ids the API trusts on /auth/sso/google. Add both the
+      # customer-portal OAuth client (BFF cookie flow) and the ops
+      # dashboard GIS client here so either surface can sign a user in.
+      - key: GoogleAuth__ClientIds__0
+        sync: false
+      - key: GoogleAuth__ClientIds__1
+        sync: false
+
+      # ─ Ops bootstrap ────────────────────────────────────────────────
+      # The first email in this list to sign in via Google is promoted
+      # to the `lead` ops role (idempotent — re-promotion is a no-op).
+      - key: OpsAuth__BootstrapLeadEmails__0
+        sync: false
+
+      # ─ Customer + ops portal URLs ───────────────────────────────────
+      # The API uses these to build absolute links in emails / invoices
+      # and to validate notification accept URLs. Keep in lockstep with
+      # the Render service URLs below.
+      - key: BorderBox__CustomerPortalBaseUrl
+        value: https://wayel-customer.onrender.com
+      - key: Cors__AllowedOrigins__0
+        value: https://wayel-customer.onrender.com
+      - key: Cors__AllowedOrigins__1
+        value: https://wayel-ops.onrender.com
+
+      # ─ Outbox + auto-quote ──────────────────────────────────────────
+      - key: Outbox__Enabled
+        value: "true"
+      - key: BorderBox__QuoteQueueAutoProcessor__Enabled
+        value: "true"
+
+      # ─ Auth posture ─────────────────────────────────────────────────
+      # Customer SPA is Google-SSO-only in production. Flip to "true"
+      # only if you need to enable the dev email/password path for a
+      # specific environment.
+      - key: Auth__EnablePasswordSignIn
+        value: "false"
+
+      # ─ Seed data ────────────────────────────────────────────────────
+      # Demo personas live in the demo / stage environment so test
+      # accounts work out-of-the-box. Turn off for clean prod data.
+      - key: Seed__DemoData__Enabled
+        value: "true"
+      - key: Seed__TestParcels__Enabled
+        value: "false"
+
+      # ─ KYC ──────────────────────────────────────────────────────────
+      - key: Kyc__AutoVerifyOnSubmit
+        value: "false"
+      - key: Kyc__AutoApproveOnProviderPass
+        value: "false"
+      - key: Kyc__IdAnalyzerEnabled
+        value: "false"
+      - key: Kyc__IdAnalyzerApiKey
+        sync: false
+      - key: Kyc__OpsApiKey
+        sync: false
+
+      # ─ Notifications (Postmark default) ─────────────────────────────
+      - key: Notifications__Provider
+        value: postmark
+      - key: Notifications__Email__Enabled
+        value: "true"
+      - key: Notifications__Email__FromAddress
+        sync: false
+      - key: Notifications__Email__FromDisplayName
+        value: WeYell
+      - key: Notifications__Postmark__ServerToken
+        sync: false
+      - key: Notifications__Postmark__MessageStream
+        value: outbound
+      # Resend + SES kept registered so flipping `Notifications__Provider`
+      # rolls forward without redeploying.
+      - key: Notifications__Resend__ApiKey
+        sync: false
+      - key: Notifications__Ses__Enabled
+        value: "false"
+      - key: Notifications__Ses__Region
+        value: eu-west-1
+      - key: Notifications__Ses__FromAddress
+        sync: false
+      - key: Notifications__Webhooks__VerifySnsSignatures
+        value: "true"
+
+      # ─ WhatsApp via WasenderAPI (opt-in) ────────────────────────────
+      - key: Notifications__WaSender__Enabled
+        value: "false"
+      - key: Notifications__WaSender__ApiKey
+        sync: false
+      - key: Notifications__WaSender__BaseUrl
+        value: https://wasenderapi.com
+      - key: Notifications__WaSender__SessionId
+        sync: false
+      - key: Notifications__WaSender__SupportInboxPhoneE164
+        sync: false
+      - key: Notifications__Webhooks__WaSenderSecret
+        sync: false
+
+      # ─ Payments — Paystack ──────────────────────────────────────────
+      - key: Billing__Paystack__Enabled
+        value: "true"
+      - key: Billing__Paystack__SecretKey
+        sync: false
+      - key: Billing__Paystack__PublicKey
+        sync: false
+      - key: Billing__Paystack__ApiBaseUrl
+        value: https://api.paystack.co
+      - key: Billing__Paystack__Currency
+        value: ZAR
+
+      # ─ Payments — MTN MoMo (Collections) ────────────────────────────
+      # Sandbox auto-provisioning ON by default so a fresh deploy is
+      # immediately payable in test mode. Flip to false + paste real
+      # ApiUser / ApiKey when moving to MoMo production.
+      - key: Billing__MtnMomo__Enabled
+        value: "true"
+      - key: Billing__MtnMomo__BaseUrl
+        value: https://sandbox.momodeveloper.mtn.com
+      - key: Billing__MtnMomo__TargetEnvironment
+        value: sandbox
+      - key: Billing__MtnMomo__SubscriptionKey
+        sync: false
+      - key: Billing__MtnMomo__DisbursementsSubscriptionKey
+        sync: false
+      - key: Billing__MtnMomo__ApiUser
+        sync: false
+      - key: Billing__MtnMomo__ApiKey
+        sync: false
+      - key: Billing__MtnMomo__Currency
+        value: EUR
+      - key: Billing__MtnMomo__CallbackHost
+        value: wayel-api.onrender.com
+      - key: Billing__MtnMomo__AllowSimulatedPayments
+        value: "false"
+      - key: Billing__MtnMomo__AutoProvisionSandbox
+        value: "true"
+      - key: Billing__MtnMomo__PerTransactionMinorUnitsLimit
+        value: "500000"
+
+      # ─ Media storage (AWS S3) ───────────────────────────────────────
+      - key: MediaStorage__Provider
+        value: s3
+      - key: MediaStorage__Region
+        value: eu-west-1
+      - key: MediaStorage__BucketName
+        sync: false
+      - key: MediaStorage__CdnHost
+        sync: false
+      - key: AWS_REGION
+        value: eu-west-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+  # ─── Customer edge: SPA + BFF in one container ────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-customer
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./deploy/render/Dockerfile.customer-edge
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # ─ BFF wiring ───────────────────────────────────────────────────
+      # ApiBaseUri MUST be the internal Render URL of wayel-api (Render
+      # auto-generates `*.onrender.com` URLs; if your service is renamed
+      # update this value). The BFF talks to it server-to-server over
+      # HTTPS — no CORS needed.
+      - key: Bff__ApiBaseUri
+        value: https://wayel-api.onrender.com
+      # SpaBaseUri is derived from $RENDER_EXTERNAL_URL at boot
+      # (start-customer-edge.sh) so the cookie / OIDC callback URLs
+      # always match the actual public hostname.
+      - key: Bff__Audience
+        value: client
+      - key: Bff__SessionLifetimeMinutes
+        value: "20160"
+      - key: Bff__RefreshIfExpiringWithinSeconds
+        value: "60"
+      - key: Bff__CookieName
+        value: .Wayel.Bff.Customer
+      - key: Bff__RequireHttpsCookie
+        value: "true"
+
+      # ─ Local JWT validation ─────────────────────────────────────────
+      # The BFF accepts the same API-issued JWTs that the API does, so
+      # paste the SAME Jwt__SigningKey value Render generated for
+      # wayel-api here.
+      - key: Jwt__SigningKey
+        sync: false
+      - key: Jwt__Issuer
+        value: wayel-api
+      - key: Jwt__Audience
+        value: wayel-clients
+
+      # ─ Google OIDC (BFF cookie flow) ────────────────────────────────
+      # Use the SAME OAuth client id you put in wayel-api's
+      # GoogleAuth__ClientIds__0 so ID tokens minted here are accepted
+      # by the API on /auth/sso/google.
+      - key: GoogleOidc__ClientId
+        sync: false
+      - key: GoogleOidc__ClientSecret
+        sync: false
+      - key: GoogleOidc__UseStaticMetadata
+        value: "false"
+
+  # ─── Ops dashboard edge: SPA + nginx (no BFF) ─────────────────────────
+  - type: web
+    runtime: docker
+    name: wayel-ops
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./deploy/render/Dockerfile.ops-edge
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      # Forward /api/ to the wayel-api Render hostname. If your API
+      # service is renamed or the suffix differs in your Render account,
+      # update this value here — nginx re-resolves the upstream every
+      # 5 minutes so propagation is automatic.
+      - key: API_UPSTREAM_HOST
+        value: wayel-api.onrender.com
