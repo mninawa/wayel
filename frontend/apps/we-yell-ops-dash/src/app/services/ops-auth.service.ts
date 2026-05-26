@@ -47,6 +47,22 @@ export interface OpsInvitationPreviewDto {
   isValid: boolean;
 }
 
+export interface OpsAuditEntryDto {
+  action: string;
+  outcome: string;
+  occurredOnUtc: string;
+  actorEmail: string | null;
+  actorUserId: string | null;
+  audience: string | null;
+  reason: string | null;
+  metadata: Record<string, string | null> | null;
+}
+
+export interface OpsAuditPageDto {
+  items: OpsAuditEntryDto[];
+  nextContinuationToken: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OpsAuthService {
   private readonly http = inject(HttpClient);
@@ -106,6 +122,20 @@ export class OpsAuthService {
       { isDisabled },
       { headers: this.bearer(accessToken) },
     );
+  }
+
+  listRecentAudit(
+    accessToken: string,
+    options: { action?: string; pageSize?: number; cursor?: string } = {},
+  ): Observable<OpsAuditPageDto> {
+    const params: Record<string, string> = {};
+    if (options.action) params['action'] = options.action;
+    if (options.pageSize) params['pageSize'] = String(options.pageSize);
+    if (options.cursor) params['cursor'] = options.cursor;
+    return this.http.get<OpsAuditPageDto>(`${this.base}/admin/audit`, {
+      headers: this.bearer(accessToken),
+      params,
+    });
   }
 
   private bearer(token: string) {

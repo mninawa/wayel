@@ -1,0 +1,276 @@
+<div class="ops-page settings-page">
+  <a routerLink="/ops/receiving" class="back-link">
+    <span class="material-icons-outlined" aria-hidden="true">arrow_back</span>
+    Back to overview
+  </a>
+  <header class="page-head">
+    <h1>Team &amp; access</h1>
+    <p class="lead">
+      Manage who can sign in to the ops console, what they can do, and audit recent changes. Only
+      <strong>Lead</strong> users can change access.
+    </p>
+  </header>
+
+  @if (!canManage()) {
+    <section class="ops-card ops-card-pad denied">
+      <span class="material-icons-outlined" aria-hidden="true">lock</span>
+      <div>
+        <strong>Your role cannot manage warehouse users.</strong>
+        <p class="muted">
+          Ask a lead to grant you the <code>team.manage</code> capability if you need access.
+        </p>
+      </div>
+    </section>
+  } @else {
+
+    <!-- Your access summary -->
+    <section class="ops-card ops-card-pad your-access">
+      <div class="ya-head">
+        <div class="ya-avatar" aria-hidden="true">
+          {{ (meName() || 'OP').slice(0, 2).toUpperCase() }}
+        </div>
+        <div class="ya-meta">
+          <strong>{{ meName() }}</strong>
+          <span class="muted">{{ meEmail() }}</span>
+        </div>
+        <span class="role-badge" [attr.data-role]="roleBadgeClass(meRole())">{{ meRole() || '—' }}</span>
+      </div>
+      @if (meCapabilities().length > 0) {
+        <div class="ya-caps">
+          <span class="caps-label muted">Capabilities</span>
+          <ul class="caps-list">
+            @for (c of meCapabilities(); track c) {
+              <li class="cap">{{ c }}</li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+
+    <!-- Role catalog -->
+    <section class="ops-card ops-card-pad roles">
+      <h2 class="ops-card-title">Roles</h2>
+      <div class="role-grid">
+        @for (r of roleCatalog; track r.key) {
+          <article class="role-card" [attr.data-role]="r.badge">
+            <header>
+              <strong>{{ r.label }}</strong>
+              <span class="role-badge" [attr.data-role]="r.badge">{{ r.badge }}</span>
+            </header>
+            <p class="muted">{{ r.blurb }}</p>
+            <ul>
+              @for (b of r.bullets; track b) { <li>{{ b }}</li> }
+            </ul>
+          </article>
+        }
+      </div>
+    </section>
+
+    <!-- Banners -->
+    @if (message()) {
+      <div class="banner ok" role="status">
+        <span class="material-icons-outlined" aria-hidden="true">check_circle</span>
+        <span>{{ message() }}</span>
+        <button type="button" class="banner-close" (click)="dismissMessage()" aria-label="Dismiss">×</button>
+      </div>
+    }
+    @if (error()) {
+      <div class="banner err" role="alert">
+        <span class="material-icons-outlined" aria-hidden="true">error_outline</span>
+        <span>{{ error() }}</span>
+        <button type="button" class="banner-close" (click)="dismissError()" aria-label="Dismiss">×</button>
+      </div>
+    }
+
+    <!-- Invite user -->
+    <section class="ops-card ops-card-pad invite">
+      <h2 class="ops-card-title">Invite a teammate</h2>
+      <div class="invite-row">
+        <label>
+          <span>Email</span>
+          <input type="email" [(ngModel)]="inviteEmail" name="inviteEmail" placeholder="name@company.com" />
+        </label>
+        <label>
+          <span>Role</span>
+          <select [(ngModel)]="inviteRole" name="inviteRole">
+            <option value="clerk">Clerk</option>
+            <option value="lead">Lead</option>
+            <option value="finance">Finance</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="ops-btn ops-btn-primary"
+          [disabled]="busy() || !inviteEmail.trim()"
+          (click)="sendInvite()"
+        >
+          {{ busy() ? 'Sending…' : 'Send invitation' }}
+        </button>
+      </div>
+      @if (recentInviteLink(); as link) {
+        <div class="invite-link-banner">
+          <div>
+            <strong>Share this link with the invitee:</strong>
+            <code>{{ link }}</code>
+          </div>
+          <button type="button" class="ops-btn ops-btn-outline" (click)="copyRecentInviteLink()">
+            <span class="material-icons-outlined" aria-hidden="true">content_copy</span>
+            Copy link
+          </button>
+        </div>
+      }
+    </section>
+
+    <!-- Pending invitations -->
+    <section class="ops-card ops-card-pad pending">
+      <header class="card-head">
+        <h2 class="ops-card-title">Pending invitations ({{ pendingInvitations().length }})</h2>
+        @if (pendingInvitations().length > 0) {
+          <label class="search">
+            <span class="material-icons-outlined" aria-hidden="true">search</span>
+            <input
+              type="search"
+              placeholder="Filter…"
+              [ngModel]="inviteSearch()"
+              (ngModelChange)="inviteSearch.set($event)"
+            />
+          </label>
+        }
+      </header>
+      @if (pendingInvitations().length === 0) {
+        <p class="hint">No pending invitations.</p>
+      } @else if (filteredPendingInvitations().length === 0) {
+        <p class="hint">No invitations match that search.</p>
+      } @else {
+        <ul class="invite-list">
+          @for (row of filteredPendingInvitations(); track row.id) {
+            <li class="invite-card">
+              <div class="invite-main">
+                <strong>{{ row.email }}</strong>
+                <span class="role-badge" [attr.data-role]="roleBadgeClass(row.role)">{{ row.role }}</span>
+                <span class="muted">Expires {{ row.expiresAtUtc | date:'mediumDate' }}</span>
+              </div>
+              <div class="invite-actions">
+                @if (row.invitePath) {
+                  <button type="button" class="icon-btn" title="Copy invite link" (click)="copyInviteLink(row)">
+                    <span class="material-icons-outlined" aria-hidden="true">content_copy</span>
+                  </button>
+                }
+                <button type="button" class="link-btn danger" (click)="revoke(row.id)">Revoke</button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Active users -->
+    <section class="ops-card ops-card-pad users">
+      <header class="card-head">
+        <h2 class="ops-card-title">Active users ({{ users().length }})</h2>
+        @if (users().length > 0) {
+          <label class="search">
+            <span class="material-icons-outlined" aria-hidden="true">search</span>
+            <input
+              type="search"
+              placeholder="Filter by name, email, role…"
+              [ngModel]="userFilter()"
+              (ngModelChange)="userFilter.set($event)"
+            />
+          </label>
+        }
+      </header>
+      @if (filteredUsers().length === 0) {
+        <p class="hint">No users match the current filter.</p>
+      } @else {
+        <ul class="user-list">
+          @for (u of filteredUsers(); track u.id) {
+            <li class="user-card" [class.disabled]="u.isDisabled" [class.is-self]="isSelf(u)">
+              <div class="user-main">
+                <div class="user-avatar" aria-hidden="true">
+                  {{ u.displayName.slice(0, 2).toUpperCase() }}
+                </div>
+                <div>
+                  <strong>
+                    {{ u.displayName }}
+                    @if (isSelf(u)) { <span class="self-tag">you</span> }
+                  </strong>
+                  <span class="muted">{{ u.email }}</span>
+                </div>
+              </div>
+              <div class="user-meta">
+                <label class="role-select">
+                  <span class="muted">Role</span>
+                  <select
+                    [ngModel]="u.role"
+                    (ngModelChange)="changeRole(u, $event)"
+                    [disabled]="busy()"
+                  >
+                    <option value="clerk">Clerk</option>
+                    <option value="lead">Lead</option>
+                    <option value="finance">Finance</option>
+                  </select>
+                </label>
+                <span class="user-status" [class.disabled]="u.isDisabled">
+                  {{ u.isDisabled ? 'Disabled' : 'Active' }}
+                </span>
+                <span class="muted last-login">
+                  {{ u.lastLoginAtUtc ? (u.lastLoginAtUtc | date:'shortDate') : 'Never signed in' }}
+                </span>
+                <button
+                  type="button"
+                  class="link-btn"
+                  [class.danger]="!u.isDisabled"
+                  [disabled]="isSelf(u) && !u.isDisabled"
+                  [title]="isSelf(u) && !u.isDisabled ? 'You cannot disable yourself' : ''"
+                  (click)="toggleDisabled(u)"
+                >
+                  {{ u.isDisabled ? 'Enable' : 'Disable' }}
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Recent activity -->
+    <section class="ops-card ops-card-pad audit">
+      <header class="card-head">
+        <h2 class="ops-card-title">Recent activity</h2>
+        <button
+          type="button"
+          class="link-btn"
+          (click)="loadAudit()"
+          [disabled]="auditBusy()"
+        >
+          {{ auditBusy() ? 'Loading…' : 'Refresh' }}
+        </button>
+      </header>
+      @if (auditBusy() && audit().length === 0) {
+        <p class="hint">Loading recent activity…</p>
+      } @else if (audit().length === 0) {
+        <p class="hint">No activity recorded yet.</p>
+      } @else {
+        <ul class="audit-list">
+          @for (entry of audit(); track entry.occurredOnUtc + entry.action) {
+            <li class="audit-row" [attr.data-tone]="auditTone(entry)">
+              <span class="audit-icon material-icons-outlined" aria-hidden="true">
+                {{ auditIcon(entry) }}
+              </span>
+              <div class="audit-text">
+                <span>{{ auditDescription(entry) }}</span>
+                <span class="muted">
+                  {{ entry.occurredOnUtc | date:'medium' }}
+                  @if (entry.outcome === 'Failed' && entry.reason) {
+                    · failed ({{ entry.reason }})
+                  }
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

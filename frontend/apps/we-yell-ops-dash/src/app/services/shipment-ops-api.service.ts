@@ -24,6 +24,53 @@ export interface UpdateOpsShipmentStatusResultDto {
   occurredAtUtc: string;
 }
 
+export interface OpsShipmentTrackingMilestoneDto {
+  label: string;
+  icon: string;
+  done: boolean;
+  current: boolean;
+  occurredAtUtc: string | null;
+}
+
+export interface OpsShipmentTrackingParcelRowDto {
+  trackingNumber: string;
+  itemName: string;
+  weightKg: number | null;
+  status: string;
+  statusLabel: string;
+}
+
+export interface OpsShipmentTrackingHistoryEventDto {
+  occurredAtUtc: string;
+  eventLabel: string;
+  eventTone: string;
+  location: string;
+  details: string;
+}
+
+export interface OpsCourierInfoDto { name: string; website: string; phone: string; }
+export interface OpsRecipientInfoDto { name: string; phone: string; address: string; }
+
+export interface OpsShipmentTrackingDetailDto {
+  shipmentId: string;
+  trackingNumber: string;
+  status: string;
+  statusLabel: string;
+  deliveryMethod: string;
+  estimatedDelivery: string;
+  originLabel: string;
+  destinationLabel: string;
+  parcelCount: number;
+  totalWeightLabel: string;
+  declaredValueLabel: string;
+  milestones: OpsShipmentTrackingMilestoneDto[];
+  parcels: OpsShipmentTrackingParcelRowDto[];
+  courier: OpsCourierInfoDto;
+  recipient: OpsRecipientInfoDto;
+  history: OpsShipmentTrackingHistoryEventDto[];
+  timezoneNote: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ShipmentOpsApiService {
   private readonly http = inject(HttpClient);
@@ -44,6 +91,16 @@ export class ShipmentOpsApiService {
     return this.http.post<UpdateOpsShipmentStatusResultDto>(
       `${this.base}/borderbox/ops/shipments/${shipmentId}/status`,
       body,
+      { headers: this.opsHeaders(opsKey) },
+    );
+  }
+
+  getTrackingDetail(
+    shipmentId: string,
+    opsKey: string,
+  ): Observable<OpsShipmentTrackingDetailDto> {
+    return this.http.get<OpsShipmentTrackingDetailDto>(
+      `${this.base}/borderbox/ops/shipments/${shipmentId}/tracking`,
       { headers: this.opsHeaders(opsKey) },
     );
   }

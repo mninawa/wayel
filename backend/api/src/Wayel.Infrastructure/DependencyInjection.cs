@@ -220,6 +220,7 @@ public static class DependencyInjection
         services.AddScoped<IDomainEventCollector, DomainEventCollector>();
         services.AddScoped<IOutboxStore, MongoOutboxStore>();
         services.AddScoped<IAuditLogger, MongoAuditLogger>();
+        services.AddScoped<IAuditLogReader, MongoAuditLogReader>();
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

@@ -1,0 +1,432 @@
+<div class="ops-page shipments-page">
+  <header class="page-head">
+    <div class="head-text">
+      <h1>Shipment status</h1>
+      <p class="lead">
+        Advance paid and in-transit shipments — every update appears on the customer's tracking page.
+      </p>
+    </div>
+    <div class="head-actions">
+      <label class="auto-toggle">
+        <input
+          type="checkbox"
+          [checked]="autoRefresh()"
+          (change)="autoRefresh.set($any($event.target).checked)"
+        />
+        <span>Auto-refresh (60s)</span>
+      </label>
+      <button
+        type="button"
+        class="ops-btn ops-btn-outline"
+        (click)="refresh()"
+        [disabled]="busy()"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">refresh</span>
+        {{ busy() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI strip -->
+  <section class="kpi-strip" aria-label="Shipment summary">
+    <div class="kpi kpi-paid">
+      <span class="kpi-label">Ready to ship</span>
+      <strong class="kpi-value">{{ kpis().ready }}</strong>
+    </div>
+    <div class="kpi kpi-transit">
+      <span class="kpi-label">In transit</span>
+      <strong class="kpi-value">{{ kpis().inTransit }}</strong>
+    </div>
+    <div class="kpi kpi-delivered">
+      <span class="kpi-label">Delivered today</span>
+      <strong class="kpi-value">{{ kpis().deliveredToday }}</strong>
+    </div>
+    <div class="kpi kpi-stale" [class.stale-warn]="kpis().stale > 0">
+      <span class="kpi-label">Stale &gt; 48h</span>
+      <strong class="kpi-value">{{ kpis().stale }}</strong>
+    </div>
+    <div class="kpi kpi-total">
+      <span class="kpi-label">Tracked</span>
+      <strong class="kpi-value">{{ kpis().total }}</strong>
+    </div>
+  </section>
+
+  <!-- Toolbar: tabs + search + sort -->
+  <section class="toolbar">
+    <nav class="segments" aria-label="Filter by status">
+      @for (seg of segments; track seg.key) {
+        <button
+          type="button"
+          class="segment"
+          [class.active]="activeSegment() === seg.key"
+          (click)="selectSegment(seg.key)"
+        >
+          {{ seg.label }}
+          <span class="seg-count">{{ segmentCount(seg.key) }}</span>
+        </button>
+      }
+    </nav>
+    <div class="filters">
+      <label class="search">
+        <span class="material-icons-outlined" aria-hidden="true">search</span>
+        <input
+          type="search"
+          placeholder="Tracking number, customer, email…"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+      </label>
+      <label class="sort">
+        <span>Sort</span>
+        <select [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+          <option value="recent">Newest event</option>
+          <option value="oldest">Oldest event</option>
+          <option value="stale">Stale first</option>
+          <option value="customer">Customer A–Z</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <!-- Banners -->
+  @if (success()) {
+    <div class="banner ok" role="status">
+      <span class="material-icons-outlined" aria-hidden="true">check_circle</span>
+      <span>{{ success() }}</span>
+      <button type="button" class="banner-close" (click)="dismissSuccess()" aria-label="Dismiss">×</button>
+    </div>
+  }
+  @if (error()) {
+    <div class="banner err" role="alert">
+      <span class="material-icons-outlined" aria-hidden="true">error_outline</span>
+      <span>{{ error() }}</span>
+      <button type="button" class="banner-close" (click)="dismissError()" aria-label="Dismiss">×</button>
+    </div>
+  }
+
+  <!-- Bulk-action toolbar — only when selection has actionable rows -->
+  @if (selectedVisible().length > 0) {
+    <section class="bulk-bar" role="region" aria-label="Bulk actions">
+      <span>
+        <strong>{{ selectedVisible().length }}</strong> selected
+      </span>
+      <div class="bulk-actions">
+        @if (canBulkInTransit()) {
+          <button
+            type="button"
+            class="ops-btn ops-btn-outline"
+            [disabled]="bulkBusy()"
+            (click)="bulkMark('InTransit')"
+          >
+            Mark in transit
+          </button>
+        }
+        @if (canBulkDeliver()) {
+          <button
+            type="button"
+            class="ops-btn ops-btn-primary"
+            [disabled]="bulkBusy()"
+            (click)="bulkMark('Delivered')"
+          >
+            Mark delivered
+          </button>
+        }
+        <button
+          type="button"
+          class="link-btn"
+          (click)="clearSelection()"
+        >
+          Clear
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- List -->
+  @if (busy() && shipments().length === 0) {
+    <section class="ops-card ops-card-pad empty">
+      <span class="material-icons-outlined" aria-hidden="true">hourglass_top</span>
+      <p>Loading shipments…</p>
+    </section>
+  } @else if (filtered().length === 0) {
+    <section class="ops-card ops-card-pad empty">
+      <span class="material-icons-outlined" aria-hidden="true">local_shipping</span>
+      <p>No shipments match the current filter.</p>
+      @if (activeSegment() !== 'all' || search().length > 0) {
+        <button
+          type="button"
+          class="link-btn"
+          (click)="resetFilters()"
+        >
+          Reset filters
+        </button>
+      }
+    </section>
+  } @else {
+    <header class="list-head">
+      <label class="select-all">
+        <input
+          type="checkbox"
+          [checked]="allVisibleSelected()"
+          (change)="toggleSelectAll()"
+          [disabled]="busy() || bulkBusy()"
+          aria-label="Select all actionable shipments"
+        />
+        <span>Select actionable</span>
+      </label>
+      @if (lastRefreshedAt(); as last) {
+        <span class="last-refresh muted">
+          Last refreshed {{ last | date:'shortTime' }}
+        </span>
+      }
+    </header>
+    <ul class="ship-list">
+      @for (s of filtered(); track s.shipmentId) {
+        @let hours = hoursSinceLastEvent(s);
+        @let aTone = ageTone(hours, s.status);
+        <li
+          class="ship-row"
+          [class.selected]="isSelected(s.shipmentId)"
+          [attr.data-status]="statusTone(s.status)"
+        >
+          <label class="row-select">
+            <input
+              type="checkbox"
+              [checked]="isSelected(s.shipmentId)"
+              [disabled]="s.status === 'Delivered'"
+              (change)="toggleSelected(s.shipmentId)"
+              aria-label="Select shipment for bulk action"
+            />
+          </label>
+          <button
+            type="button"
+            class="row-main"
+            (click)="openDrawer(s)"
+            [attr.aria-label]="'Open shipment ' + (s.primaryTrackingNumber || s.shipmentId)"
+          >
+            <div class="row-id">
+              <strong>{{ s.primaryTrackingNumber || s.shipmentId.slice(0, 8) }}</strong>
+              <span class="status-pill" [attr.data-tone]="statusTone(s.status)">{{ s.statusLabel }}</span>
+            </div>
+            <div class="row-meta">
+              <span>
+                <span class="material-icons-outlined meta-icon" aria-hidden="true">person</span>
+                {{ s.customerDisplayName || s.customerEmail }}
+              </span>
+              <span class="muted">{{ s.customerEmail }}</span>
+            </div>
+            <div class="row-meta">
+              <span class="badge">{{ s.parcelCount }} parcel{{ s.parcelCount === 1 ? '' : 's' }}</span>
+              <span class="muted">{{ s.deliveryMethod }}</span>
+              @if (s.lastEventAtUtc) {
+                <span class="age" [attr.data-tone]="aTone">
+                  {{ hours }}h since last event · {{ s.lastEventAtUtc | date:'shortDate' }}
+                </span>
+              } @else {
+                <span class="age" data-tone="warn">No tracking events yet</span>
+              }
+            </div>
+          </button>
+          <div class="row-actions">
+            <button
+              type="button"
+              class="icon-btn"
+              title="Copy customer tracking link"
+              (click)="copyTrackingLink(s); $event.stopPropagation()"
+            >
+              <span class="material-icons-outlined" aria-hidden="true">link</span>
+            </button>
+            @if (s.status === 'Paid') {
+              <button
+                type="button"
+                class="ops-btn ops-btn-outline ops-btn-sm"
+                [disabled]="busy() || bulkBusy()"
+                (click)="markInTransit(s); $event.stopPropagation()"
+              >
+                In transit
+              </button>
+            }
+            @if (s.status === 'InTransit') {
+              <button
+                type="button"
+                class="ops-btn ops-btn-primary ops-btn-sm"
+                [disabled]="busy() || bulkBusy()"
+                (click)="markDelivered(s); $event.stopPropagation()"
+              >
+                Delivered
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+<!-- Side drawer -->
+@if (drawerShipmentId(); as drawerId) {
+  <div class="drawer-backdrop" (click)="closeDrawer()" aria-hidden="true"></div>
+  <aside class="drawer" role="dialog" aria-labelledby="drawer-title">
+    <header class="drawer-head">
+      <div>
+        <h2 id="drawer-title">Shipment detail</h2>
+        @if (drawerDetail(); as d) {
+          <p class="muted">{{ d.trackingNumber }} · {{ d.statusLabel }}</p>
+        }
+      </div>
+      <button type="button" class="icon-btn" (click)="closeDrawer()" aria-label="Close">
+        <span class="material-icons-outlined" aria-hidden="true">close</span>
+      </button>
+    </header>
+
+    @if (drawerBusy()) {
+      <div class="drawer-body">
+        <p class="hint">Loading shipment detail…</p>
+      </div>
+    } @else if (drawerError()) {
+      <div class="drawer-body">
+        <p class="banner err">{{ drawerError() }}</p>
+      </div>
+    } @else if (drawerDetail()) {
+      @let d = drawerDetail()!;
+      <div class="drawer-body">
+        <!-- Summary grid -->
+        <section class="dr-grid">
+          <div class="dr-cell">
+            <span class="muted">Origin</span>
+            <strong>{{ d.originLabel }}</strong>
+          </div>
+          <div class="dr-cell">
+            <span class="muted">Destination</span>
+            <strong>{{ d.destinationLabel }}</strong>
+          </div>
+          <div class="dr-cell">
+            <span class="muted">ETA</span>
+            <strong>{{ d.estimatedDelivery }}</strong>
+          </div>
+          <div class="dr-cell">
+            <span class="muted">Method</span>
+            <strong>{{ d.deliveryMethod }}</strong>
+          </div>
+          <div class="dr-cell">
+            <span class="muted">Total weight</span>
+            <strong>{{ d.totalWeightLabel }}</strong>
+          </div>
+          <div class="dr-cell">
+            <span class="muted">Declared value</span>
+            <strong>{{ d.declaredValueLabel }}</strong>
+          </div>
+        </section>
+
+        <!-- Recipient -->
+        <section class="dr-section">
+          <h3>Recipient</h3>
+          <p class="dr-recipient">
+            <strong>{{ d.recipient.name }}</strong><br />
+            <span class="muted">{{ d.recipient.phone }}</span><br />
+            <span>{{ d.recipient.address }}</span>
+          </p>
+        </section>
+
+        <!-- Milestones -->
+        @if (d.milestones.length > 0) {
+          <section class="dr-section">
+            <h3>Milestones</h3>
+            <ol class="milestones">
+              @for (m of d.milestones; track $index) {
+                <li
+                  class="milestone"
+                  [class.done]="m.done"
+                  [class.current]="m.current"
+                >
+                  <span class="material-icons-outlined milestone-icon" aria-hidden="true">
+                    {{ m.done ? 'check_circle' : (m.current ? 'radio_button_checked' : 'radio_button_unchecked') }}
+                  </span>
+                  <div class="milestone-text">
+                    <strong>{{ m.label }}</strong>
+                    @if (m.occurredAtUtc) {
+                      <span class="muted">{{ m.occurredAtUtc | date:'medium' }}</span>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
+        }
+
+        <!-- Parcels -->
+        @if (d.parcels.length > 0) {
+          <section class="dr-section">
+            <h3>Parcels ({{ d.parcels.length }})</h3>
+            <ul class="parcels">
+              @for (p of d.parcels; track p.trackingNumber) {
+                <li class="parcel">
+                  <div>
+                    <strong>{{ p.itemName || p.trackingNumber }}</strong>
+                    <span class="muted">{{ p.trackingNumber }}</span>
+                  </div>
+                  <div class="parcel-meta">
+                    @if (p.weightKg != null) {
+                      <span class="badge">{{ p.weightKg | number:'1.0-2' }} kg</span>
+                    }
+                    <span class="status-pill" [attr.data-tone]="statusTone(p.status)">{{ p.statusLabel }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <!-- History -->
+        @if (d.history.length > 0) {
+          <section class="dr-section">
+            <h3>Tracking history</h3>
+            <ul class="history">
+              @for (h of d.history; track h.occurredAtUtc + h.eventLabel) {
+                <li class="history-row" [attr.data-tone]="h.eventTone">
+                  <span class="history-when">{{ h.occurredAtUtc | date:'medium' }}</span>
+                  <div>
+                    <strong>{{ h.eventLabel }}</strong>
+                    @if (h.location) { <span class="muted"> · {{ h.location }}</span> }
+                    @if (h.details) { <p class="hint">{{ h.details }}</p> }
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <footer class="drawer-foot">
+          <button
+            type="button"
+            class="ops-btn ops-btn-outline"
+            (click)="copyTrackingLinkById(drawerId)"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">link</span>
+            Copy customer tracking link
+          </button>
+          @if (d.status === 'Paid') {
+            <button
+              type="button"
+              class="ops-btn ops-btn-primary"
+              [disabled]="busy()"
+              (click)="markInTransitById(drawerId); closeDrawer()"
+            >
+              Mark in transit
+            </button>
+          }
+          @if (d.status === 'InTransit') {
+            <button
+              type="button"
+              class="ops-btn ops-btn-primary"
+              [disabled]="busy()"
+              (click)="markDeliveredById(drawerId); closeDrawer()"
+            >
+              Mark delivered
+            </button>
+          }
+        </footer>
+      </div>
+    }
+  </aside>
+}

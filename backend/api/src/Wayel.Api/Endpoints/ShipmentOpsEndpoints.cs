@@ -31,6 +31,13 @@ public sealed class ShipmentOpsEndpoints : IEndpointGroup
                     body.Details),
                 ct)).ToHttpResult())
             .WithName("UpdateOpsShipmentStatus");
+
+        group.MapGet("/{shipmentId:guid}/tracking", async (
+            Guid shipmentId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new GetOpsShipmentTrackingDetailQuery(shipmentId), ct)).ToHttpResult())
+            .WithName("GetOpsShipmentTrackingDetail");
     }
 
     private sealed record UpdateOpsShipmentStatusRequest(

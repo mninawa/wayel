@@ -58,6 +58,15 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
             CancellationToken ct) =>
             (await mediator.Send(new SetOpsUserDisabledCommand(userId, body.IsDisabled), ct)).ToHttpResult())
             .WithName("SetOpsUserDisabled");
+
+        admin.MapGet("/audit", async (
+            IMediator mediator,
+            CancellationToken ct,
+            string? action = null,
+            int pageSize = 20,
+            string? cursor = null) =>
+            (await mediator.Send(new ListRecentOpsAuditQuery(action, pageSize, cursor), ct)).ToHttpResult())
+            .WithName("ListRecentOpsAudit");
     }
 
     private sealed record OpsGoogleSignInRequest(string IdToken);
