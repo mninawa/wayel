@@ -75,6 +75,23 @@ public sealed class SuitePlatformOpsEndpoints : IEndpointGroup
                     body.NextSequenceNumber),
                 ct)).ToHttpResult())
             .WithName("UpdateSuitePlatformConfigOpsLegacy");
+
+        // Duplicate suite-number triage. Pre-pool history is full of users
+        // who share a number with someone else; ops surfaces the list, picks
+        // the canonical owner, and the reassign endpoint mints a fresh pool
+        // number for the duplicates.
+        group.MapGet("/duplicates", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new ListSuiteNumberDuplicatesQuery(), ct)).ToHttpResult())
+            .WithName("ListSuiteNumberDuplicatesOps")
+            .WithSummary("List suite numbers currently assigned to more than one user");
+
+        group.MapPost("/{userId:guid}/reassign", async (
+            Guid userId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new ReassignSuiteNumberCommand(userId), ct)).ToHttpResult())
+            .WithName("ReassignSuiteNumberOps")
+            .WithSummary("Release the user's current suite number and claim a fresh pool entry");
     }
 
     private sealed record UpdateSuitePlatformConfigRequest(

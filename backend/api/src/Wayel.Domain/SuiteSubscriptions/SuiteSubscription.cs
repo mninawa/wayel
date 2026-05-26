@@ -26,7 +26,7 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
 
     public UserId UserId { get; }
     public SuitePlanId PlanId { get; }
-    public string SuiteNumber { get; }
+    public string SuiteNumber { get; private set; }
     public SuiteAccessStatus Status { get; private set; }
     public DateTime? StartedAt { get; private set; }
     public DateTime? ExpiresAt { get; private set; }
@@ -61,6 +61,21 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         {
             StartedAt = DateTime.UtcNow;
         }
+    }
+
+    /// <summary>
+    /// Ops-only: rebind the subscription to a freshly-claimed pool number when
+    /// reconciling a historical duplicate. Domain refuses empty rebinds so a
+    /// caller can't accidentally orphan the subscription mid-reassignment.
+    /// </summary>
+    public void RebindSuiteNumber(string newSuiteNumber)
+    {
+        if (string.IsNullOrWhiteSpace(newSuiteNumber))
+        {
+            throw new ArgumentException("New suite number is required.", nameof(newSuiteNumber));
+        }
+
+        SuiteNumber = newSuiteNumber.Trim();
     }
 
     public void RefreshStatus(DateTime nowUtc, int expiringSoonDays = 7)

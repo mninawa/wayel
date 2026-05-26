@@ -73,6 +73,68 @@ internal sealed class MongoSuiteSubscriptionRepository(MongoContext context, IDo
         return (int)count;
     }
 
+    public async Task<IReadOnlyList<SuiteNumberDuplicateGroup>> ListSuiteNumberDuplicatesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var assigned = await context.SuiteSubscriptions
+            .Find(x => !string.IsNullOrEmpty(x.SuiteNumber))
+            .ToListAsync(cancellationToken);
+
+        var groups = assigned
+            .GroupBy(x => x.SuiteNumber, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        if (groups.Count == 0)
+        {
+            return [];
+        }
+
+        var userIds = groups.SelectMany(g => g).Select(x => x.UserId).Distinct().ToList();
+        var users = await context.Users
+            .Find(u => userIds.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+        var usersById = users.ToDictionary(u => u.Id);
+
+        var result = new List<SuiteNumberDuplicateGroup>(groups.Count);
+        foreach (var group in groups)
+        {
+            // Order by StartedAt so Members[0] is always the rightful owner —
+            // the ops UI can flag the first row "Keep" and the rest "Reassign"
+            // without further sorting on the client.
+            var ordered = group
+                .OrderBy(x => x.StartedAt ?? DateTime.MaxValue)
+                .ThenBy(x => x.UserId.Value)
+                .ToList();
+
+            var members = new List<SuiteNumberDuplicateMember>(ordered.Count);
+            foreach (var sub in ordered)
+            {
+                if (!usersById.TryGetValue(sub.UserId, out var user))
+                {
+                    continue;
+                }
+
+                members.Add(new SuiteNumberDuplicateMember(
+                    sub.UserId,
+                    user.Email,
+                    string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName,
+                    user.DestinationCountry ?? string.Empty,
+                    sub.Id,
+                    sub.Status,
+                    sub.StartedAt,
+                    sub.ExpiresAt));
+            }
+
+            if (members.Count > 1)
+            {
+                result.Add(new SuiteNumberDuplicateGroup(group.Key, members));
+            }
+        }
+
+        return result;
+    }
+
     public async Task<IReadOnlyList<UserId>> ListActiveSuiteUserIdsByRegionAsync(
         string regionCode,
         CancellationToken cancellationToken = default)

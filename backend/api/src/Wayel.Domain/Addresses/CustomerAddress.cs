@@ -152,6 +152,26 @@ public sealed class CustomerAddress : AggregateRoot<CustomerAddressId>
         Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
     }
 
+    /// <summary>
+    /// Ops-only: rewrite the suite number printed on this address when the
+    /// owning subscription has been rebound to a freshly-allocated pool number
+    /// during duplicate reconciliation.
+    /// </summary>
+    public void RebindSuiteNumber(string newSuiteNumber)
+    {
+        if (!IsSuiteAddress)
+        {
+            throw new InvalidOperationException("Only suite addresses carry a suite number.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newSuiteNumber))
+        {
+            throw new ArgumentException("New suite number is required.", nameof(newSuiteNumber));
+        }
+
+        SuiteNumber = newSuiteNumber.Trim();
+    }
+
     public void SyncSuiteWarehouse(
         string warehouseLine,
         string city,
