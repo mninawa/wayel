@@ -18,7 +18,14 @@ internal sealed class ShipmentTrackingEventBackfillSeeder(
     IServiceScopeFactory scopeFactory,
     ILogger<ShipmentTrackingEventBackfillSeeder> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        BackgroundMigratorHost.QueueAsync(
+            logger,
+            nameof(ShipmentTrackingEventBackfillSeeder),
+            RunAsync,
+            cancellationToken);
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var parcels = scope.ServiceProvider.GetRequiredService<IParcelRepository>();

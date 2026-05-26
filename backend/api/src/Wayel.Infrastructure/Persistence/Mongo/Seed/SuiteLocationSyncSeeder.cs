@@ -15,7 +15,14 @@ internal sealed class SuiteLocationSyncSeeder(
     IServiceScopeFactory scopeFactory,
     ILogger<SuiteLocationSyncSeeder> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        BackgroundMigratorHost.QueueAsync(
+            logger,
+            nameof(SuiteLocationSyncSeeder),
+            RunAsync,
+            cancellationToken);
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         var docs = await context.SuiteSubscriptions
             .Find(FilterDefinition<SuiteSubscriptionDocument>.Empty)

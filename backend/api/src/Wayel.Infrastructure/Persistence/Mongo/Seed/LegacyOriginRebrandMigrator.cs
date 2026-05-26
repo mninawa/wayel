@@ -28,7 +28,14 @@ internal sealed class LegacyOriginRebrandMigrator(
     /// stored in Location by accident.</summary>
     private const string LegacyCityPrefix = "Midrand";
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        BackgroundMigratorHost.QueueAsync(
+            logger,
+            nameof(LegacyOriginRebrandMigrator),
+            RunAsync,
+            cancellationToken);
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         var filter = Builders<ShipmentTrackingEventDocument>.Filter.Regex(
             x => x.Location,

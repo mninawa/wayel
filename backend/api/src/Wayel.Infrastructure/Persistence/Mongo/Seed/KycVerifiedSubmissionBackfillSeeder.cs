@@ -17,7 +17,14 @@ internal sealed class KycVerifiedSubmissionBackfillSeeder(
     IServiceScopeFactory scopeFactory,
     ILogger<KycVerifiedSubmissionBackfillSeeder> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        BackgroundMigratorHost.QueueAsync(
+            logger,
+            nameof(KycVerifiedSubmissionBackfillSeeder),
+            RunAsync,
+            cancellationToken);
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var submissions = scope.ServiceProvider.GetRequiredService<IKycSubmissionRepository>();

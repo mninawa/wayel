@@ -31,7 +31,14 @@ internal sealed class MockParcelDataCleanupMigrator(
     MongoContext context,
     ILogger<MockParcelDataCleanupMigrator> logger) : IHostedService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        BackgroundMigratorHost.QueueAsync(
+            logger,
+            nameof(MockParcelDataCleanupMigrator),
+            RunAsync,
+            cancellationToken);
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         var parcelIds = AllDemoParcelIds().ToArray();
         var shipmentIds = AllDemoShipmentIds().ToArray();
