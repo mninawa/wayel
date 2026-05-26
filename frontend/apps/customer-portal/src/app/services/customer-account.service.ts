@@ -20,7 +20,6 @@ import type {
 } from '../models/customer-account.models';
 import { BorderboxApiService } from './borderbox-api.service';
 import { CustomerAccountApiService } from './customer-account-api.service';
-import { WelcomeIntentService } from './welcome-intent.service';
 
 /** Wayel ProblemDetails `type` for "the signed-in user is no longer in the API". */
 const USER_NOT_FOUND_TYPE = 'https://wayel.dev/errors/user.not_found';
@@ -30,6 +29,11 @@ export interface JourneySnapshot {
   profileComplete: boolean;
   suiteEligible: boolean;
   hasSuite: boolean;
+  /**
+   * True when the customer's last action on the plan picker was "Pay later".
+   * Read from the server-persisted intent embedded in the /account response.
+   */
+  hasPayLaterIntent: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,7 +42,6 @@ export class CustomerAccountService {
   private readonly api = inject(CustomerAccountApiService);
   private readonly borderboxApi = inject(BorderboxApiService);
   private readonly bffAuth = inject(BffAuthService);
-  private readonly welcomeIntent = inject(WelcomeIntentService);
 
   readonly account = signal<CustomerAccount | null>(null);
 
@@ -59,9 +62,15 @@ export class CustomerAccountService {
         profileComplete: acc.profileComplete,
         suiteEligible: acc.suiteEligible,
         hasSuite: acc.hasSuite,
+        hasPayLaterIntent: acc.onboardingIntent?.kind === 'pay_later',
       };
     }
-    return { profileComplete: false, suiteEligible: false, hasSuite: false };
+    return {
+      profileComplete: false,
+      suiteEligible: false,
+      hasSuite: false,
+      hasPayLaterIntent: false,
+    };
   }
 
   /**
@@ -76,9 +85,7 @@ export class CustomerAccountService {
     const s = snapshot ?? this.getJourneySnapshot();
     if (!s.profileComplete) return '/onboarding/complete-profile';
     if (!s.hasSuite) {
-      return this.welcomeIntent.hasPayLaterIntent()
-        ? '/welcome'
-        : '/onboarding/choose-suite-plan';
+      return s.hasPayLaterIntent ? '/welcome' : '/onboarding/choose-suite-plan';
     }
     return '/dashboard';
   }

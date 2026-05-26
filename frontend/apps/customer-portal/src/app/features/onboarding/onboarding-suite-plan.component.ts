@@ -308,14 +308,26 @@ export class OnboardingSuitePlanComponent implements OnInit {
   }
 
   /**
-   * Defer activation: remember the intent (so future sign-ins land on
-   * <code>/welcome</code> instead of bouncing back here) and route the
-   * customer to the product-explainer page where they can pick the plan
-   * and pay when they're ready.
+   * Defer activation: record the intent on the backend (so future sign-ins
+   * land on <code>/welcome</code> instead of bouncing back here) and route
+   * the customer to the product-explainer page where they can pick the plan
+   * and pay when they're ready. Optimistic: we navigate immediately and
+   * surface the error inline if the round-trip fails.
    */
   payLater(): void {
-    this.welcomeIntent.markPayLater();
-    void this.router.navigateByUrl('/welcome');
+    this.busy.set(true);
+    this.error.set(null);
+    const plan = this.selectedPlanDto();
+    this.welcomeIntent.markPayLater(plan?.id ?? null).subscribe({
+      next: () => {
+        this.busy.set(false);
+        void this.router.navigateByUrl('/welcome');
+      },
+      error: (err: unknown) => {
+        this.busy.set(false);
+        this.error.set(this.humanizeError(err));
+      },
+    });
   }
 
   /** Cosmetic price label for the static cards before the catalogue lands. */

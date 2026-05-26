@@ -11,6 +11,7 @@ import type {
   KycDocumentInfo,
   KycDocumentSide,
   KycDocumentUploadTicket,
+  OnboardingIntent,
   PickupBranch,
   DeliveryMethod,
   IdDocumentType,
@@ -29,6 +30,15 @@ interface WireCustomerAccount {
   profileComplete: boolean;
   suiteEligible: boolean;
   hasSuite: boolean;
+  onboardingIntent: WireOnboardingIntent | null;
+}
+
+interface WireOnboardingIntent {
+  kind: string;
+  createdAtUtc: string;
+  lastSeenAtUtc: string;
+  planIdAtSignal: string | null;
+  planLabelAtSignal: string | null;
 }
 
 interface WireProfile {
@@ -264,6 +274,19 @@ export class CustomerAccountApiService {
       )
       .pipe(map(mapWireAccount));
   }
+
+  markPayLaterIntent(planId?: string | null): Observable<OnboardingIntent> {
+    return this.http
+      .post<WireOnboardingIntent>(`${this.base}/borderbox/onboarding/pay-later`, {
+        planId: planId || null,
+      })
+      .pipe(map(mapWireIntent));
+  }
+
+  clearPayLaterIntent(): Observable<void> {
+    return this.http
+      .delete<void>(`${this.base}/borderbox/onboarding/pay-later`);
+  }
 }
 
 function mapWireAccount(w: WireCustomerAccount): CustomerAccount {
@@ -280,6 +303,17 @@ function mapWireAccount(w: WireCustomerAccount): CustomerAccount {
     profileComplete: w.profileComplete,
     suiteEligible: w.suiteEligible,
     hasSuite: w.hasSuite,
+    onboardingIntent: w.onboardingIntent ? mapWireIntent(w.onboardingIntent) : null,
+  };
+}
+
+function mapWireIntent(w: WireOnboardingIntent): OnboardingIntent {
+  return {
+    kind: 'pay_later',
+    createdAtUtc: w.createdAtUtc,
+    lastSeenAtUtc: w.lastSeenAtUtc,
+    planIdAtSignal: w.planIdAtSignal ?? null,
+    planLabelAtSignal: w.planLabelAtSignal ?? null,
   };
 }
 

@@ -108,6 +108,7 @@ export function accountFixture(
     profileComplete: true,
     suiteEligible: false,
     hasSuite: true,
+    onboardingIntent: null,
   };
 
   if (journey === 'profileIncomplete') {

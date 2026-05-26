@@ -108,6 +108,7 @@ export const guestOnlyWithJourneyGuard: CanActivateFn = () => {
           profileComplete: acc.profileComplete,
           suiteEligible: acc.suiteEligible,
           hasSuite: acc.hasSuite,
+          hasPayLaterIntent: acc.onboardingIntent?.kind === 'pay_later',
         }),
       ]),
     ),

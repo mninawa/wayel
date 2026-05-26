@@ -86,6 +86,15 @@ export interface NotificationPreferences {
   marketing: boolean;
 }
 
+export interface OnboardingIntent {
+  /** Currently the only kind. Discriminator left as a string for future expansion. */
+  kind: 'pay_later';
+  createdAtUtc: string;
+  lastSeenAtUtc: string;
+  planIdAtSignal: string | null;
+  planLabelAtSignal: string | null;
+}
+
 export interface CustomerAccount {
   profile: CustomerProfile;
   /** Null until the customer completes suite checkout. */
@@ -96,6 +105,13 @@ export interface CustomerAccount {
   /** Profile is complete and no suite has been assigned yet. */
   suiteEligible: boolean;
   hasSuite: boolean;
+  /**
+   * Server-persisted onboarding intent. Today this is only the "pay later"
+   * branch — set when a customer defers suite payment during onboarding and
+   * cleared automatically by the suite-checkout completion handler. Null when
+   * there is no active intent (the SPA suppresses resolved intents).
+   */
+  onboardingIntent: OnboardingIntent | null;
 }
 
 export interface UpdateProfileRequest {

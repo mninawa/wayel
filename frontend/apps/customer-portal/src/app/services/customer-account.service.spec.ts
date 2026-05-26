@@ -2,28 +2,26 @@ import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { AccountSessionService } from '@wayel/shared/services/account-session.service';
 import { accountFixture, FakeAccountSessionService } from '../../testing/fixtures';
-import type { CustomerAccount } from '../models/customer-account.models';
+import type { CustomerAccount, OnboardingIntent } from '../models/customer-account.models';
 import { BorderboxApiService } from './borderbox-api.service';
 import { CustomerAccountApiService } from './customer-account-api.service';
 import { CustomerAccountService } from './customer-account.service';
-import { WelcomeIntentService } from './welcome-intent.service';
 
-/**
- * In-memory stand-in so journey tests don't depend on a real
- * <code>localStorage</code> being clean between specs.
- */
-class FakeWelcomeIntent implements Pick<WelcomeIntentService, 'markPayLater' | 'clear' | 'hasPayLaterIntent'> {
-  private flag = false;
-  markPayLater(): void { this.flag = true; }
-  clear(): void { this.flag = false; }
-  hasPayLaterIntent(): boolean { return this.flag; }
+/** Mint a freshly-stamped pay-later intent for journey tests. */
+function payLaterIntent(): OnboardingIntent {
+  return {
+    kind: 'pay_later',
+    createdAtUtc: '2026-01-01T00:00:00.000Z',
+    lastSeenAtUtc: '2026-01-01T00:00:00.000Z',
+    planIdAtSignal: null,
+    planLabelAtSignal: null,
+  };
 }
 
 describe('CustomerAccountService', () => {
   let api: jasmine.SpyObj<CustomerAccountApiService>;
   let borderbox: jasmine.SpyObj<BorderboxApiService>;
   let session: FakeAccountSessionService;
-  let welcomeIntent: FakeWelcomeIntent;
   let service: CustomerAccountService;
 
   beforeEach(() => {
@@ -38,7 +36,6 @@ describe('CustomerAccountService', () => {
     ]);
     borderbox = jasmine.createSpyObj<BorderboxApiService>('BorderboxApiService', ['activateSuite']);
     session = new FakeAccountSessionService();
-    welcomeIntent = new FakeWelcomeIntent();
 
     TestBed.configureTestingModule({
       providers: [
@@ -46,7 +43,6 @@ describe('CustomerAccountService', () => {
         { provide: CustomerAccountApiService, useValue: api },
         { provide: BorderboxApiService, useValue: borderbox },
         { provide: AccountSessionService, useValue: session },
-        { provide: WelcomeIntentService, useValue: welcomeIntent },
       ],
     });
     service = TestBed.inject(CustomerAccountService);
@@ -58,6 +54,7 @@ describe('CustomerAccountService', () => {
         profileComplete: false,
         suiteEligible: false,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
     });
 
@@ -67,7 +64,15 @@ describe('CustomerAccountService', () => {
         profileComplete: true,
         suiteEligible: true,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
+    });
+
+    it('surfaces a pay-later intent from the account DTO', () => {
+      service.account.set(
+        accountFixture({ journey: 'suitePending', onboardingIntent: payLaterIntent() }),
+      );
+      expect(service.getJourneySnapshot().hasPayLaterIntent).toBeTrue();
     });
   });
 
@@ -85,19 +90,18 @@ describe('CustomerAccountService', () => {
     it('sends profile-complete-no-suite users to /welcome when they chose pay-later', () => {
       // Critical: customers who clicked "Pay later" on the onboarding plan
       // page must NOT be bounced back to that page on subsequent sign-ins —
-      // otherwise the choice was meaningless. The flag is cleared by the
-      // checkout-complete page once Paystack confirms the payment.
-      service.account.set(accountFixture({ journey: 'suitePending' }));
-      welcomeIntent.markPayLater();
+      // otherwise the choice was meaningless. The intent is cleared by the
+      // backend on successful payment.
+      service.account.set(
+        accountFixture({ journey: 'suitePending', onboardingIntent: payLaterIntent() }),
+      );
       expect(service.getPostAuthRoute()).toBe('/welcome');
     });
 
-    it('ignores the pay-later flag once the suite is active', () => {
-      // The flag is supposed to be cleared on successful payment, but if a
-      // stale flag ever survives we still want hasSuite to win — the
-      // customer has clearly already paid.
-      service.account.set(accountFixture()); // suite is active
-      welcomeIntent.markPayLater();
+    it('ignores a stale pay-later intent once the suite is active', () => {
+      // The backend resolves the intent the moment payment lands; this
+      // guards against a brief window where both states are visible.
+      service.account.set(accountFixture({ onboardingIntent: payLaterIntent() }));
       expect(service.getPostAuthRoute()).toBe('/dashboard');
     });
 
@@ -112,6 +116,7 @@ describe('CustomerAccountService', () => {
         profileComplete: false,
         suiteEligible: false,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
       expect(route).toBe('/onboarding/complete-profile');
     });

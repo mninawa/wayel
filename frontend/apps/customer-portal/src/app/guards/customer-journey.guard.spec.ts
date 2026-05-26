@@ -90,6 +90,7 @@ describe('customer-journey guards', () => {
         profileComplete: false,
         suiteEligible: false,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(profileOnboardingGuard));
@@ -102,6 +103,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: false,
         hasSuite: true,
+        hasPayLaterIntent: false,
       });
       journey.getPostAuthRoute.and.returnValue('/dashboard');
 
@@ -117,6 +119,7 @@ describe('customer-journey guards', () => {
         profileComplete: false,
         suiteEligible: false,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(suitePlanOnboardingGuard));
@@ -129,6 +132,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: false,
         hasSuite: true,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(suitePlanOnboardingGuard));
@@ -141,6 +145,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: true,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(suitePlanOnboardingGuard));
@@ -155,6 +160,7 @@ describe('customer-journey guards', () => {
         profileComplete: false,
         suiteEligible: false,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(profileCompleteGuard));
@@ -167,6 +173,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: false,
         hasSuite: true,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(profileCompleteGuard));
@@ -181,6 +188,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: true,
         hasSuite: false,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(portalReadyGuard));
@@ -193,6 +201,7 @@ describe('customer-journey guards', () => {
         profileComplete: true,
         suiteEligible: false,
         hasSuite: true,
+        hasPayLaterIntent: false,
       });
 
       const result = await resolveResult(runGuard(portalReadyGuard));
@@ -218,6 +227,7 @@ describe('customer-journey guards', () => {
         profileComplete: acc.profileComplete,
         suiteEligible: acc.suiteEligible,
         hasSuite: acc.hasSuite,
+        hasPayLaterIntent: acc.onboardingIntent?.kind === 'pay_later',
       });
     });
   });
