@@ -5,26 +5,24 @@ namespace Wayel.Application.BorderBox;
 
 internal static partial class QuoteCheckoutBilling
 {
-    public static string BuildPaystackReference(QuoteId quoteId, int attemptCount) =>
-        attemptCount == 0
-            ? $"QUO-{quoteId.Value.ToString("N")[..12].ToUpperInvariant()}"
-            : $"{NormalizePaystackReference($"QUO-{quoteId.Value.ToString("N")[..8]}")}-P{attemptCount + 1}";
+    /// <summary>
+    /// Paystack reference shape: <c>QUO-{quoteId8}-{attemptSalt}</c>. The
+    /// random per-attempt salt is what prevents Paystack from rejecting a
+    /// retry with <c>Duplicate Transaction Reference</c> after a failed or
+    /// abandoned initiate. The quote-id prefix stays in for ops triage.
+    /// </summary>
+    public static string BuildPaystackReference(QuoteId quoteId)
+    {
+        var prefix = NormalizePaystackReference($"QUO-{quoteId.Value.ToString("N")[..8].ToUpperInvariant()}");
+        return $"{prefix}-{SuiteCheckoutBilling.GenerateAttemptSalt()}";
+    }
 
     /// <summary>
-    /// MoMo requires the X-Reference-Id to be a valid RFC 4122 UUID. We derive it
-    /// deterministically from the quote id + attempt so retries don't collide.
+    /// MoMo's <c>X-Reference-Id</c> must be a fresh RFC 4122 UUID per attempt.
+    /// Each call from a retry is treated as a brand-new logical request, so
+    /// returning a fresh GUID is both correct and safe.
     /// </summary>
-    public static string BuildMomoReference(QuoteId quoteId, int attemptCount)
-    {
-        if (attemptCount == 0)
-        {
-            return quoteId.Value.ToString();
-        }
-        // Bump the LSB so retries get a distinct (still v4-ish) UUID.
-        var bytes = quoteId.Value.ToByteArray();
-        bytes[15] = (byte)(bytes[15] ^ (attemptCount & 0xFF));
-        return new Guid(bytes).ToString();
-    }
+    public static string BuildMomoReference() => Guid.NewGuid().ToString();
 
     public static string NormalizePaystackReference(string value)
     {

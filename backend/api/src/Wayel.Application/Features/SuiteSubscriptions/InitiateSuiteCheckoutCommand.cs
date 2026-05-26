@@ -102,9 +102,13 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
             return Error.Validation("suite_platform.capacity_exhausted", ex.Message);
         }
 
+        // Renewal counter is purely cosmetic — it lets ops eyeball whether a
+        // reference belongs to a first/second/third paid period. The uniqueness
+        // that prevents Paystack's "Duplicate Transaction Reference" failure
+        // is the random salt baked in by BuildPaystackReference itself.
         var completedPayments = await checkoutPayments.CountCompletedForUserAsync(user.Id, cancellationToken);
         var reference = providerKey == PaymentProviders.Momo
-            ? SuiteCheckoutBilling.BuildMomoReference(suiteNumber, completedPayments)
+            ? SuiteCheckoutBilling.BuildMomoReference()
             : SuiteCheckoutBilling.BuildPaystackReference(suiteNumber, completedPayments);
 
         var amountMinor = ToMinorUnits(plan.PriceZar);

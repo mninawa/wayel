@@ -121,11 +121,13 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
         var pricing = QuotePricing.Compute(loaded, quote.DeliveryMethod, config);
         var amountMinor = InitiateSuiteCheckoutCommandHandler.ToMinorUnits(pricing.TotalLandedCost);
 
-        var pending = await checkoutPayments.GetPendingForQuoteAsync(quote.Id, cancellationToken);
-        var attemptCount = pending is null ? 0 : 1;
+        // The reference no longer needs to encode an attempt counter — the
+        // random per-attempt salt in BuildPaystackReference (and the fresh
+        // GUID returned by BuildMomoReference) is what stops Paystack from
+        // rejecting retries with "Duplicate Transaction Reference".
         var reference = providerKey == PaymentProviders.Momo
-            ? QuoteCheckoutBilling.BuildMomoReference(quote.Id, attemptCount)
-            : QuoteCheckoutBilling.BuildPaystackReference(quote.Id, attemptCount);
+            ? QuoteCheckoutBilling.BuildMomoReference()
+            : QuoteCheckoutBilling.BuildPaystackReference(quote.Id);
 
         var msisdn = string.IsNullOrWhiteSpace(request.PayerMsisdn) ? user.Phone : request.PayerMsisdn!.Trim();
 

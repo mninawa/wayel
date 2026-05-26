@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Wayel.Domain.SuiteSubscriptions;
 using Wayel.Domain.Users;
@@ -21,23 +22,35 @@ internal static partial class SuiteCheckoutBilling
     }
 
     /// <summary>
-    /// Paystack reference: suite number for first payment, then suite number + renewal suffix.
+    /// Paystack reference shape: <c>{suite}[-R{renewal#}]-{attemptSalt}</c>.
+    ///
+    /// <para>
+    /// Paystack rejects any reference it has seen before with
+    /// <c>Duplicate Transaction Reference</c>, so a deterministic reference
+    /// (the old shape) bricks every retry after a single failed/abandoned
+    /// initiate. The random per-attempt salt is what makes retries safe;
+    /// the optional <c>-R{n}</c> chunk is purely cosmetic / for ops triage
+    /// so a quick glance at a reference still tells you which renewal it
+    /// belonged to.
+    /// </para>
     /// </summary>
-    public static string BuildPaystackReference(string suiteNumber, int completedPaymentCount) =>
-        completedPaymentCount == 0
-            ? NormalizePaystackReference(suiteNumber)
-            : $"{NormalizePaystackReference(suiteNumber)}-R{completedPaymentCount + 1}";
-
-    /// <summary>MoMo requires a UUID. Derive deterministically from the suite number + renewal count.</summary>
-    public static string BuildMomoReference(string suiteNumber, int completedPaymentCount)
+    public static string BuildPaystackReference(string suiteNumber, int completedPaymentCount)
     {
-        var seed = $"{suiteNumber}-R{completedPaymentCount}";
-        Span<byte> bytes = stackalloc byte[16];
-        System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(seed)).AsSpan(0, 16).CopyTo(bytes);
-        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x40); // version 4
-        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80); // variant 1
-        return new Guid(bytes).ToString();
+        var prefix = NormalizePaystackReference(suiteNumber);
+        var renewalSuffix = completedPaymentCount == 0
+            ? string.Empty
+            : $"-R{completedPaymentCount + 1}";
+        return $"{prefix}{renewalSuffix}-{GenerateAttemptSalt()}";
     }
+
+    /// <summary>
+    /// MoMo's <c>X-Reference-Id</c> must be a fresh RFC 4122 UUID per attempt
+    /// — same reasoning as the Paystack salt above. We used to derive this
+    /// deterministically from the suite number so the API was idempotent on
+    /// retries, but in practice that meant a retry after a failed call kept
+    /// hitting the same cached failure.
+    /// </summary>
+    public static string BuildMomoReference() => Guid.NewGuid().ToString();
 
     public static string NormalizePaystackReference(string suiteNumber)
     {
@@ -50,6 +63,13 @@ internal static partial class SuiteCheckoutBilling
         var normalized = InvalidPaystackReferenceChars().Replace(trimmed, "-");
         return normalized.Length <= 100 ? normalized : normalized[..100];
     }
+
+    /// <summary>
+    /// 8-char lower-hex random tag, e.g. <c>"a1b2c3d4"</c>. Cryptographically
+    /// random so two near-simultaneous attempts can't collide.
+    /// </summary>
+    internal static string GenerateAttemptSalt() =>
+        Convert.ToHexString(RandomNumberGenerator.GetBytes(4)).ToLowerInvariant();
 
     [GeneratedRegex(@"[^a-zA-Z0-9\-_\.]")]
     private static partial Regex InvalidPaystackReferenceChars();
