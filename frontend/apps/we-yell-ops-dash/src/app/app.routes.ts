@@ -227,6 +227,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'ops/onboarding',
+    title: 'Onboarding funnel',
+    loadComponent: () =>
+      import('./features/onboarding/onboarding-funnel.component').then(
+        (m) => m.OnboardingFunnelComponent,
+      ),
+  },
+  {
     path: 'ops/settings',
     title: 'Team & access',
     loadComponent: () =>

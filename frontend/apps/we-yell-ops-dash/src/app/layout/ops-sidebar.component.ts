@@ -185,6 +185,7 @@ export class OpsSidebarComponent implements OnInit {
     { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts' },
     { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work' },
     { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium' },
+    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune' },
     { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user' },
     { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping' },
     { path: '/ops/settings', label: 'Settings', icon: 'settings' },
