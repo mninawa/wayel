@@ -1,4 +1,57 @@
-@if (detail(); as d) {
+@if (deleteResult(); as r) {
+  <div class="account-page">
+    <a [routerLink]="routes.list" class="back-link">← Accounts &amp; Suites</a>
+
+    <header class="page-header">
+      <div>
+        <p class="customer-meta">Account erased · Ops action</p>
+        <h1>Account deleted</h1>
+        <p class="page-subtitle">
+          {{ r.displayName }} ({{ r.email }}) — and everything they owned — has been removed from
+          the platform.
+        </p>
+      </div>
+      <span class="ops-badge">Ops view</span>
+    </header>
+
+    <section class="panel delete-receipt">
+      <header class="panel-head">
+        <div class="panel-title">
+          <span class="material-icons-outlined icon-tile red">delete_sweep</span>
+          <div>
+            <h2>Erase report</h2>
+            <p>{{ r.totalDependents | number }} dependent row(s) removed across the platform.</p>
+          </div>
+        </div>
+      </header>
+      <dl class="receipt-grid">
+        <div><dt>Parcels</dt><dd>{{ r.counts.parcels | number }}</dd></div>
+        <div><dt>Shipments</dt><dd>{{ r.counts.shipments | number }}</dd></div>
+        <div><dt>Quotes</dt><dd>{{ r.counts.quotes | number }}</dd></div>
+        <div><dt>Invoices</dt><dd>{{ r.counts.invoices | number }}</dd></div>
+        <div><dt>Tracking events</dt><dd>{{ r.counts.trackingEvents | number }}</dd></div>
+        <div><dt>Warehouse moves</dt><dd>{{ r.counts.warehouseMovements | number }}</dd></div>
+        <div><dt>Notifications</dt><dd>{{ r.counts.notifications | number }}</dd></div>
+        <div><dt>Support tickets</dt><dd>{{ r.counts.supportTickets | number }}</dd></div>
+        <div><dt>Delivery addresses</dt><dd>{{ r.counts.addresses | number }}</dd></div>
+        <div><dt>Suite subscriptions</dt><dd>{{ r.counts.suiteSubscriptions | number }}</dd></div>
+        <div><dt>Payment records</dt><dd>{{ r.counts.paymentRecords | number }}</dd></div>
+        <div><dt>KYC submissions</dt><dd>{{ r.counts.kycSubmissions | number }}</dd></div>
+        <div><dt>Other dependents</dt><dd>{{ r.counts.otherDependents | number }}</dd></div>
+      </dl>
+      <p class="receipt-fine">
+        The audit log entry for this deletion was preserved (action <code>customer.account.deleted</code>).
+        Storage blobs (invoices, KYC photos) are best-effort — re-run cleanup if any orphan blobs remain.
+      </p>
+      <div class="receipt-actions">
+        <button type="button" class="ops-btn ops-btn-primary" (click)="returnToAccountsList()">
+          Back to Accounts &amp; Suites
+        </button>
+      </div>
+    </section>
+  </div>
+} @else if (detail()) {
+  @let d = detail()!;
   <div class="account-page">
     <a [routerLink]="routes.list" class="back-link">← Accounts &amp; Suites</a>
 
@@ -856,8 +909,100 @@
             </ul>
             <a href="#" class="help-link">Visit Help Center <span class="material-icons-outlined">arrow_forward</span></a>
           </section>
+
+          <section class="panel danger-zone">
+            <header class="panel-head">
+              <div class="panel-title">
+                <span class="material-icons-outlined icon-tile red">warning</span>
+                <div>
+                  <h2>Danger zone</h2>
+                  <p>Destructive actions that cannot be undone.</p>
+                </div>
+              </div>
+            </header>
+            <div class="danger-row">
+              <div>
+                <strong>Delete this account</strong>
+                <p>
+                  Permanently removes the customer and <em>all</em> of their data — parcels,
+                  shipments, quotes, invoices, KYC submissions, addresses, suite subscriptions,
+                  payment records, in-app notifications and support tickets. The audit log
+                  entry for this action is preserved.
+                </p>
+              </div>
+              <button type="button" class="ops-btn ops-btn-danger" (click)="openDeleteModal()">
+                <span class="material-icons-outlined">delete_forever</span>
+                Delete account
+              </button>
+            </div>
+          </section>
         </div>
       }
+    }
+
+    @if (showDeleteModal()) {
+      <div class="dz-backdrop" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+        <div class="dz-modal">
+          <header>
+            <span class="material-icons-outlined icon-tile red">delete_forever</span>
+            <div>
+              <h2 id="delete-account-title">Delete this account?</h2>
+              <p>
+                {{ d.account.profile.displayName }} (<strong>{{ d.account.profile.email }}</strong>)
+                and everything they own will be permanently removed. This cannot be undone.
+              </p>
+            </div>
+          </header>
+
+          <ul class="dz-list">
+            <li><span class="material-icons-outlined">inventory_2</span> Parcels, invoices &amp; ops history</li>
+            <li><span class="material-icons-outlined">local_shipping</span> Shipments, tracking events &amp; collection records</li>
+            <li><span class="material-icons-outlined">receipt_long</span> Quotes, checkout payments &amp; payment invoices</li>
+            <li><span class="material-icons-outlined">home_work</span> Suite subscription &amp; saved delivery addresses</li>
+            <li><span class="material-icons-outlined">notifications</span> In-app notifications &amp; support tickets</li>
+            <li><span class="material-icons-outlined">verified_user</span> KYC submissions &amp; upload sessions</li>
+            <li><span class="material-icons-outlined">vpn_key</span> Refresh tokens &amp; linked sign-in providers</li>
+          </ul>
+
+          <label class="dz-confirm">
+            <span>
+              Type <code>{{ d.account.profile.email }}</code> below to confirm.
+            </span>
+            <input
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              [value]="deleteConfirmInput()"
+              (input)="deleteConfirmInput.set($any($event.target).value)"
+              [placeholder]="d.account.profile.email"
+              [disabled]="deleting()"
+            />
+          </label>
+
+          @if (deleteError()) {
+            <p class="dz-error">{{ deleteError() }}</p>
+          }
+
+          <footer class="dz-actions">
+            <button
+              type="button"
+              class="ops-btn ops-btn-outline"
+              (click)="closeDeleteModal()"
+              [disabled]="deleting()"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="ops-btn ops-btn-danger"
+              (click)="submitDelete()"
+              [disabled]="!deleteConfirmMatches() || deleting()"
+            >
+              {{ deleting() ? 'Deleting…' : 'Delete forever' }}
+            </button>
+          </footer>
+        </div>
+      </div>
     }
   </div>
 } @else if (busy()) {

@@ -197,6 +197,32 @@ export interface CustomerAddressActivityItemDto {
   statusTone: string;
 }
 
+export interface DeletedAccountCountsDto {
+  parcels: number;
+  shipments: number;
+  quotes: number;
+  invoices: number;
+  notifications: number;
+  supportTickets: number;
+  addresses: number;
+  suiteSubscriptions: number;
+  paymentRecords: number;
+  kycSubmissions: number;
+  trackingEvents: number;
+  warehouseMovements: number;
+  otherDependents: number;
+}
+
+export interface DeleteCustomerAccountResultDto {
+  userId: string;
+  email: string;
+  displayName: string;
+  deletedAtUtc: string;
+  userDeleted: boolean;
+  totalDependents: number;
+  counts: DeletedAccountCountsDto;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CustomerOpsApiService {
   private readonly http = inject(HttpClient);
@@ -245,6 +271,22 @@ export class CustomerOpsApiService {
   getAddressActivity(userId: string, limit = 20): Observable<CustomerAddressActivityItemDto[]> {
     return this.http.get<CustomerAddressActivityItemDto[]>(
       `${this.base}/${userId}/address-activity?limit=${limit}`,
+      { headers: buildOpsHeaders() },
+    );
+  }
+
+  /**
+   * Hard-delete a customer and every row they own. `confirmEmail` must
+   * exactly match (case-insensitive) the customer's account email — the
+   * backend enforces this as a guardrail.
+   */
+  deleteAccount(
+    userId: string,
+    confirmEmail: string,
+  ): Observable<DeleteCustomerAccountResultDto> {
+    const q = new URLSearchParams({ confirmEmail });
+    return this.http.delete<DeleteCustomerAccountResultDto>(
+      `${this.base}/${userId}?${q}`,
       { headers: buildOpsHeaders() },
     );
   }

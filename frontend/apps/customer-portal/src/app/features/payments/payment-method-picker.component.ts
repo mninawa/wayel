@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import {
   BorderboxApiService,
   type MomoMsisdnValidationDto,
@@ -404,9 +405,7 @@ export class PaymentMethodPickerComponent implements OnInit {
     this.momoError.set(null);
     this.momoValidated.set(false);
     try {
-      const result = await this.firstFromObservable<MomoMsisdnValidationDto>(
-        this.api.validateMomoMsisdn(raw),
-      );
+      const result = await firstValueFrom(this.api.validateMomoMsisdn(raw));
       if (result.isValid) {
         this.momoMsisdn.set(result.msisdn);
         this.lastValidatedRaw = result.msisdn;
@@ -438,17 +437,5 @@ export class PaymentMethodPickerComponent implements OnInit {
       return;
     }
     this.choiceChange.emit(null);
-  }
-
-  private firstFromObservable<T>(obs: import('rxjs').Observable<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      const sub = obs.subscribe({
-        next: (v) => {
-          resolve(v);
-          sub.unsubscribe();
-        },
-        error: (e) => reject(e),
-      });
-    });
   }
 }

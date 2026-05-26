@@ -121,6 +121,26 @@ button {
   cursor: not-allowed;
 }
 
+.ops-btn-danger {
+  background: var(--ops-danger, #dc2626);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.ops-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.ops-btn-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ops-btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+}
+
 .ops-btn .material-icons-outlined {
   font-size: 18px;
 }

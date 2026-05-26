@@ -53,14 +53,14 @@ export class PaystackCheckoutService {
     try {
       await this.ensureScript();
     } catch {
-      window.location.href = init.authorizationUrl;
+      this.navigateTo(init.authorizationUrl);
       // Fall through with a "cancelled" so callers clear the busy flag if
       // the navigation is somehow blocked (e.g. popup blockers / extensions).
       return { status: 'cancelled' };
     }
 
     if (!window.PaystackPop) {
-      window.location.href = init.authorizationUrl;
+      this.navigateTo(init.authorizationUrl);
       return { status: 'cancelled' };
     }
 
@@ -92,10 +92,18 @@ export class PaystackCheckoutService {
             }),
         });
       } catch {
-        window.location.href = init.authorizationUrl;
+        this.navigateTo(init.authorizationUrl);
         settle({ status: 'cancelled' });
       }
     });
+  }
+
+  /**
+   * Test seam — wraps the `window.location.href` assignment so specs can
+   * verify the redirect target without actually navigating Karma's iframe.
+   */
+  protected navigateTo(url: string): void {
+    window.location.href = url;
   }
 
   private ensureScript(): Promise<void> {

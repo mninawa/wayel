@@ -8,9 +8,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   CustomerOpsApiService,
+  type DeleteCustomerAccountResultDto,
   type OpsCustomerAccountDetailDto,
   type SuitePaymentsOverviewDto,
   type SuitePlanDto,
@@ -108,6 +109,7 @@ function normalisePaymentStatus(raw: string): PaymentStatus {
 })
 export class AccountDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(CustomerOpsApiService);
   private readonly kycApi = inject(KycOpsApiService);
   private readonly session = inject(OpsSessionService);
@@ -235,6 +237,18 @@ export class AccountDetailComponent implements OnInit {
   billingStatusFilter = signal<'all' | PaymentStatus>('all');
   autoRenewEnabled = signal(false);
   selectedPlanOption = signal<string | null>(null);
+
+  readonly showDeleteModal = signal(false);
+  readonly deleteConfirmInput = signal('');
+  readonly deleting = signal(false);
+  readonly deleteError = signal<string | null>(null);
+  readonly deleteResult = signal<DeleteCustomerAccountResultDto | null>(null);
+
+  readonly deleteConfirmMatches = computed(() => {
+    const target = this.detail()?.account.profile.email?.trim().toLowerCase() ?? '';
+    const typed = this.deleteConfirmInput().trim().toLowerCase();
+    return target.length > 0 && typed === target;
+  });
 
   readonly planOptions = signal<PlanOption[]>([]);
   readonly planOptionsLoading = signal(false);
@@ -579,6 +593,47 @@ export class AccountDetailComponent implements OnInit {
 
   toggleNotifications(): void {
     this.notificationsOpen.update((v) => !v);
+  }
+
+  openDeleteModal(): void {
+    this.deleteError.set(null);
+    this.deleteConfirmInput.set('');
+    this.showDeleteModal.set(true);
+  }
+
+  closeDeleteModal(): void {
+    if (this.deleting()) return;
+    this.showDeleteModal.set(false);
+    this.deleteError.set(null);
+    this.deleteConfirmInput.set('');
+  }
+
+  submitDelete(): void {
+    const userId = this.detail()?.account.profile.userId;
+    const email = this.detail()?.account.profile.email;
+    if (!userId || !email) return;
+    if (!this.deleteConfirmMatches()) return;
+
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.api.deleteAccount(userId, email).subscribe({
+      next: (result) => {
+        this.deleting.set(false);
+        this.showDeleteModal.set(false);
+        this.deleteResult.set(result);
+        this.detail.set(null);
+        this.payments.set(null);
+        this.addressActivity.set([]);
+      },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(this.formatError(err));
+      },
+    });
+  }
+
+  returnToAccountsList(): void {
+    void this.router.navigateByUrl(this.routes.list);
   }
 
   private load(userId: string): void {

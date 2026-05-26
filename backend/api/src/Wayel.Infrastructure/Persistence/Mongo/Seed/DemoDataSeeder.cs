@@ -104,26 +104,6 @@ internal sealed class DemoDataSeeder(
             await context.Addresses.InsertManyAsync(bundle.Addresses, cancellationToken: cancellationToken);
         }
 
-        if (bundle.Parcels.Count > 0)
-        {
-            await context.Parcels.InsertManyAsync(bundle.Parcels, cancellationToken: cancellationToken);
-        }
-
-        if (bundle.Invoices.Count > 0)
-        {
-            await context.ParcelInvoices.InsertManyAsync(bundle.Invoices, cancellationToken: cancellationToken);
-        }
-
-        if (bundle.Shipments.Count > 0)
-        {
-            await context.Shipments.InsertManyAsync(bundle.Shipments, cancellationToken: cancellationToken);
-        }
-
-        if (bundle.Quotes.Count > 0)
-        {
-            await context.Quotes.InsertManyAsync(bundle.Quotes, cancellationToken: cancellationToken);
-        }
-
         if (bundle.Tickets.Count > 0)
         {
             await context.SupportTickets.InsertManyAsync(bundle.Tickets, cancellationToken: cancellationToken);

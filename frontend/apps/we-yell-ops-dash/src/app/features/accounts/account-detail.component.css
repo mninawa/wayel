@@ -1666,3 +1666,254 @@ code {
 .address-preview-note {
   margin-top: 0.25rem;
 }
+
+/* ---------------- Danger Zone ---------------- */
+
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 1.15rem;
+}
+
+.icon-tile.red {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.danger-zone {
+  border: 1px solid #fecaca;
+  background: linear-gradient(180deg, #fffafa 0%, #ffffff 100%);
+}
+
+.danger-zone .panel-title h2 {
+  color: #991b1b;
+}
+
+.danger-zone .panel-title p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #b91c1c;
+}
+
+.danger-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-top: 0.25rem;
+}
+
+.danger-row > div {
+  flex: 1;
+}
+
+.danger-row strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.danger-row p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.55;
+  max-width: 60ch;
+}
+
+@media (max-width: 720px) {
+  .danger-row {
+    flex-direction: column;
+  }
+}
+
+/* ---------------- Delete modal ---------------- */
+
+.dz-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 1.25rem;
+}
+
+.dz-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  width: 100%;
+  max-width: 520px;
+  padding: 1.4rem 1.5rem;
+  border: 1px solid #fecaca;
+}
+
+.dz-modal > header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.dz-modal > header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.dz-modal > header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.dz-modal > header p strong {
+  color: #0f172a;
+}
+
+.dz-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.95rem;
+  display: grid;
+  gap: 0.4rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.dz-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #7f1d1d;
+}
+
+.dz-list .material-icons-outlined {
+  font-size: 1rem;
+  color: #b91c1c;
+}
+
+.dz-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.dz-confirm span {
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.dz-confirm code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.dz-confirm input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  background: #f8fafc;
+}
+
+.dz-confirm input:focus-visible {
+  outline: 2px solid #b91c1c;
+  outline-offset: 1px;
+  border-color: transparent;
+  background: #fff;
+}
+
+.dz-confirm input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.dz-error {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+.dz-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ---------------- Erase report ---------------- */
+
+.delete-receipt {
+  border: 1px solid #e2e8f0;
+}
+
+.receipt-grid {
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem;
+}
+
+.receipt-grid > div {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.receipt-grid dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0 0 0.2rem;
+}
+
+.receipt-grid dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.receipt-fine {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.receipt-fine code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.75rem;
+  color: #0f172a;
+}
+
+.receipt-actions {
+  display: flex;
+  justify-content: flex-end;
+}

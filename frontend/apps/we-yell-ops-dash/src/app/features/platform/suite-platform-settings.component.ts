@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   SUITE_REGION_FLAGS,
   SuitePlatformApiService,
@@ -18,20 +18,26 @@ import {
   type UpdateSuitePlatformConfigRequest,
 } from '../../services/suite-platform-api.service';
 import { platformRoutes } from '../../types/platform.types';
+import { PricingEditorPanelComponent } from './pricing-editor-panel.component';
+
+export type PlatformConfigTab = 'suite' | 'pricing';
 
 @Component({
   selector: 'ops-suite-platform-settings',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, PricingEditorPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suite-platform-settings.component.html',
   styleUrl: './suite-platform-settings.component.css',
 })
 export class SuitePlatformSettingsComponent implements OnInit {
   private readonly api = inject(SuitePlatformApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly routes = platformRoutes;
   readonly regionFlags = SUITE_REGION_FLAGS;
+  readonly activeTab = signal<PlatformConfigTab>('suite');
 
   readonly regions = signal<SuitePlatformRegionSummaryDto[]>([]);
   readonly selectedRegionCode = signal('SZ');
@@ -97,7 +103,22 @@ export class SuitePlatformSettingsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const initialTab = this.route.snapshot.queryParamMap.get('tab');
+    if (initialTab === 'pricing' || initialTab === 'suite') {
+      this.activeTab.set(initialTab);
+    }
     this.loadRegions();
+  }
+
+  selectTab(tab: PlatformConfigTab): void {
+    if (this.activeTab() === tab) return;
+    this.activeTab.set(tab);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab === 'suite' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   selectRegion(regionCode: string): void {

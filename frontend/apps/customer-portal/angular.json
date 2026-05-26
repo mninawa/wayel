@@ -141,6 +141,7 @@
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.js",
             "inlineStyleLanguage": "scss",
             "assets": [
               {
@@ -152,6 +153,14 @@
               "src/styles.scss"
             ],
             "scripts": []
+          },
+          "configurations": {
+            "ci": {
+              "watch": false,
+              "browsers": "ChromeHeadlessCI",
+              "progress": true,
+              "codeCoverage": true
+            }
           }
         }
       }

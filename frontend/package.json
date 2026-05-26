@@ -20,7 +20,9 @@
     "build:ops-dash": "npm --workspace @weyell/we-yell-ops-dash run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:portal": "npm --workspace apps/customer-portal exec -- ng test --watch=false --browsers=ChromeHeadlessCI --progress=false",
+    "test:portal:watch": "npm --workspace apps/customer-portal exec -- ng test"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

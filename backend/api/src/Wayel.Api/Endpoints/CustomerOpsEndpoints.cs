@@ -42,6 +42,20 @@ public sealed class CustomerOpsEndpoints : IEndpointGroup
             (await mediator.Send(new GetOpsCustomerAccountQuery(userId), ct)).ToHttpResult())
             .WithName("GetOpsCustomerAccount");
 
+        // Hard-delete a customer and every row they own. Requires the caller
+        // to type the customer's email (matched case-insensitively) as a
+        // confirmation token to prevent fat-finger deletions. Sent as a
+        // query param to dodge DELETE-body interop issues across clients.
+        group.MapDelete("/{userId:guid}", async (
+            Guid userId,
+            string confirmEmail,
+            IMediator mediator,
+            CancellationToken ct) =>
+                (await mediator.Send(
+                    new DeleteOpsCustomerAccountCommand(userId, confirmEmail),
+                    ct)).ToHttpResult())
+            .WithName("DeleteOpsCustomerAccount");
+
         group.MapGet("/{userId:guid}/suite-payments", async (
             Guid userId,
             IMediator mediator,

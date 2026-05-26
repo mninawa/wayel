@@ -18,7 +18,14 @@ import { parcelOpsGuard } from './guards/parcel-ops.guard';
  * 4. Portal (/dashboard, …)
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [guestOnlyWithJourneyGuard],
+    title: 'WeYell — shop South Africa, ship to Eswatini',
+    loadComponent: () =>
+      import('./features/landing/landing.component').then((m) => m.LandingComponent),
+  },
 
   {
     path: 'sign-in',
