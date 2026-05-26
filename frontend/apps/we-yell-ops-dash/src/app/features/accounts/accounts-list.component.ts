@@ -7,6 +7,10 @@ import {
   type OpsCustomerAccountListItemDto,
 } from '../../services/customer-ops-api.service';
 import {
+  SuitePlatformApiService,
+  type SuiteNumberDuplicateGroupDto,
+} from '../../services/suite-platform-api.service';
+import {
   DESTINATION_COUNTRIES,
   KYC_STATUS_OPTIONS,
   SUITE_STATUS_OPTIONS,
@@ -23,6 +27,7 @@ import {
 })
 export class AccountsListComponent implements OnInit {
   private readonly api = inject(CustomerOpsApiService);
+  private readonly platformApi = inject(SuitePlatformApiService);
 
   readonly routes = accountRoutes;
   readonly kycOptions = KYC_STATUS_OPTIONS;
@@ -36,6 +41,11 @@ export class AccountsListComponent implements OnInit {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
+  readonly duplicateGroups = signal<SuiteNumberDuplicateGroupDto[]>([]);
+  readonly reassigningUserId = signal<string | null>(null);
+  readonly duplicateError = signal<string | null>(null);
+  readonly duplicateNotice = signal<string | null>(null);
+
   searchFilter = '';
   kycFilter = '';
   countryFilter = '';
@@ -43,6 +53,44 @@ export class AccountsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.refresh();
+    this.loadDuplicates();
+  }
+
+  loadDuplicates(): void {
+    this.platformApi.listDuplicates().subscribe({
+      next: (groups) => this.duplicateGroups.set(groups),
+      error: () => {
+        this.duplicateGroups.set([]);
+      },
+    });
+  }
+
+  reassign(userId: string, suiteNumber: string): void {
+    if (this.reassigningUserId() !== null) {
+      return;
+    }
+    this.reassigningUserId.set(userId);
+    this.duplicateError.set(null);
+    this.duplicateNotice.set(null);
+
+    this.platformApi.reassignSuiteNumber(userId).subscribe({
+      next: (res) => {
+        this.reassigningUserId.set(null);
+        this.duplicateNotice.set(
+          `Reassigned: ${res.previousSuiteNumber} → ${res.newSuiteNumber}`,
+        );
+        // Reload both lists so the operator sees the new state immediately
+        // rather than a stale duplicate row sitting under a "Reassigned" toast.
+        this.loadDuplicates();
+        this.refresh();
+      },
+      error: (err) => {
+        this.reassigningUserId.set(null);
+        this.duplicateError.set(
+          err?.error?.detail ?? err?.error?.title ?? 'Could not reassign suite number.',
+        );
+      },
+    });
   }
 
   refresh(): void {

@@ -71,3 +71,90 @@ code { font-size: 0.78rem; background: #f1f5f9; padding: 0.1rem 0.35rem; border-
 .empty, .loading { padding: 2rem; text-align: center; color: var(--ops-muted); }
 .empty .material-icons-outlined { font-size: 2.5rem; opacity: 0.45; display: block; margin-bottom: 0.5rem; }
 .ops-btn-sm { font-size: 0.78rem; padding: 0.35rem 0.65rem; }
+
+.dup-banner {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.dup-banner header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+.dup-banner header .material-icons-outlined {
+  color: #c2410c;
+  font-size: 1.5rem;
+}
+.dup-banner h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  color: #7c2d12;
+}
+.dup-banner header p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #9a3412;
+}
+.dup-toast {
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--ops-radius-sm);
+  font-size: 0.82rem;
+}
+.dup-toast.ok { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.dup-toast.err { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.dup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.dup-list > li {
+  background: #fff;
+  border: 1px solid #fed7aa;
+  border-radius: var(--ops-radius-sm);
+  padding: 0.65rem 0.85rem;
+}
+.dup-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+}
+.dup-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.dup-members > li {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  background: #fafaf9;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+.dup-member-id strong { display: block; }
+.dup-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ops-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dup-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+}
+.dup-tag.keep { background: #dcfce7; color: #15803d; }

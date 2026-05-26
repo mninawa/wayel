@@ -85,4 +85,40 @@ export class SuitePlatformApiService {
       headers: buildOpsHeaders(),
     });
   }
+
+  listDuplicates(): Observable<SuiteNumberDuplicateGroupDto[]> {
+    return this.http.get<SuiteNumberDuplicateGroupDto[]>(`${this.base}/duplicates`, {
+      headers: buildOpsHeaders(),
+    });
+  }
+
+  reassignSuiteNumber(userId: string): Observable<ReassignSuiteNumberResult> {
+    return this.http.post<ReassignSuiteNumberResult>(
+      `${this.base}/${userId}/reassign`,
+      {},
+      { headers: buildOpsHeaders() },
+    );
+  }
+}
+
+export interface SuiteNumberDuplicateGroupDto {
+  suiteNumber: string;
+  members: SuiteNumberDuplicateMemberDto[];
+}
+
+export interface SuiteNumberDuplicateMemberDto {
+  userId: string;
+  email: string;
+  displayName: string;
+  destinationCountry: string;
+  status: string;
+  startedAt: string | null;
+  expiresAt: string | null;
+  isCanonicalOwner: boolean;
+}
+
+export interface ReassignSuiteNumberResult {
+  userId: string;
+  previousSuiteNumber: string;
+  newSuiteNumber: string;
 }

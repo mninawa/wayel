@@ -50,6 +50,66 @@
     <p class="err-banner" role="alert">{{ error() }}</p>
   }
 
+  @if (duplicateGroups().length > 0) {
+    <section class="ops-card dup-banner" aria-labelledby="dup-title">
+      <header>
+        <span class="material-icons-outlined">report_problem</span>
+        <div>
+          <h2 id="dup-title">Duplicate suite numbers detected</h2>
+          <p>
+            {{ duplicateGroups().length }} suite number{{ duplicateGroups().length === 1 ? '' : 's' }}
+            assigned to more than one customer. The earliest sign-up keeps the number; reassign each later sign-up to claim a fresh one from the pool.
+          </p>
+        </div>
+      </header>
+
+      @if (duplicateNotice()) {
+        <p class="dup-toast ok">{{ duplicateNotice() }}</p>
+      }
+      @if (duplicateError()) {
+        <p class="dup-toast err">{{ duplicateError() }}</p>
+      }
+
+      <ul class="dup-list">
+        @for (group of duplicateGroups(); track group.suiteNumber) {
+          <li>
+            <div class="dup-group-head">
+              <code>{{ group.suiteNumber }}</code>
+              <span class="muted">{{ group.members.length }} accounts sharing this number</span>
+            </div>
+            <ul class="dup-members">
+              @for (m of group.members; track m.userId) {
+                <li>
+                  <div class="dup-member-id">
+                    <strong>{{ m.displayName }}</strong>
+                    <span class="sub">{{ m.email }}</span>
+                  </div>
+                  <span class="dup-status">{{ m.status }}</span>
+                  @if (m.isCanonicalOwner) {
+                    <span class="dup-tag keep">Keep — earliest sign-up</span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="ops-btn ops-btn-outline ops-btn-sm"
+                      (click)="reassign(m.userId, group.suiteNumber)"
+                      [disabled]="reassigningUserId() !== null"
+                    >
+                      @if (reassigningUserId() === m.userId) {
+                        Reassigning…
+                      } @else {
+                        Reassign
+                      }
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <section class="ops-card table-card">
     @if (busy() && items().length === 0) {
       <p class="loading">Loading accounts…</p>
