@@ -20,6 +20,7 @@ import type {
 } from '../models/customer-account.models';
 import { BorderboxApiService } from './borderbox-api.service';
 import { CustomerAccountApiService } from './customer-account-api.service';
+import { WelcomeIntentService } from './welcome-intent.service';
 
 /** Wayel ProblemDetails `type` for "the signed-in user is no longer in the API". */
 const USER_NOT_FOUND_TYPE = 'https://wayel.dev/errors/user.not_found';
@@ -37,6 +38,7 @@ export class CustomerAccountService {
   private readonly api = inject(CustomerAccountApiService);
   private readonly borderboxApi = inject(BorderboxApiService);
   private readonly bffAuth = inject(BffAuthService);
+  private readonly welcomeIntent = inject(WelcomeIntentService);
 
   readonly account = signal<CustomerAccount | null>(null);
 
@@ -62,10 +64,22 @@ export class CustomerAccountService {
     return { profileComplete: false, suiteEligible: false, hasSuite: false };
   }
 
+  /**
+   * Decides where to land a signed-in customer based on their current
+   * journey state. The "pay later" branch is what lets a customer who chose
+   * to defer activation come back to the explanatory <code>/welcome</code>
+   * page on subsequent sessions instead of being bounced repeatedly to the
+   * plan picker. Once they actually pay, <code>hasSuite</code> flips to true
+   * and the welcome detour is bypassed regardless of the flag.
+   */
   getPostAuthRoute(snapshot?: JourneySnapshot): string {
     const s = snapshot ?? this.getJourneySnapshot();
     if (!s.profileComplete) return '/onboarding/complete-profile';
-    if (!s.hasSuite) return '/onboarding/choose-suite-plan';
+    if (!s.hasSuite) {
+      return this.welcomeIntent.hasPayLaterIntent()
+        ? '/welcome'
+        : '/onboarding/choose-suite-plan';
+    }
     return '/dashboard';
   }
 

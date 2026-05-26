@@ -74,6 +74,23 @@ export const profileCompleteGuard: CanActivateFn = (_route, state) =>
     return true;
   });
 
+/**
+ * Lets profile-complete customers see the marketing-style welcome tour at
+ * <code>/welcome</code>. The page is meaningful both for new customers who
+ * chose "pay later" on the plan picker (no suite yet) and for fully-paid
+ * customers who want to revisit the explainer, so the only hard requirement
+ * is a complete profile. If the profile isn't done yet we bounce back to
+ * the profile step rather than dead-ending here.
+ */
+export const welcomePageGuard: CanActivateFn = (_route, state) =>
+  withAccountLoaded(state.url, (journey, router) => {
+    const snap = journey.getJourneySnapshot();
+    if (!snap.profileComplete) {
+      return router.createUrlTree(['/onboarding/complete-profile']);
+    }
+    return true;
+  });
+
 export const portalReadyGuard: CanActivateFn = (_route, state) =>
   withAccountLoaded(state.url, (journey, router) =>
     routeFromAccount(journey, router, state.url, true),

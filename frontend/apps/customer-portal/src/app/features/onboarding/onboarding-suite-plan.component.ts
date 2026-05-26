@@ -7,6 +7,7 @@ import {
 } from '../../services/borderbox-api.service';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { PaystackCheckoutService } from '../../services/paystack-checkout.service';
+import { WelcomeIntentService } from '../../services/welcome-intent.service';
 
 type PlanChoice = 'monthly' | 'quarterly';
 
@@ -90,7 +91,15 @@ type PlanChoice = 'monthly' | 'quarterly';
               }
 
               <div class="actions">
-                <button type="button" class="bb-btn bb-btn-outline" [disabled]="busy()">← Back</button>
+                <button
+                  type="button"
+                  class="bb-btn bb-btn-ghost pay-later"
+                  (click)="payLater()"
+                  [disabled]="busy()"
+                  title="Take the tour first and pay when you're ready"
+                >
+                  Pay later — explore first
+                </button>
                 <button
                   type="button"
                   class="bb-btn bb-btn-primary"
@@ -213,8 +222,25 @@ type PlanChoice = 'monthly' | 'quarterly';
       font-size: 0.85rem;
     }
     .lock-note { font-size: 0.78rem; color: var(--bb-muted); }
-    .actions { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
     .actions .bb-btn[disabled] { opacity: 0.65; cursor: not-allowed; }
+    .bb-btn-ghost.pay-later {
+      background: transparent;
+      border: 1px solid var(--bb-border);
+      color: var(--bb-muted);
+      font-weight: 600;
+    }
+    .bb-btn-ghost.pay-later:hover:not([disabled]) {
+      border-color: var(--bb-primary);
+      color: var(--bb-primary);
+    }
     .actions .bb-btn .spin { animation: spin 1s linear infinite; display: inline-block; margin-right: 0.25rem; font-size: 1rem !important; vertical-align: -0.18em; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .secure { text-align: right; font-size: 0.75rem; color: var(--bb-muted); margin: 0.35rem 0 0; }
@@ -236,6 +262,7 @@ export class OnboardingSuitePlanComponent implements OnInit {
   private readonly borderboxApi = inject(BorderboxApiService);
   private readonly accountApi = inject(CustomerAccountService);
   private readonly paystack = inject(PaystackCheckoutService);
+  private readonly welcomeIntent = inject(WelcomeIntentService);
 
   readonly plan = signal<PlanChoice>('quarterly');
   readonly plans = signal<readonly SuitePlanDto[]>([]);
@@ -278,6 +305,17 @@ export class OnboardingSuitePlanComponent implements OnInit {
   selectPlan(choice: PlanChoice): void {
     this.plan.set(choice);
     this.error.set(null);
+  }
+
+  /**
+   * Defer activation: remember the intent (so future sign-ins land on
+   * <code>/welcome</code> instead of bouncing back here) and route the
+   * customer to the product-explainer page where they can pick the plan
+   * and pay when they're ready.
+   */
+  payLater(): void {
+    this.welcomeIntent.markPayLater();
+    void this.router.navigateByUrl('/welcome');
   }
 
   /** Cosmetic price label for the static cards before the catalogue lands. */

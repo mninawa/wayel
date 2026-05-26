@@ -6,6 +6,7 @@ import {
   profileCompleteGuard,
   profileOnboardingGuard,
   suitePlanOnboardingGuard,
+  welcomePageGuard,
 } from './guards/customer-journey.guard';
 import { kycOpsReviewGuard } from './guards/kyc-ops.guard';
 import { parcelOpsGuard } from './guards/parcel-ops.guard';
@@ -54,6 +55,18 @@ export const routes: Routes = [
       import('./features/onboarding/onboarding-suite-plan.component').then(
         (m) => m.OnboardingSuitePlanComponent,
       ),
+  },
+
+  // Standalone (no portal shell) "I'll pay later, show me how this works"
+  // landing page. Lives outside the portal-shell route group so customers
+  // who haven't activated their suite don't see the dashboard sidebar with
+  // links they can't yet use.
+  {
+    path: 'welcome',
+    canActivate: [customerSignedInGuard, welcomePageGuard],
+    title: 'Welcome to WeYell',
+    loadComponent: () =>
+      import('./features/welcome/welcome.component').then((m) => m.WelcomeComponent),
   },
 
   {

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BorderboxApiService } from '../../services/borderbox-api.service';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
+import { WelcomeIntentService } from '../../services/welcome-intent.service';
 
 @Component({
   selector: 'app-suite-checkout-complete',
@@ -65,6 +66,7 @@ export class SuiteCheckoutCompleteComponent implements OnInit {
   private readonly borderbox = inject(BorderboxApiService);
   private readonly accountApi = inject(CustomerAccountService);
   private readonly parcelsApi = inject(ParcelsService);
+  private readonly welcomeIntent = inject(WelcomeIntentService);
 
   readonly busy = signal(true);
   readonly error = signal<string | null>(null);
@@ -81,6 +83,11 @@ export class SuiteCheckoutCompleteComponent implements OnInit {
 
     this.borderbox.completeSuiteCheckout(reference.trim()).subscribe({
       next: () => {
+        // Payment confirmed → the customer is no longer "paying later".
+        // Clear the flag so a future expired-suite cycle starts clean
+        // (and so they don't bounce to /welcome instead of their dashboard
+        // on subsequent sign-ins).
+        this.welcomeIntent.clear();
         this.accountApi.loadAccount().subscribe({
           next: () => {
             this.parcelsApi.loadDashboard().subscribe({
