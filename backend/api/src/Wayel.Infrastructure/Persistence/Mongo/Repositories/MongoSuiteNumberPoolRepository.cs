@@ -43,6 +43,38 @@ internal sealed class MongoSuiteNumberPoolRepository(MongoContext context) : ISu
         return doc?.ToDomain();
     }
 
+    public async Task<SuiteNumberPoolEntry?> TryClaimSpecificAsync(
+        string regionCode,
+        string requestedNumber,
+        UserId userId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var region = Normalize(regionCode);
+        var normalizedNumber = requestedNumber.Trim();
+        if (string.IsNullOrEmpty(normalizedNumber))
+        {
+            return null;
+        }
+
+        // Insert-with-unique-key is the atomic primitive that gives us the
+        // "exactly one user wins this exact number" guarantee. The unique
+        // index on Number means a concurrent caller racing for the same hex
+        // gets a DuplicateKey write exception while we get the inserted row.
+        var entry = SuiteNumberPoolEntry.CreateAlreadyAssigned(region, normalizedNumber, userId, nowUtc);
+        try
+        {
+            await context.SuiteNumberPool.InsertOneAsync(
+                SuiteNumberPoolEntryDocument.From(entry),
+                cancellationToken: cancellationToken);
+            return entry;
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            return null;
+        }
+    }
+
     public async Task<int> RefillAsync(
         string regionCode,
         IReadOnlyList<string> numbers,

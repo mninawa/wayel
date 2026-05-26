@@ -29,6 +29,20 @@ public interface ISuiteNumberPoolRepository
         DateTime nowUtc,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Atomically claim a specific suite number for a user. Used by UserIdSuffix
+    /// mode where the candidate number is derived from the user's id rather
+    /// than pulled from a pre-minted Available pool. Returns the claimed entry
+    /// on success, or null if the requested number is already taken (by anyone,
+    /// including the same user — callers should pre-check ownership).
+    /// </summary>
+    Task<SuiteNumberPoolEntry?> TryClaimSpecificAsync(
+        string regionCode,
+        string requestedNumber,
+        UserId userId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Inserts a batch of brand-new Available pool entries (skipping duplicates by number).</summary>
     /// <returns>The number of new rows actually inserted.</returns>
     Task<int> RefillAsync(

@@ -39,6 +39,8 @@ public sealed record SuitePlatformSettings(
 
         return region switch
         {
+            // Prefix is the destination country code so the printed address
+            // reads naturally as a corridor: "South Africa → Botswana, BW-…".
             "BW" => new SuitePlatformSettings(
                 "BW",
                 sharedAddress.WarehouseName,
@@ -49,7 +51,7 @@ public sealed record SuitePlatformSettings(
                 sharedAddress.PostalCode,
                 sharedAddress.CountryCode,
                 TotalSuiteCapacity: 5_000,
-                NumberPrefix: "WY-BW",
+                NumberPrefix: "BW",
                 SuiteNumberGenerationMode.UserIdSuffix,
                 UserIdSuffixLength: 8,
                 SequencePadLength: 6,
@@ -66,7 +68,7 @@ public sealed record SuitePlatformSettings(
                 sharedAddress.PostalCode,
                 sharedAddress.CountryCode,
                 TotalSuiteCapacity: 5_000,
-                NumberPrefix: "WY-NA",
+                NumberPrefix: "NA",
                 SuiteNumberGenerationMode.UserIdSuffix,
                 UserIdSuffixLength: 8,
                 SequencePadLength: 6,
@@ -83,7 +85,7 @@ public sealed record SuitePlatformSettings(
                 sharedAddress.PostalCode,
                 sharedAddress.CountryCode,
                 TotalSuiteCapacity: 10_000,
-                NumberPrefix: "WY",
+                NumberPrefix: "ES",
                 SuiteNumberGenerationMode.UserIdSuffix,
                 UserIdSuffixLength: 8,
                 SequencePadLength: 6,
