@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace Wayel.Bff.Shared.ApiClient;
 
@@ -51,24 +52,52 @@ public sealed class WayelAuthApiClient(HttpClient http)
 
     /// <summary>
     /// Calls the API's <c>GET /api/v1/auth/me</c> on behalf of the
-    /// signed-in user using their bearer token. Returns <c>null</c> on any
-    /// non-2xx so callers can degrade gracefully (the BFF still has the
-    /// session cookie's identity bits even if the enrichment call fails).
+    /// signed-in user using their bearer token.
+    ///
+    /// Returns a <see cref="WayelMeResult"/> that carries both the DTO
+    /// (on success) and the upstream HTTP status code. Callers branch on
+    /// the status to distinguish:
+    ///   * 200 → enrich the cookie identity with the fresh tenant block.
+    ///   * 401 / 403 / 404 → upstream is telling us the bearer/user are
+    ///     no longer valid (revoked, deleted, role demoted). The BFF
+    ///     should treat the cookie session as dead.
+    ///   * 5xx / network / timeout → transient blip; degrade gracefully
+    ///     and keep the existing cookie identity (DTO is <c>null</c>,
+    ///     status reflects what we got, or <c>0</c> for client-side errors).
     /// </summary>
-    public async Task<WayelMeDto?> GetMeAsync(string accessToken, CancellationToken cancellationToken)
+    public async Task<WayelMeResult> GetMeAsync(string accessToken, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             new Uri("/api/v1/auth/me", UriKind.Relative));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        using var response = await http.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage? response = null;
+        try
         {
-            return null;
-        }
+            response = await http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return new WayelMeResult(null, (int)response.StatusCode);
+            }
 
-        return await response.Content.ReadFromJsonAsync<WayelMeDto>(cancellationToken);
+            var dto = await response.Content.ReadFromJsonAsync<WayelMeDto>(cancellationToken);
+            return new WayelMeResult(dto, (int)response.StatusCode);
+        }
+        catch (HttpRequestException)
+        {
+            // Network / DNS / TLS — caller treats this as transient.
+            return new WayelMeResult(null, 0);
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // HttpClient timeout — caller treats this as transient.
+            return new WayelMeResult(null, 0);
+        }
+        finally
+        {
+            response?.Dispose();
+        }
     }
 
     /// <summary>
@@ -180,6 +209,21 @@ public sealed record WayelMeDto(
     string DisplayName,
     string Role,
     WayelTenantSummaryDto? Tenant);
+
+/// <summary>
+/// Outcome of a <c>GET /api/v1/auth/me</c> probe. <see cref="StatusCode"/>
+/// is the upstream HTTP status (or <c>0</c> for client-side network failures)
+/// so the BFF can branch on "session is dead" (401/403/404) vs "transient
+/// blip" (5xx / network).
+/// </summary>
+public sealed record WayelMeResult(WayelMeDto? Dto, int StatusCode)
+{
+    /// <summary>True when upstream said the bearer/user is no longer valid.</summary>
+    public bool IsSessionRejected =>
+        StatusCode is StatusCodes.Status401Unauthorized
+                   or StatusCodes.Status403Forbidden
+                   or StatusCodes.Status404NotFound;
+}
 
 public sealed record WayelTenantSummaryDto(
     Guid TenantId,

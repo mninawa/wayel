@@ -56,7 +56,8 @@ public static class BffAuthEndpoints
         group.MapGet("/me", [Authorize] async (
                 HttpContext http,
                 BffSessionStore sessionStore,
-                WayelAuthApiClient apiClient) =>
+                WayelAuthApiClient apiClient,
+                ILoggerFactory loggerFactory) =>
         {
             if (!sessionStore.TryRead(http.User, out var session))
             {
@@ -68,11 +69,31 @@ public static class BffAuthEndpoints
             // call uses the bearer the AccessTokenRelay middleware
             // would otherwise add — we replay it here directly so the
             // SPA gets a single round-trip and a consistent shape.
-            // Failures degrade gracefully: the BFF still returns the
-            // identity bits it has from the cookie.
-            BffTenantSummary? tenantSummary = null;
+            //
+            // Branch on the upstream status:
+            //   * 401 / 403 / 404 → the bearer or user is no longer
+            //     valid (deleted, revoked, role-demoted out of the
+            //     audience). Treat the cookie as a zombie session,
+            //     sign it out, and bounce the SPA into a fresh login.
+            //   * Transient blip (5xx, network, timeout) → degrade
+            //     gracefully: return the cookie identity with no
+            //     enrichment so a brief API hiccup doesn't kick
+            //     users out.
             var enrichment = await apiClient.GetMeAsync(session.AccessToken, http.RequestAborted);
-            if (enrichment?.Tenant is { } t)
+            if (enrichment.IsSessionRejected)
+            {
+                var logger = loggerFactory.CreateLogger("Wayel.Bff.AuthMe");
+                logger.LogInformation(
+                    "Upstream /api/v1/auth/me reported the session is no longer valid (status={Status}, userId={UserId}). Clearing BFF cookie.",
+                    enrichment.StatusCode,
+                    session.UserId);
+
+                await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return Results.Unauthorized();
+            }
+
+            BffTenantSummary? tenantSummary = null;
+            if (enrichment.Dto?.Tenant is { } t)
             {
                 tenantSummary = new BffTenantSummary(
                     t.TenantId,
