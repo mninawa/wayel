@@ -156,6 +156,10 @@ internal sealed class MongoCustomerAccountEraser(
             Builders<KycDocumentUploadSessionDocument>.Filter.Eq(x => x.UserId, userGuid),
             cancellationToken)).DeletedCount;
 
+        var payLaterIntents = (await context.PayLaterIntents.DeleteManyAsync(
+            Builders<PayLaterIntentDocument>.Filter.Eq(x => x.UserId, userId),
+            cancellationToken)).DeletedCount;
+
         var refreshTokens = (await context.RefreshTokens.DeleteManyAsync(
             Builders<RefreshTokenDocument>.Filter.Eq(x => x.UserId, userId),
             cancellationToken)).DeletedCount;
@@ -239,6 +243,7 @@ internal sealed class MongoCustomerAccountEraser(
             InAppNotifications = inAppNotifications,
             KycSubmissions = kycSubmissions,
             KycDocumentUploadSessions = kycDocumentSessions,
+            PayLaterIntents = payLaterIntents,
         };
 
         logger.LogInformation(

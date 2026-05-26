@@ -22,6 +22,7 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
     ISuitePlatformConfigRepository platformConfig,
     ISuiteNumberAllocator suiteNumbers,
     IPaymentGatewayResolver paymentGatewayResolver,
+    IPayLaterIntentRepository payLaterIntents,
     IUnitOfWork unitOfWork,
     IClock clock) : ICommandHandler<CompleteSuiteCheckoutCommand, SuiteSubscriptionDto>
 {
@@ -127,6 +128,11 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
         }
 
         await checkoutPayments.MarkCompletedAsync(reference, clock.UtcNow, cancellationToken);
+
+        // The customer paid, so any "Pay later" intent they had is now resolved.
+        // No-op when there was no intent (most paying customers don't have one),
+        // and idempotent on re-runs because the repo only stamps the field once.
+        await payLaterIntents.MarkResolvedAsync(payment.UserId, clock.UtcNow, cancellationToken);
 
         return activated;
     }

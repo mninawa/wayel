@@ -1,4 +1,5 @@
 using Wayel.Application.Abstractions.Persistence;
+using Wayel.Application.Features.Onboarding;
 using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Identities;
 using Wayel.Domain.Users;
@@ -9,7 +10,8 @@ internal sealed class CustomerAccountResponseBuilder(
     ICustomerAddressRepository addresses,
     IExternalIdentityRepository identities,
     IPickupBranchRepository pickupBranches,
-    ISuitePlatformConfigRepository suitePlatformConfig)
+    ISuitePlatformConfigRepository suitePlatformConfig,
+    IPayLaterIntentRepository payLaterIntents)
 {
     public async Task<CustomerAccountResponse> BuildAsync(User user, CancellationToken cancellationToken)
     {
@@ -22,6 +24,16 @@ internal sealed class CustomerAccountResponseBuilder(
             suitePlatformConfig,
             user.DestinationCountry,
             cancellationToken);
+        var intent = await payLaterIntents.GetByUserAsync(user.Id, cancellationToken);
+
+        OnboardingIntentDto? intentDto = intent is { IsActive: true }
+            ? new OnboardingIntentDto(
+                "pay_later",
+                intent.CreatedAtUtc.ToString("o"),
+                intent.LastSeenAtUtc.ToString("o"),
+                intent.PlanAtSignal?.Value.ToString(),
+                intent.PlanAtSignalLabel)
+            : null;
 
         return CustomerAccountMapper.Map(
             user,
@@ -29,6 +41,7 @@ internal sealed class CustomerAccountResponseBuilder(
             allAddresses,
             hasGoogle,
             branches,
-            platform.WarehouseName);
+            platform.WarehouseName,
+            intentDto);
     }
 }

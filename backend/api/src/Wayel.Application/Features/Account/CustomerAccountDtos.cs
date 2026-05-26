@@ -1,3 +1,5 @@
+using Wayel.Application.Features.Onboarding;
+
 namespace Wayel.Application.Features.Account;
 
 public sealed record CustomerAccountResponse(
@@ -7,7 +9,8 @@ public sealed record CustomerAccountResponse(
     NotificationPreferencesDto Notifications,
     bool ProfileComplete,
     bool SuiteEligible,
-    bool HasSuite);
+    bool HasSuite,
+    OnboardingIntentDto? OnboardingIntent = null);
 
 public sealed record CustomerProfileDto(
     string UserId,

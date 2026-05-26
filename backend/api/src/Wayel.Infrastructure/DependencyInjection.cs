@@ -214,6 +214,7 @@ public static class DependencyInjection
         services.AddScoped<IShipmentCollectionRepository, MongoShipmentCollectionRepository>();
         services.AddScoped<IPlatformDashboardRepository, MongoPlatformDashboardRepository>();
         services.AddScoped<IKycSubmissionRepository, MongoKycSubmissionRepository>();
+        services.AddScoped<IPayLaterIntentRepository, MongoPayLaterIntentRepository>();
         services.AddScoped<ICustomerAccountEraser, MongoCustomerAccountEraser>();
 
         services.AddScoped<IUnitOfWork, MongoUnitOfWork>();

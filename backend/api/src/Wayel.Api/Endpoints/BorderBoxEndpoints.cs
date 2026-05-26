@@ -4,6 +4,7 @@ using Wayel.Api.Infrastructure;
 using Wayel.Application.Features.Notifications;
 using Wayel.Application.Features.Account;
 using Wayel.Application.Features.Dashboard;
+using Wayel.Application.Features.Onboarding;
 using Wayel.Application.Features.Parcels;
 using Wayel.Application.Features.Payments;
 using Wayel.Application.Features.Quotes;
@@ -68,6 +69,26 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
         group.MapPost("/account/in-app-notifications/read-all", async (IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new MarkAllCustomerInAppNotificationsReadCommand(), ct)).ToHttpResult())
             .WithName("MarkAllCustomerInAppNotificationsRead");
+
+        // ---------- Pay-later onboarding intent (server-persisted) ----------
+        // The intent is also embedded in /account so the SPA can route guards
+        // synchronously on bootstrap. These three endpoints are for explicit
+        // user actions: mark, fetch (post-write confirmation), and clear.
+
+        group.MapGet("/onboarding/pay-later", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new GetMyPayLaterIntentQuery(), ct)).ToHttpResult())
+            .WithName("GetMyPayLaterIntent");
+
+        group.MapPost("/onboarding/pay-later", async (
+            MarkPayLaterIntentRequest? body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new MarkPayLaterIntentCommand(body?.PlanId), ct)).ToHttpResult())
+            .WithName("MarkPayLaterIntent");
+
+        group.MapDelete("/onboarding/pay-later", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new ClearPayLaterIntentCommand(), ct)).ToHttpResult())
+            .WithName("ClearPayLaterIntent");
 
         group.MapPost("/account/kyc/submit", async (IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new SubmitKycVerificationCommand(), ct)).ToHttpResult())
@@ -434,4 +455,6 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
         string FullName,
         string Phone,
         bool IsDefault);
+    private sealed record MarkPayLaterIntentRequest(
+        [property: JsonPropertyName("planId")] Guid? PlanId);
 }

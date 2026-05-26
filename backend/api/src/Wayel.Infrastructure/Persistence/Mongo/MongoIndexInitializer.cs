@@ -50,6 +50,20 @@ internal sealed class MongoIndexInitializer(MongoContext context, ILogger<MongoI
 
         // pickup_branches uses string slug as _id (via PickupBranchDocument.Id) — unique by default.
 
+        await context.PayLaterIntents.Indexes.CreateOneAsync(
+            new CreateIndexModel<PayLaterIntentDocument>(
+                Builders<PayLaterIntentDocument>.IndexKeys.Ascending(x => x.UserId),
+                new CreateIndexOptions { Unique = true, Name = "ux_pay_later_intents_user" }),
+            cancellationToken: cancellationToken);
+
+        await context.PayLaterIntents.Indexes.CreateOneAsync(
+            new CreateIndexModel<PayLaterIntentDocument>(
+                Builders<PayLaterIntentDocument>.IndexKeys
+                    .Ascending(x => x.ResolvedAtUtc)
+                    .Descending(x => x.CreatedAtUtc),
+                new CreateIndexOptions { Name = "ix_pay_later_intents_status_created" }),
+            cancellationToken: cancellationToken);
+
         logger.LogInformation("MongoDB indexes ready.");
     }
 

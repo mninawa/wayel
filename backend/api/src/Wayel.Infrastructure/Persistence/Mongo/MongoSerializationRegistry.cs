@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using Wayel.Domain.Addresses;
 using Wayel.Domain.Common;
 using Wayel.Domain.Identities;
+using Wayel.Domain.Onboarding;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Quotes;
 using Wayel.Domain.Sessions;
@@ -50,6 +51,7 @@ public static class MongoSerializationRegistry
             RegisterId<ShipmentId>(g => new ShipmentId(g));
             RegisterId<QuoteId>(g => new QuoteId(g));
             RegisterId<SupportTicketId>(g => new SupportTicketId(g));
+            RegisterId<PayLaterIntentId>(g => new PayLaterIntentId(g));
 
             _initialised = true;
         }

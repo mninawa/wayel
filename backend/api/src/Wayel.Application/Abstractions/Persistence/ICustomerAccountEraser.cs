@@ -59,6 +59,7 @@ public sealed record CustomerEraseReport
     public long InAppNotifications { get; init; }
     public long KycSubmissions { get; init; }
     public long KycDocumentUploadSessions { get; init; }
+    public long PayLaterIntents { get; init; }
 
     /// <summary>Sum of every dependent row removed (excluding the User document itself).</summary>
     public long TotalDependents =>
@@ -71,5 +72,6 @@ public sealed record CustomerEraseReport
         + PickTasks + PackingTasks
         + Quotes + QuoteCheckoutPayments + QuotePaymentInvoices
         + SupportTickets + InAppNotifications
-        + KycSubmissions + KycDocumentUploadSessions;
+        + KycSubmissions + KycDocumentUploadSessions
+        + PayLaterIntents;
 }

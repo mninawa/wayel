@@ -1,4 +1,5 @@
 using Wayel.Application.BorderBox;
+using Wayel.Application.Features.Onboarding;
 using Wayel.Domain.Addresses;
 using Wayel.Domain.PickupBranches;
 using Wayel.Domain.Users;
@@ -13,7 +14,8 @@ internal static class CustomerAccountMapper
         IReadOnlyList<CustomerAddress> allAddresses,
         bool hasGoogleIdentity,
         IReadOnlyList<PickupBranch> pickupBranches,
-        string? suiteWarehouseName = null)
+        string? suiteWarehouseName = null,
+        OnboardingIntentDto? onboardingIntent = null)
     {
         var profileComplete = CustomerProfileRules.IsComplete(user);
         var hasSuite = suiteAddress is not null && !string.IsNullOrWhiteSpace(suiteAddress.SuiteNumber);
@@ -33,7 +35,11 @@ internal static class CustomerAccountMapper
                 user.NotifyMarketing),
             profileComplete,
             profileComplete && !hasSuite,
-            hasSuite);
+            hasSuite,
+            // Suppress the intent once the customer actually has a suite — the
+            // payment-completion handler will mark it resolved server-side, but
+            // we don't want a brief window where the SPA sees both states.
+            hasSuite ? null : onboardingIntent);
     }
 
     private static CustomerProfileDto MapProfile(User user, bool hasGoogleIdentity) =>

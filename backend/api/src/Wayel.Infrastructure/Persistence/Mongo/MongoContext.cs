@@ -123,4 +123,7 @@ public sealed class MongoContext
 
     internal IMongoCollection<OpsPhotoUploadSessionDocument> OpsPhotoUploadSessions =>
         Database.GetCollection<OpsPhotoUploadSessionDocument>(_options.OpsPhotoUploadSessionsCollection);
+
+    internal IMongoCollection<PayLaterIntentDocument> PayLaterIntents =>
+        Database.GetCollection<PayLaterIntentDocument>(_options.PayLaterIntentsCollection);
 }
