@@ -44,4 +44,5 @@ public sealed class MongoOptions
     public string KycDocumentUploadSessionsCollection { get; init; } = "kyc_document_upload_sessions";
     public string OpsPhotoUploadSessionsCollection { get; init; } = "ops_photo_upload_sessions";
     public string PayLaterIntentsCollection { get; init; } = "pay_later_intents";
+    public string SuiteNumberPoolCollection { get; init; } = "suite_number_pool";
 }

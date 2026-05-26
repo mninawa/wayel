@@ -46,6 +46,7 @@ public static class MongoSerializationRegistry
             RegisterId<RefreshTokenId>(g => new RefreshTokenId(g));
             RegisterId<SuitePlanId>(g => new SuitePlanId(g));
             RegisterId<SuiteSubscriptionId>(g => new SuiteSubscriptionId(g));
+            RegisterId<SuiteNumberPoolEntryId>(g => new SuiteNumberPoolEntryId(g));
             RegisterId<CustomerAddressId>(g => new CustomerAddressId(g));
             RegisterId<ParcelId>(g => new ParcelId(g));
             RegisterId<ShipmentId>(g => new ShipmentId(g));

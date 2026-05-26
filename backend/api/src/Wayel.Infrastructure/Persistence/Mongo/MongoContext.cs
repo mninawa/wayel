@@ -126,4 +126,7 @@ public sealed class MongoContext
 
     internal IMongoCollection<PayLaterIntentDocument> PayLaterIntents =>
         Database.GetCollection<PayLaterIntentDocument>(_options.PayLaterIntentsCollection);
+
+    internal IMongoCollection<SuiteNumberPoolEntryDocument> SuiteNumberPool =>
+        Database.GetCollection<SuiteNumberPoolEntryDocument>(_options.SuiteNumberPoolCollection);
 }

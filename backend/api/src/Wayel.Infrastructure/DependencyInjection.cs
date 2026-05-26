@@ -180,6 +180,7 @@ public static class DependencyInjection
         services.AddHostedService<ShipmentTrackingEventBackfillSeeder>();
         services.AddHostedService<LegacyOriginRebrandMigrator>();
         services.AddHostedService<MockParcelDataCleanupMigrator>();
+        services.AddHostedService<SuiteNumberPoolBackfillMigrator>();
         services.AddHostedService<KycVerifiedSubmissionBackfillSeeder>();
 
         services.AddScoped<IUserRepository, MongoUserRepository>();
@@ -215,6 +216,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformDashboardRepository, MongoPlatformDashboardRepository>();
         services.AddScoped<IKycSubmissionRepository, MongoKycSubmissionRepository>();
         services.AddScoped<IPayLaterIntentRepository, MongoPayLaterIntentRepository>();
+        services.AddScoped<ISuiteNumberPoolRepository, MongoSuiteNumberPoolRepository>();
         services.AddScoped<ICustomerAccountEraser, MongoCustomerAccountEraser>();
 
         services.AddScoped<IUnitOfWork, MongoUnitOfWork>();

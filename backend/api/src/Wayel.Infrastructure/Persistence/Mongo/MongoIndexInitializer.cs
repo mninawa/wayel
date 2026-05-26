@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Wayel.Infrastructure.Persistence.Mongo.Documents;
 
@@ -22,6 +23,60 @@ internal sealed class MongoIndexInitializer(MongoContext context, ILogger<MongoI
             new CreateIndexModel<SuiteSubscriptionDocument>(
                 Builders<SuiteSubscriptionDocument>.IndexKeys.Ascending(x => x.UserId),
                 new CreateIndexOptions { Unique = true, Name = "ux_suite_subscriptions_user" }),
+            cancellationToken: cancellationToken);
+
+        // Partial unique index on SuiteNumber: only enforce uniqueness for
+        // populated (non-null, non-empty) values. This is the database-level
+        // guard that backs up the in-process pool allocator — a future bug
+        // that tries to insert a duplicate fails loudly instead of silently
+        // assigning two users to the same warehouse mailbox.
+        try
+        {
+            await context.SuiteSubscriptions.Indexes.CreateOneAsync(
+                new CreateIndexModel<SuiteSubscriptionDocument>(
+                    Builders<SuiteSubscriptionDocument>.IndexKeys.Ascending(x => x.SuiteNumber),
+                    new CreateIndexOptions<SuiteSubscriptionDocument>
+                    {
+                        Unique = true,
+                        Name = "ux_suite_subscriptions_number",
+                        PartialFilterExpression = new BsonDocument
+                        {
+                            ["suiteNumber"] = new BsonDocument
+                            {
+                                ["$exists"] = true,
+                                ["$type"] = "string",
+                                ["$gt"] = string.Empty,
+                            },
+                        },
+                    }),
+                cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex)
+        {
+            // Existing duplicates in the dataset will block index creation —
+            // we surface them via the ops reconcile endpoint instead, so a
+            // dirty database doesn't prevent the rest of the app from booting.
+            logger.LogWarning(ex,
+                "Could not create unique index on suite_subscriptions.SuiteNumber (probably duplicates). Run the ops reconcile flow.");
+        }
+
+        await context.SuiteNumberPool.Indexes.CreateOneAsync(
+            new CreateIndexModel<SuiteNumberPoolEntryDocument>(
+                Builders<SuiteNumberPoolEntryDocument>.IndexKeys.Ascending(x => x.Number),
+                new CreateIndexOptions { Unique = true, Name = "ux_suite_number_pool_number" }),
+            cancellationToken: cancellationToken);
+
+        // Composite key the atomic claim filters on. Ordering by created/number
+        // here also lines up with the FindOneAndUpdate sort so the next claim
+        // is satisfied with an index scan instead of a sort stage.
+        await context.SuiteNumberPool.Indexes.CreateOneAsync(
+            new CreateIndexModel<SuiteNumberPoolEntryDocument>(
+                Builders<SuiteNumberPoolEntryDocument>.IndexKeys
+                    .Ascending(x => x.RegionCode)
+                    .Ascending(x => x.Status)
+                    .Ascending(x => x.CreatedAtUtc)
+                    .Ascending(x => x.Number),
+                new CreateIndexOptions { Name = "ix_suite_number_pool_region_status_created" }),
             cancellationToken: cancellationToken);
 
         await context.CustomerInAppNotifications.Indexes.CreateOneAsync(
