@@ -123,12 +123,19 @@ describe('BffAuthService.bootstrap()', () => {
     expect(bff.hasBffSession()).toBe(false);
   });
 
-  it('still flips bootstrapped() to true when /me throws on 5xx (so guards do not deadlock)', async () => {
+  it('swallows /me 5xx (returns null) and still flips bootstrapped() to true so guards do not deadlock', async () => {
+    // Contract: `bootstrap()` is called by `provideBffAuthBootstrap()`'s
+    // APP_INITIALIZER with no try/catch around it (see bff-auth.bootstrap.ts).
+    // Re-throwing here would crash the SPA boot, so the service swallows
+    // network/5xx errors and returns null — guards still unblock because
+    // `bootstrapped()` flips inside the `finally`.
     mockFetchOnce({ status: 500 });
-    const { bff } = makeService();
+    const { bff, session } = makeService();
 
-    await expect(bff.bootstrap()).rejects.toThrow(/HTTP 500/);
+    await expect(bff.bootstrap()).resolves.toBeNull();
     expect(bff.bootstrapped()).toBe(true);
+    expect(bff.hasBffSession()).toBe(false);
+    expect(session.isSignedIn()).toBe(false);
   });
 });
 
