@@ -18,9 +18,9 @@ import {
 
 /**
  * Pricing editor — owns the entire pricing form, validation, banners and
- * save/reset footer. Renders without page chrome so it can be reused in:
- *   • the standalone `/ops/platform/pricing` route page
- *   • the "Pricing" tab on `/ops/platform/suites`
+ * save/reset footer. Renders without page chrome so it can be embedded as
+ * the "Pricing" tab on `/ops/platform/suites?tab=pricing`. The historical
+ * standalone `/ops/platform/pricing` route now redirects here.
  *
  * Pricing config is global (not per-region); the component picks up the
  * single platform-wide record on init and pushes updates back to the API.

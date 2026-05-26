@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { RECEIVING_BASE } from './types/receiving.types';
 
 export const routes: Routes = [
@@ -211,12 +212,11 @@ export const routes: Routes = [
       ),
   },
   {
+    // Pricing now lives as a tab on `/ops/platform/suites?tab=pricing`.
+    // Keep the legacy path as a redirect so bookmarks / external links
+    // land users on the correct tab rather than the catch-all.
     path: 'ops/platform/pricing',
-    title: 'Pricing configuration',
-    loadComponent: () =>
-      import('./features/platform/pricing-settings.component').then(
-        (m) => m.PricingSettingsComponent,
-      ),
+    redirectTo: () => inject(Router).parseUrl('/ops/platform/suites?tab=pricing'),
   },
   {
     path: 'ops/platform/plans',
