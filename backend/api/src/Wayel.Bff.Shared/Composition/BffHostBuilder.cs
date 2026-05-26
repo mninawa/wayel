@@ -66,6 +66,11 @@ public static class BffHostBuilder
             .ValidateOnStart();
 
         services.AddSingleton<BffSessionStore>();
+        // Per-session refresh coordinator: serializes the upstream /auth/refresh
+        // call and caches the rotated session so N parallel SPA requests don't
+        // race to consume the same refresh token (which the upstream interprets
+        // as suspected theft and uses to burn the entire session).
+        services.AddSingleton<BffRefreshCoordinator>();
         services.AddSingleton<IPostConfigureOptions<OpenIdConnectOptions>, GoogleOidcStaticMetadataPostConfigure>();
 
         // Data Protection backs the cookie auth ticket's encryption AND the

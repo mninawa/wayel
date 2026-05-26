@@ -27,10 +27,13 @@ public sealed class BffOptions
 
     /// <summary>
     /// If the access token has fewer than this many seconds left when a request arrives,
-    /// the BFF refreshes it before forwarding.
+    /// the BFF refreshes it before forwarding. A wider window (e.g. 120s) gives more
+    /// cushion against network jitter; refresh contention is handled separately by
+    /// <see cref="Sessions.BffRefreshCoordinator"/>, so the only cost of widening
+    /// this is slightly more frequent token rotation.
     /// </summary>
     [Range(10, 600)]
-    public int RefreshIfExpiringWithinSeconds { get; init; } = 60;
+    public int RefreshIfExpiringWithinSeconds { get; init; } = 120;
 
     /// <summary>Cookie name used for the BFF session. Override per-audience to avoid collisions.</summary>
     public string CookieName { get; init; } = ".Wayel.Bff";

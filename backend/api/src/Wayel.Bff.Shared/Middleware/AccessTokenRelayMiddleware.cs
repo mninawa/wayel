@@ -19,6 +19,7 @@ public sealed class AccessTokenRelayMiddleware(
     RequestDelegate next,
     BffSessionStore sessionStore,
     WayelAuthApiClient apiClient,
+    BffRefreshCoordinator refreshCoordinator,
     IOptions<BffOptions> options,
     ILogger<AccessTokenRelayMiddleware> logger)
 {
@@ -66,24 +67,50 @@ public sealed class AccessTokenRelayMiddleware(
         var nowUtc = DateTime.UtcNow;
         if (session.AccessTokenExpiringWithin(_refreshWindow, nowUtc))
         {
-            var refreshed = await apiClient.RefreshAsync(session.RefreshToken, context.RequestAborted);
-            if (refreshed.IsSuccess && refreshed.Session is { } updated)
-            {
-                session = MapSession(updated);
-                await sessionStore.UpdateAsync(context, session);
-            }
-            else
-            {
-                logger.LogInformation(
-                    "Refresh-token rotation failed for user {UserId}: {ErrorCode} ({Status}). Signing out.",
-                    session.UserId,
-                    refreshed.ErrorCode,
-                    (int)refreshed.StatusCode);
+            // Route the refresh through the per-session coordinator so N
+            // parallel API calls don't all race to consume the same refresh
+            // token (which the upstream treats as suspected theft and uses to
+            // burn the whole session — see BffRefreshCoordinator for context).
+            //
+            // The delegate is intentionally cookie-agnostic: every caller
+            // (the winning rotator AND any waiters that pick up the cached
+            // result) writes its own request's cookie via UpdateAsync below.
+            // That keeps each HTTP response self-consistent without doubling
+            // up the writes inside the delegate.
+            var rotated = await refreshCoordinator.CoordinateRefreshAsync(
+                session.SessionId,
+                _refreshWindow,
+                async ct =>
+                {
+                    var refreshed = await apiClient.RefreshAsync(session.RefreshToken, ct);
+                    if (refreshed.IsSuccess && refreshed.Session is { } updated)
+                    {
+                        return MapSession(updated);
+                    }
 
+                    logger.LogWarning(
+                        "Refresh-token rotation failed for user {UserId}: {ErrorCode} ({Status}). Signing out.",
+                        session.UserId,
+                        refreshed.ErrorCode,
+                        (int)refreshed.StatusCode);
+                    return null;
+                },
+                context.RequestAborted);
+
+            if (rotated is null)
+            {
+                refreshCoordinator.Invalidate(session.SessionId);
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
+
+            // Whether we did the rotation ourselves or picked up a sibling's
+            // cached result, this request's cookie still encodes the stale
+            // session. Re-issue it with the rotated payload so the browser's
+            // next request carries the new access + refresh tokens.
+            await sessionStore.UpdateAsync(context, rotated);
+            session = rotated;
         }
 
         context.Request.Headers.Authorization = $"Bearer {session.AccessToken}";

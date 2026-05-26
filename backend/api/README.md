@@ -343,7 +343,7 @@ Bound from `appsettings.{env}.json`, env vars (`__` separator), and user-secrets
 | `Bff`         | `SpaBaseUri`                        | Where the SPA lives — gated for safe redirects                |
 | `Bff`         | `ApiBaseUri`                        | Reverse-proxy target (Wayel.Api)                              |
 | `Bff`         | `SessionLifetimeMinutes`            | Cookie session window (default 14 days, sliding)              |
-| `Bff`         | `RefreshIfExpiringWithinSeconds`    | Trigger access-token refresh this far before expiry           |
+| `Bff`         | `RefreshIfExpiringWithinSeconds`    | Trigger access-token refresh this far before expiry (default `120`; per-session contention is handled by `BffRefreshCoordinator`) |
 | `Bff`         | `CookieName`                        | Per-audience to avoid cross-BFF cookie collisions             |
 | `Bff`         | `RequireHttpsCookie`                | `true` in prod; `false` for local plain-http dev              |
 | `GoogleOidc`  | `ClientId` / `ClientSecret`         | OAuth client used for the OIDC challenge — store secret in user-secrets / env vars |
