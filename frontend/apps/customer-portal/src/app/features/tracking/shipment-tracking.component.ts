@@ -19,7 +19,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
     <div class="track-page">
       <a routerLink="/received-parcels" class="back-link">
         <span class="material-icons-outlined">arrow_back</span>
-        Back to parcels
+        Back to packages
       </a>
 
       @if (loading()) {

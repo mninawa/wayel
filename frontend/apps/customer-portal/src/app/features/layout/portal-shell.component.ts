@@ -26,8 +26,8 @@ interface NavItem {
 function buildNav(): NavItem[] {
   return [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
+    { path: '/received-parcels', label: 'Packages', icon: 'local_shipping' },
     { path: '/my-address', label: 'My Address', icon: 'pin_drop' },
-    { path: '/received-parcels', label: 'Parcels', icon: 'inventory_2' },
     { path: '/quotes/list', label: 'Quotes', icon: 'request_quote' },
     { path: '/suite-access/checkout', label: 'Payments', icon: 'payments' },
     { path: '/tracking-support', label: 'Support', icon: 'support_agent' },
@@ -171,7 +171,7 @@ function buildNav(): NavItem[] {
           </div>
         </header>
 
-        <main class="content">
+        <main class="content" [class.content-map]="mapLayout()">
           <router-outlet />
         </main>
       </div>
@@ -294,6 +294,7 @@ function buildNav(): NavItem[] {
       min-width: 0;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
     .topbar {
@@ -477,6 +478,14 @@ function buildNav(): NavItem[] {
       padding: var(--bb-content-pad-y) var(--bb-content-pad-x) 2.5rem;
     }
 
+    .content.content-map {
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
     .menu-btn,
     .sidebar-close,
     .sidebar-backdrop {
@@ -648,6 +657,15 @@ export class PortalShellComponent implements OnInit {
       this.session.currentAccount()?.displayName ??
       'Customer',
   );
+
+  readonly mapLayout = computed(() => {
+    const url = this.url() ?? '';
+    return (
+      url === '/received-parcels' ||
+      url.startsWith('/received-parcels?') ||
+      url.includes('/track')
+    );
+  });
 
   ngOnInit(): void {
     if (!this.accountApi.account()) {

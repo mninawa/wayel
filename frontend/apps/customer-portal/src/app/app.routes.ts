@@ -127,7 +127,16 @@ export const routes: Routes = [
       {
         path: 'received-parcels',
         canActivate: [portalReadyGuard],
-        title: 'Received Parcels',
+        title: 'Packages',
+        loadComponent: () =>
+          import('./features/parcels/packages-hub.component').then(
+            (m) => m.PackagesHubComponent,
+          ),
+      },
+      {
+        path: 'received-parcels/list',
+        canActivate: [portalReadyGuard],
+        title: 'Parcel list',
         loadComponent: () =>
           import('./features/parcels/received-parcels.component').then(
             (m) => m.ReceivedParcelsComponent,

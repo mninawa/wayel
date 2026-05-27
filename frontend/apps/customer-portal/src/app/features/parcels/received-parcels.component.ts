@@ -29,8 +29,13 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bb-page-head">
-      <h1>Parcels</h1>
-      <p>Parcels received at your WeYell suite in South Africa.</p>
+      <div class="head-row">
+        <div>
+          <h1>Parcels</h1>
+          <p>Parcels received at your WeYell suite in South Africa.</p>
+        </div>
+        <a routerLink="/received-parcels" class="bb-btn bb-btn-outline">Map view</a>
+      </div>
     </div>
 
     <app-suite-expired-banner />
@@ -221,6 +226,13 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
     </section>
   `,
   styles: `
+    .head-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
