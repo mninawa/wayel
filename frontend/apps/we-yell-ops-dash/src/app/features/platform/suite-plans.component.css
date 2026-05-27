@@ -16,7 +16,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: #6366f1;
+  color: var(--ops-link);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.78rem;
@@ -61,8 +61,8 @@
 .panel-title .material-icons-outlined {
   width: 28px; height: 28px;
   border-radius: 8px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -163,7 +163,7 @@
 .link-btn {
   border: none;
   background: none;
-  color: #6366f1;
+  color: var(--ops-link);
   font-weight: 600;
   cursor: pointer;
   padding: 0;

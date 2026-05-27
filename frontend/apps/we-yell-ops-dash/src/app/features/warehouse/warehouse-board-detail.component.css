@@ -90,8 +90,8 @@
 }
 
 .tab-btn.active {
-  color: var(--ops-primary);
-  border-bottom-color: var(--ops-primary);
+  color: var(--ops-link);
+  border-bottom-color: var(--ops-link);
 }
 
 .drawer-body {
@@ -174,7 +174,7 @@
 
 .map-btn.primary {
   background: var(--ops-primary-soft);
-  color: var(--ops-primary);
+  color: var(--ops-link);
   border-color: transparent;
 }
 
@@ -249,7 +249,7 @@
   margin-left: auto;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--ops-primary);
+  color: var(--ops-link);
   text-decoration: none;
 }
 
@@ -276,7 +276,7 @@
 
 .qa-btn.primary {
   background: var(--ops-primary-soft);
-  color: var(--ops-primary);
+  color: var(--ops-link);
   border-color: transparent;
   justify-content: center;
 }

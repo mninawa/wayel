@@ -106,7 +106,7 @@ import { warehouseRoutes } from '../../types/warehouse.types';
     .filters label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; font-weight: 600; color: var(--ops-muted); }
     .filters input { min-width: 10rem; padding: 0.45rem 0.6rem; border: 1px solid var(--ops-border); border-radius: var(--ops-radius-sm); font-size: 0.84rem; }
     .btn-primary, .btn-ghost { border-radius: var(--ops-radius-sm); font-size: 0.78rem; font-weight: 600; padding: 0.45rem 0.75rem; cursor: pointer; border: none; }
-    .btn-primary { background: var(--ops-primary); color: #fff; }
+    .btn-primary { background: var(--ops-lime); color: var(--ops-ink); }
     .btn-ghost { background: transparent; border: 1px solid var(--ops-border); color: var(--ops-muted); }
     .table-wrap { overflow-x: auto; }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -114,7 +114,7 @@ import { warehouseRoutes } from '../../types/warehouse.types';
     .ops-table th { background: #f8fafc; color: var(--ops-muted); font-weight: 600; }
     .ops-table .empty { color: var(--ops-muted); text-align: center; padding: 1.25rem; }
     .notes { max-width: 12rem; font-size: 0.78rem; color: var(--ops-muted); }
-    .view-link { color: var(--ops-primary); font-weight: 600; text-decoration: none; }
+    .view-link { color: var(--ops-link); font-weight: 600; text-decoration: none; }
     .err-banner { color: var(--ops-danger); background: var(--ops-danger-soft); padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
   `,
 })

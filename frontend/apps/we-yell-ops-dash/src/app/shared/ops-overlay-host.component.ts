@@ -215,7 +215,7 @@ import { OpsOverlayService } from './ops-overlay.service';
     .toast-icon { font-size: 20px; margin-top: 1px; }
     .toast.success .toast-icon { color: #15803d; }
     .toast.error .toast-icon { color: #b91c1c; }
-    .toast.info .toast-icon { color: var(--ops-primary); }
+    .toast.info .toast-icon { color: var(--ops-link); }
     .toast-text { font-size: 0.84rem; line-height: 1.4; color: var(--ops-text); }
     .toast-close {
       border: none;

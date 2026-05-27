@@ -362,7 +362,7 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      color: var(--ops-primary);
+      color: var(--ops-link);
       text-decoration: none;
       font-size: 0.85rem;
       font-weight: 600;
@@ -413,10 +413,10 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
       margin-bottom: -1px;
     }
     .tab-btn .material-icons-outlined { font-size: 18px; }
-    .tab-btn:hover { color: var(--ops-primary); background: var(--ops-primary-soft); }
+    .tab-btn:hover { color: var(--ops-link); background: var(--ops-primary-soft); }
     .tab-btn.active {
-      color: var(--ops-primary);
-      border-bottom-color: var(--ops-primary);
+      color: var(--ops-link);
+      border-bottom-color: var(--ops-link);
       background: var(--ops-primary-soft);
     }
     .tab-panel { min-height: 320px; }

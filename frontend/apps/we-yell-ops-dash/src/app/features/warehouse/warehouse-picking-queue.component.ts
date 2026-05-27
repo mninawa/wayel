@@ -103,7 +103,7 @@ type PickTab = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'PICKED' | 'BLOCKED';
       cursor: pointer;
       color: var(--ops-muted);
     }
-    .tab.active { background: var(--ops-primary); color: #fff; border-color: var(--ops-primary); }
+    .tab.active { background: var(--ops-lime); color: var(--ops-ink); border-color: var(--ops-lime); }
     .table-wrap { overflow-x: auto; }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .ops-table th, .ops-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ops-border); text-align: left; }

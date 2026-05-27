@@ -84,7 +84,7 @@ import { receivingRoutes } from '../../types/receiving.types';
     .ops-table th, .ops-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ops-border); text-align: left; }
     .ops-table th { background: #f8fafc; color: var(--ops-muted); font-weight: 600; }
     .ops-table .empty { color: var(--ops-muted); text-align: center; padding: 1.25rem; }
-    .view-link { color: var(--ops-primary); font-weight: 600; text-decoration: none; }
+    .view-link { color: var(--ops-link); font-weight: 600; text-decoration: none; }
     .err-banner { color: var(--ops-danger); background: var(--ops-danger-soft); padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
   `,
 })

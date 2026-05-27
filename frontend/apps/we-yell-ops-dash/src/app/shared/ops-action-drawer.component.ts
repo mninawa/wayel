@@ -115,7 +115,7 @@ export interface OpsDrawerAction {
       color: var(--ops-muted);
       flex-shrink: 0;
     }
-    .drawer-close:hover { background: var(--ops-primary-soft); color: var(--ops-primary); }
+    .drawer-close:hover { background: var(--ops-primary-soft); color: var(--ops-link); }
     .drawer-nav { padding: 0.65rem; display: flex; flex-direction: column; gap: 0.35rem; overflow-y: auto; }
     .drawer-item {
       display: flex;
@@ -140,7 +140,7 @@ export interface OpsDrawerAction {
       justify-content: center;
       border-radius: 10px;
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-link);
       flex-shrink: 0;
     }
     .drawer-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }

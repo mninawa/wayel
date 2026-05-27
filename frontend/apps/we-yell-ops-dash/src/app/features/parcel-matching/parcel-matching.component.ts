@@ -51,7 +51,7 @@ import { receivingRoutes } from '../../types/receiving.types';
   `,
   styles: `
     .page { max-width: 640px; }
-    .back-link { color: var(--ops-primary); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+    .back-link { color: var(--ops-link); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
     h1 { margin: 0.75rem 0 0.25rem; font-size: 1.25rem; }
     .sub { color: var(--ops-muted); margin: 0 0 1rem; }
     label { display: flex; flex-direction: column; gap: 0.3rem; margin: 1rem 0; font-size: 0.85rem; }

@@ -104,7 +104,7 @@ import {
     }
     .reading strong { display: block; margin-bottom: 0.15rem; }
     .reading span { color: var(--ops-muted); line-height: 1.4; }
-    .reading .material-icons-outlined { color: var(--ops-primary); font-size: 22px; }
+    .reading .material-icons-outlined { color: var(--ops-link); font-size: 22px; }
     .read-note {
       display: flex;
       align-items: center;

@@ -265,7 +265,7 @@
 
 .col-cards.drop-active {
   background: var(--ops-primary-soft);
-  border-color: var(--ops-primary);
+  border-color: var(--ops-link);
 }
 
 .col-cards.drop-blocked {

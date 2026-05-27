@@ -298,7 +298,7 @@ import { receivingRoutes } from '../../types/receiving.types';
     .suite-tag { display: block; font-size: 0.72rem; color: var(--ops-muted); margin-top: 0.15rem; }
     .mono { font-family: ui-monospace, monospace; font-size: 0.78rem; }
     .view-link {
-      color: var(--ops-primary);
+      color: var(--ops-link);
       font-weight: 600;
       text-decoration: none;
       font-size: 0.8rem;

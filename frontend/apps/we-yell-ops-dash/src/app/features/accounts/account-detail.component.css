@@ -7,7 +7,7 @@
   display: inline-block;
   margin-bottom: 0.75rem;
   font-size: 0.82rem;
-  color: var(--ops-primary);
+  color: var(--ops-link);
   text-decoration: none;
   font-weight: 600;
 }
@@ -49,8 +49,8 @@
   letter-spacing: 0.04em;
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   border: 1px solid #c7d2fe;
 }
 
@@ -254,8 +254,8 @@
 }
 
 .renewal-card.selected {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 1px #6366f1;
+  border-color: var(--ops-link);
+  box-shadow: 0 0 0 1px var(--ops-lime);
   background: linear-gradient(180deg, #fafaff 0%, #fff 100%);
 }
 
@@ -292,13 +292,13 @@
   font-size: 0.78rem;
   font-weight: 700;
   border: 1px solid #c7d2fe;
-  color: #4338ca;
+  color: var(--ops-link);
   background: #fff;
 }
 
 .renewal-btn.primary {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: #fff;
+  background: linear-gradient(135deg, var(--ops-lime), var(--ops-lime-hover));
+  color: var(--ops-ink);
   border-color: transparent;
 }
 
@@ -562,13 +562,13 @@ code {
 
 .panel-title .material-icons-outlined {
   font-size: 1.15rem;
-  color: #6366f1;
+  color: var(--ops-link);
 }
 
 .text-btn {
   border: none;
   background: transparent;
-  color: #6366f1;
+  color: var(--ops-link);
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -674,9 +674,9 @@ code {
   place-items: center;
   font-size: 2rem;
   font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+  color: var(--ops-ink);
+  background: linear-gradient(135deg, var(--ops-lime), var(--ops-lime-hover));
+  box-shadow: 0 8px 24px rgba(41, 41, 40, 0.12);
 }
 
 .photo-hint {
@@ -759,7 +759,7 @@ code {
 }
 
 .toggle input:checked + .toggle-track {
-  background: #6366f1;
+  background: var(--ops-lime);
 }
 
 .toggle input:checked + .toggle-track::after {
@@ -895,7 +895,7 @@ code {
   margin-top: 0.1rem;
 }
 
-.billing-card-icon.purple { color: #7c3aed; }
+.billing-card-icon.purple { color: var(--ops-link); }
 .billing-card-icon.blue { color: #2563eb; }
 .billing-card-icon.green { color: #16a34a; }
 .billing-card-icon.amber { color: #d97706; }
@@ -947,7 +947,7 @@ code {
   padding: 0;
   font-size: 0.76rem;
   font-weight: 700;
-  color: #6366f1;
+  color: var(--ops-link);
   cursor: pointer;
 }
 
@@ -1027,7 +1027,7 @@ code {
 }
 
 .invoice-link {
-  color: #6366f1;
+  color: var(--ops-link);
   font-weight: 600;
   text-decoration: none;
 }
@@ -1105,7 +1105,7 @@ code {
 }
 
 .saved-card-icon {
-  color: #6366f1;
+  color: var(--ops-link);
 }
 
 .secure-note {
@@ -1198,9 +1198,9 @@ code {
 
 .plan-option-card.current,
 .plan-option-card.selected {
-  border-color: #6366f1;
+  border-color: var(--ops-link);
   background: linear-gradient(180deg, #fafaff 0%, #fff 100%);
-  box-shadow: 0 0 0 1px #6366f1;
+  box-shadow: 0 0 0 1px var(--ops-lime);
 }
 
 .current-plan-badge {
@@ -1253,7 +1253,7 @@ code {
 
 .plan-features .material-icons-outlined {
   font-size: 0.95rem;
-  color: #6366f1;
+  color: var(--ops-link);
 }
 
 .renewal-kv {
@@ -1337,7 +1337,7 @@ code {
 
 .rules-list .material-icons-outlined {
   font-size: 1rem;
-  color: #6366f1;
+  color: var(--ops-link);
   margin-top: 0.1rem;
 }
 
@@ -1379,7 +1379,7 @@ code {
 }
 
 .check-mark {
-  color: #6366f1;
+  color: var(--ops-link);
   font-size: 1.05rem;
 }
 
@@ -1406,8 +1406,8 @@ code {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   display: grid;
   place-items: center;
 }
@@ -1594,7 +1594,7 @@ code {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: #6366f1;
+  background: var(--ops-lime);
   color: #fff;
   font-size: 0.68rem;
   font-weight: 800;
@@ -1607,8 +1607,8 @@ code {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   display: grid;
   place-items: center;
 }

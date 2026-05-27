@@ -477,7 +477,7 @@ interface PendingPhoto {
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      color: var(--ops-primary);
+      color: var(--ops-link);
       text-decoration: none;
       font-size: 0.85rem;
       font-weight: 600;
@@ -545,17 +545,17 @@ interface PendingPhoto {
       z-index: 1;
     }
     .stepper li.active .step-dot {
-      border-color: var(--ops-primary);
+      border-color: var(--ops-link);
       background: var(--ops-primary);
       color: #fff;
     }
     .stepper li.done .step-dot {
-      border-color: var(--ops-primary);
+      border-color: var(--ops-link);
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-link);
     }
     .step-label { font-size: 0.78rem; font-weight: 600; }
-    .stepper li.active .step-label { color: var(--ops-primary); font-weight: 700; }
+    .stepper li.active .step-label { color: var(--ops-link); font-weight: 700; }
     .layout { display: grid; grid-template-columns: 1fr 300px; gap: 1rem; align-items: start; }
     @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
     .panel-title { margin: 0 0 0.35rem; font-size: 1rem; font-weight: 700; }
@@ -604,7 +604,7 @@ interface PendingPhoto {
     .side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; }
     .tips-list { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--ops-muted); }
     .tips-list li { margin: 0.35rem 0; }
-    .link-btn { border: none; background: none; color: var(--ops-primary); font-size: 0.78rem; font-weight: 600; padding: 0; cursor: pointer; }
+    .link-btn { border: none; background: none; color: var(--ops-link); font-size: 0.78rem; font-weight: 600; padding: 0; cursor: pointer; }
     .recent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
     .recent-item {
       width: 100%;
@@ -619,7 +619,7 @@ interface PendingPhoto {
       font: inherit;
       cursor: pointer;
     }
-    .recent-item:hover { border-color: var(--ops-primary); background: var(--ops-primary-soft); }
+    .recent-item:hover { border-color: var(--ops-link); background: var(--ops-primary-soft); }
     .recent-item strong { font-size: 0.82rem; }
     .recent-item span { font-size: 0.75rem; color: var(--ops-muted); }
     .recent-time { font-size: 0.72rem !important; }
@@ -698,7 +698,7 @@ interface PendingPhoto {
       color: var(--ops-muted);
       cursor: pointer;
     }
-    .upload-zone .material-icons-outlined { color: var(--ops-primary); font-size: 24px; }
+    .upload-zone .material-icons-outlined { color: var(--ops-link); font-size: 24px; }
     .upload-zone input { display: none; }
     .upload-zone small { font-size: 0.68rem; }
     .step-footer {
@@ -735,7 +735,7 @@ interface PendingPhoto {
     }
     .invoice-upload-zone.uploading { opacity: 0.65; pointer-events: none; }
     .invoice-upload-zone input { display: none; }
-    .invoice-upload-zone .material-icons-outlined { color: var(--ops-primary); font-size: 28px; }
+    .invoice-upload-zone .material-icons-outlined { color: var(--ops-link); font-size: 28px; }
     .invoice-upload-zone small { font-size: 0.68rem; color: var(--ops-muted); }
     .success-panel { text-align: center; }
     .success-icon .material-icons-outlined { font-size: 3.5rem; color: #15803d; }

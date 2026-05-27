@@ -1,27 +1,44 @@
-/* WeYell Ops Dashboard — warehouse tools */
+/* WeYell Ops Dashboard — GlobeTrans-aligned warehouse UI */
 
 :root {
-  --ops-navy: #001a41;
-  --ops-brand-purple: #845EC2;
-  --ops-brand-green: #81C784;
-  --ops-primary: #845EC2;
-  --ops-primary-hover: #734db3;
-  --ops-primary-soft: #f3eefb;
+  --ops-ink: #292928;
+  --ops-lime: #c3f832;
+  --ops-lime-hover: #b5eb24;
+  --ops-lime-soft: #eef6d8;
+
+  --ops-navy: var(--ops-ink);
+  --ops-brand-purple: var(--ops-lime);
+  --ops-brand-purple-soft: var(--ops-lime-soft);
+  --ops-brand-green: var(--ops-lime);
+  --ops-primary: var(--ops-lime);
+  --ops-primary-hover: var(--ops-lime-hover);
+  --ops-primary-soft: var(--ops-lime-soft);
+  --ops-primary-text: var(--ops-ink);
+  --ops-link: #1a1a19;
+  --ops-link-hover: #000000;
+
   --ops-accent: #ff8c42;
   --ops-success: #22c55e;
   --ops-success-soft: #ecfdf3;
   --ops-danger: #ef4444;
   --ops-danger-soft: #fef2f2;
   --ops-danger-border: #fecaca;
-  --ops-bg: #f4f6fa;
+  --ops-bg: #f8f8f8;
   --ops-surface: #ffffff;
-  --ops-surface-alt: #f8fafc;
-  --ops-text: #0f172a;
-  --ops-muted: #64748b;
-  --ops-border: #e2e8f0;
-  --ops-radius: 12px;
-  --ops-radius-sm: 8px;
-  --ops-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --ops-surface-alt: #f2f3f4;
+  --ops-text: #292928;
+  --ops-text-muted: #525252;
+  --ops-muted: #525252;
+  --ops-subtle: #737373;
+  --ops-border: #e8eaed;
+  --ops-info-bg: #f4f5f6;
+  --ops-info-text: #292928;
+  --ops-info-border: #e2e4e8;
+  --ops-radius: 16px;
+  --ops-radius-sm: 12px;
+  --ops-radius-pill: 999px;
+  --ops-shadow: 0 2px 8px rgba(41, 41, 40, 0.04);
+  --ops-shadow-md: 0 12px 40px rgba(41, 41, 40, 0.08);
 }
 
 *,
@@ -37,9 +54,11 @@ body {
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
   color: var(--ops-text);
   background: var(--ops-bg);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -55,8 +74,28 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ops-primary);
+  outline: 2px solid var(--ops-lime);
   outline-offset: 2px;
+}
+
+.ops-page-head h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.5vw + 0.75rem, 1.65rem);
+  font-weight: 700;
+  color: var(--ops-text);
+  letter-spacing: -0.03em;
+}
+
+.ops-page-head p,
+.ops-page-head .lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+  color: var(--ops-muted);
+  line-height: 1.5;
+}
+
+.ops-page-head {
+  margin-bottom: 1.25rem;
 }
 
 .ops-card {
@@ -72,9 +111,10 @@ button {
 
 .ops-card-title {
   margin: 0 0 0.85rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ops-text);
+  letter-spacing: -0.02em;
 }
 
 .ops-btn {
@@ -82,37 +122,42 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--ops-radius-sm);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--ops-radius-pill);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
   border: none;
   white-space: nowrap;
+  transition: background 0.15s;
 }
 
 .ops-btn-primary {
-  background: var(--ops-primary);
-  color: #fff;
+  background: var(--ops-lime);
+  color: var(--ops-ink);
 }
 
 .ops-btn-primary:hover:not(:disabled) {
-  background: var(--ops-primary-hover);
+  background: var(--ops-lime-hover);
 }
 
 .ops-btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .ops-btn-outline {
   background: #fff;
-  border: 1px solid var(--ops-primary);
-  color: var(--ops-primary);
+  border: 1.5px solid var(--ops-ink);
+  color: var(--ops-ink);
+}
+
+.ops-btn-outline:hover:not(:disabled) {
+  background: var(--ops-surface-alt);
 }
 
 .ops-btn-ghost {
-  background: transparent;
+  background: var(--ops-surface-alt);
   border: 1px solid var(--ops-border);
   color: var(--ops-text);
 }
@@ -123,7 +168,7 @@ button {
 }
 
 .ops-btn-danger {
-  background: var(--ops-danger, #dc2626);
+  background: var(--ops-danger);
   color: #fff;
   border: 1px solid transparent;
 }
@@ -138,7 +183,7 @@ button {
 }
 
 .ops-btn-sm {
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem 0.85rem;
   font-size: 0.78rem;
 }
 
@@ -146,11 +191,71 @@ button {
   font-size: 18px;
 }
 
+.ops-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ops-link);
+  text-decoration: underline;
+  text-decoration-color: var(--ops-lime);
+  text-underline-offset: 2px;
+}
+
+.ops-link:hover {
+  color: var(--ops-link-hover);
+}
+
+.ops-link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--ops-link);
+  text-decoration: underline;
+  text-decoration-color: var(--ops-lime);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ops-link-btn:hover {
+  color: var(--ops-link-hover);
+}
+
+.ops-info,
+.ops-callout {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  margin: 0.85rem 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--ops-info-bg);
+  border: 1px solid var(--ops-info-border);
+  border-radius: var(--ops-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ops-info-text);
+  line-height: 1.45;
+}
+
+.ops-info .material-icons-outlined,
+.ops-callout .material-icons-outlined {
+  font-size: 18px !important;
+  color: var(--ops-ink);
+  flex-shrink: 0;
+}
+
 .err-banner {
-  color: var(--ops-danger);
+  color: #991b1b;
   background: var(--ops-danger-soft);
   border: 1px solid var(--ops-danger-border);
   border-radius: var(--ops-radius-sm);
   padding: 0.75rem 1rem;
   font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+  .ops-main {
+    padding: 1rem 1rem 2rem !important;
+  }
 }

@@ -63,9 +63,9 @@
 }
 
 .region-card.active {
-  border-color: #6366f1;
-  background: #eef2ff;
-  box-shadow: 0 0 0 1px #6366f1;
+  border-color: var(--ops-link);
+  background: var(--ops-lime-soft);
+  box-shadow: 0 0 0 1px var(--ops-lime);
 }
 
 .region-card.inactive {
@@ -126,7 +126,7 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, var(--ops-lime), var(--ops-lime-hover));
 }
 
 .region-meta {
@@ -233,8 +233,8 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -243,7 +243,7 @@
 }
 
 .page-tab.active .material-icons-outlined {
-  background: #4f46e5;
+  background: var(--ops-link);
   color: #ffffff;
 }
 
@@ -287,7 +287,7 @@
   display: inline-block;
   margin-bottom: 0.45rem;
   font-size: 0.78rem;
-  color: #6366f1;
+  color: var(--ops-link);
   text-decoration: none;
   font-weight: 600;
 }
@@ -373,7 +373,7 @@
 .metric-icon .material-icons-outlined { font-size: 1.15rem; }
 .metric-icon.purple { background: #ede9fe; color: #6d28d9; }
 .metric-icon.green { background: #dcfce7; color: #15803d; }
-.metric-icon.indigo { background: #eef2ff; color: #4338ca; }
+.metric-icon.indigo { background: var(--ops-lime-soft); color: var(--ops-link); }
 .metric-icon.navy { background: #e0e7ff; color: #312e81; }
 
 .metric-label {
@@ -462,7 +462,7 @@
 
 .panel-title .material-icons-outlined {
   font-size: 1.2rem;
-  color: #6366f1;
+  color: var(--ops-link);
   margin-top: 0.1rem;
 }
 
@@ -534,7 +534,7 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, var(--ops-lime), var(--ops-lime-hover));
 }
 
 .capacity-meta {
@@ -581,7 +581,7 @@
 
 .mode-card .material-icons-outlined {
   font-size: 1.2rem;
-  color: #6366f1;
+  color: var(--ops-link);
 }
 
 .mode-card strong {
@@ -596,9 +596,9 @@
 }
 
 .mode-card.active {
-  border-color: #6366f1;
-  background: #eef2ff;
-  box-shadow: 0 0 0 1px #6366f1;
+  border-color: var(--ops-link);
+  background: var(--ops-lime-soft);
+  box-shadow: 0 0 0 1px var(--ops-lime);
 }
 
 .mode-badge {
@@ -630,7 +630,7 @@
 }
 
 .address-preview .material-icons-outlined {
-  color: #6366f1;
+  color: var(--ops-link);
   font-size: 1.2rem;
 }
 
@@ -676,8 +676,8 @@
 }
 
 .pill.indigo {
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
 }
 
 .rules-list {

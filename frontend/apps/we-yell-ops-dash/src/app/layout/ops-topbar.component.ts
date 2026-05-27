@@ -185,7 +185,7 @@ import { receivingRoutes } from '../types/receiving.types';
       height: 34px;
       border-radius: 50%;
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-ink);
       display: grid;
       place-items: center;
       font-size: 0.75rem;
@@ -197,7 +197,7 @@ import { receivingRoutes } from '../types/receiving.types';
     .sign-out {
       background: none;
       border: none;
-      color: var(--ops-primary);
+      color: var(--ops-link);
       font-size: 0.78rem;
       font-weight: 600;
       padding: 0.35rem;

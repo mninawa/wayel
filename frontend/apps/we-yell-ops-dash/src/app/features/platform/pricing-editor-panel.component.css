@@ -10,8 +10,8 @@
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.3rem 0.65rem;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -40,8 +40,8 @@
 .panel-title .material-icons-outlined {
   width: 28px; height: 28px;
   border-radius: 8px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--ops-lime-soft);
+  color: var(--ops-link);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -109,7 +109,7 @@
   transform: translateY(-50%);
   font-size: 0.72rem;
   font-weight: 700;
-  color: #6366f1;
+  color: var(--ops-link);
   pointer-events: none;
 }
 
@@ -149,8 +149,8 @@
   margin-bottom: 0.2rem;
 }
 .preview-grid dd { margin: 0; font-size: 0.95rem; color: #0f172a; font-weight: 600; }
-.preview-grid .totals { background: #eef2ff; border-color: #c7d2fe; }
-.preview-grid .totals strong { color: #4338ca; font-size: 1.05rem; }
+.preview-grid .totals { background: var(--ops-lime-soft); border-color: #c7d2fe; }
+.preview-grid .totals strong { color: var(--ops-link); font-size: 1.05rem; }
 
 .form-actions {
   grid-column: 1 / -1;

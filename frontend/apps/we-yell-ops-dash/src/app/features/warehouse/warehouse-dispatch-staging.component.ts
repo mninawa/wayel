@@ -170,7 +170,7 @@ type StagingTab = 'READY_FOR_DISPATCH' | 'AWAITING_COURIER' | 'IN_MANIFEST' | 'D
       cursor: pointer;
       color: var(--ops-muted);
     }
-    .tab.active { background: var(--ops-primary); color: #fff; border-color: var(--ops-primary); }
+    .tab.active { background: var(--ops-lime); color: var(--ops-ink); border-color: var(--ops-lime); }
     .batch-bar {
       display: flex;
       flex-wrap: wrap;
@@ -196,8 +196,8 @@ type StagingTab = 'READY_FOR_DISPATCH' | 'AWAITING_COURIER' | 'IN_MANIFEST' | 'D
       display: inline-flex;
       align-items: center;
     }
-    .btn-primary { background: var(--ops-primary); color: #fff; border: none; }
-    .btn-pack { background: var(--ops-primary); color: #fff; border: none; white-space: nowrap; }
+    .btn-primary { background: var(--ops-lime); color: var(--ops-ink); border: none; }
+    .btn-pack { background: var(--ops-lime); color: var(--ops-ink); border: none; white-space: nowrap; }
     .btn-ghost { background: #fff; border: 1px solid var(--ops-border); color: var(--ops-muted); }
     .table-wrap { overflow-x: auto; }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }

@@ -107,7 +107,7 @@ export interface OpsNavItem {
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.1;
-      color: var(--ops-brand-purple);
+      color: var(--ops-lime);
     }
     .brand-wordmark.collapsed {
       font-size: 0.72rem;
@@ -117,9 +117,10 @@ export interface OpsNavItem {
     .brand-module { font-size: 0.68rem; color: rgba(255,255,255,0.58); line-height: 1.4; font-weight: 500; }
     .sidebar-nav { flex: 1; padding: 0.75rem 0.55rem; display: flex; flex-direction: column; gap: 0.15rem; overflow-y: auto; }
     .nav-section { margin: 0.85rem 0.5rem 0.35rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.45); }
-    .nav-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.65rem; border-radius: var(--ops-radius-sm); color: rgba(255,255,255,0.78); text-decoration: none; font-size: 0.84rem; font-weight: 600; }
-    .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
-    .nav-item.active { box-shadow: inset 3px 0 0 var(--ops-brand-green); }
+    .nav-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.65rem; border-radius: var(--ops-radius-sm); color: rgba(255,255,255,0.72); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: var(--ops-lime); color: var(--ops-ink); box-shadow: none; }
+    .nav-item.active .material-icons-outlined { color: var(--ops-ink); }
     .nav-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .nav-badge { background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999px; }
     .collapse-btn { display: flex; align-items: center; gap: 0.4rem; margin: 0.75rem; padding: 0.45rem 0.65rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--ops-radius-sm); color: rgba(255,255,255,0.75); font-size: 0.78rem; font-weight: 600; }

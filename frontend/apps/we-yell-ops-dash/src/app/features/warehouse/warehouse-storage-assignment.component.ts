@@ -100,9 +100,9 @@ import { warehouseRoutes } from '../../types/warehouse.types';
       display: inline-flex;
       align-items: center;
     }
-    .btn-primary { background: var(--ops-primary); color: #fff; border: none; }
+    .btn-primary { background: var(--ops-lime); color: var(--ops-ink); border: none; }
     .btn-ghost { background: #fff; border: 1px solid var(--ops-border); color: var(--ops-muted); }
-    .view-link { color: var(--ops-primary); font-weight: 600; text-decoration: none; font-size: 0.82rem; }
+    .view-link { color: var(--ops-link); font-weight: 600; text-decoration: none; font-size: 0.82rem; }
     .err-banner { color: var(--ops-danger); background: var(--ops-danger-soft); padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
     .ok-banner { color: #166534; background: #dcfce7; padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
   `,

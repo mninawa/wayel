@@ -82,7 +82,7 @@
 .metric-icon.amber { background: #fef3c7; color: #b45309; }
 .metric-icon.green { background: #dcfce7; color: #15803d; }
 .metric-icon.teal { background: #ccfbf1; color: #0f766e; }
-.metric-icon.indigo { background: #eef2ff; color: #4338ca; }
+.metric-icon.indigo { background: var(--ops-lime-soft); color: var(--ops-link); }
 
 .metric-label {
   display: block;
@@ -214,7 +214,7 @@
 }
 
 .manifest-table tbody tr.selected {
-  background: #eef2ff;
+  background: var(--ops-lime-soft);
 }
 
 .courier-cell {
@@ -230,7 +230,7 @@
   flex-shrink: 0;
 }
 
-.courier-dot.purple { background: #8b5cf6; }
+.courier-dot.purple { background: var(--ops-lime-hover); }
 .courier-dot.blue { background: #3b82f6; }
 .courier-dot.orange { background: #f97316; }
 .courier-dot.teal { background: #14b8a6; }
@@ -253,7 +253,7 @@
 .review-btn {
   border: 1px solid #c7d2fe;
   background: #fff;
-  color: #4338ca;
+  color: var(--ops-link);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.35rem 0.75rem;
@@ -263,8 +263,8 @@
 
 .review-btn.active,
 .review-btn:hover {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: var(--ops-lime);
+  border-color: var(--ops-link);
   color: #fff;
 }
 
@@ -490,7 +490,7 @@
 }
 
 .checklist li.done .material-icons-outlined {
-  color: #6366f1;
+  color: var(--ops-link);
 }
 
 .detail-actions {

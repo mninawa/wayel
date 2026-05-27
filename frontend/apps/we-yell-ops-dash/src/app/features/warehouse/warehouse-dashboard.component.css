@@ -325,7 +325,7 @@
 
 .col-cards.drop-active {
   background: var(--ops-primary-soft);
-  border-color: var(--ops-primary);
+  border-color: var(--ops-link);
 }
 
 .col-cards.drop-blocked {
@@ -478,7 +478,7 @@
 }
 
 .board-card.selected {
-  border-color: var(--ops-primary);
+  border-color: var(--ops-link);
   box-shadow: 0 0 0 3px var(--ops-primary-soft);
 }
 
@@ -601,7 +601,7 @@
 
 .exception-section.drop-active {
   background: var(--ops-primary-soft);
-  border-color: var(--ops-primary);
+  border-color: var(--ops-link);
 }
 
 .exception-section header {

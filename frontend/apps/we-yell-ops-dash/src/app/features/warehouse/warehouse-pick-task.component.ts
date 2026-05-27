@@ -87,7 +87,7 @@ import { warehouseRoutes } from '../../types/warehouse.types';
     .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
     .page-head h1 { margin: 0.35rem 0; font-size: 1.35rem; }
     .page-head p { margin: 0; color: var(--ops-muted); font-size: 0.88rem; }
-    .back { display: inline-block; margin-bottom: 0.35rem; color: var(--ops-primary); font-size: 0.82rem; font-weight: 600; text-decoration: none; }
+    .back { display: inline-block; margin-bottom: 0.35rem; color: var(--ops-link); font-size: 0.82rem; font-weight: 600; text-decoration: none; }
     .table-wrap { overflow-x: auto; }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .ops-table th, .ops-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ops-border); text-align: left; vertical-align: middle; }

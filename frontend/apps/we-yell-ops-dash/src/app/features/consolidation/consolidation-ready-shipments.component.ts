@@ -164,7 +164,7 @@ import { consolidationRoutes } from '../../types/consolidation.types';
       cursor: pointer;
       color: var(--ops-muted);
     }
-    .tab.active { background: var(--ops-primary); color: #fff; border-color: var(--ops-primary); }
+    .tab.active { background: var(--ops-lime); color: var(--ops-ink); border-color: var(--ops-lime); }
     .batch-bar {
       display: flex;
       flex-wrap: wrap;
@@ -188,8 +188,8 @@ import { consolidationRoutes } from '../../types/consolidation.types';
       padding: 0.45rem 0.75rem;
       cursor: pointer;
     }
-    .btn-primary { background: var(--ops-brand-green); color: #fff; }
-    .btn-pack { background: var(--ops-primary); color: #fff; white-space: nowrap; }
+    .btn-primary { background: var(--ops-lime); color: var(--ops-ink); }
+    .btn-pack { background: var(--ops-lime); color: var(--ops-ink); white-space: nowrap; }
     .table-wrap { overflow-x: auto; }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .ops-table th, .ops-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ops-border); text-align: left; vertical-align: top; }

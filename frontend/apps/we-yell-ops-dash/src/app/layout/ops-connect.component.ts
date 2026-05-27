@@ -51,17 +51,17 @@ declare const google: {
         <aside class="auth-aside">
           <div class="aside-illus" aria-hidden="true">
             <svg viewBox="0 0 320 200" class="warehouse-svg">
-              <rect x="40" y="70" width="200" height="90" rx="4" fill="#e9e0f5" stroke="#845EC2" stroke-width="2"/>
-              <path d="M40 70 L140 30 L240 70" fill="#f3eefb" stroke="#845EC2" stroke-width="2" stroke-linejoin="round"/>
-              <rect x="70" y="100" width="40" height="35" rx="2" fill="#845EC2" opacity="0.35"/>
-              <rect x="130" y="100" width="40" height="35" rx="2" fill="#845EC2" opacity="0.35"/>
-              <rect x="190" y="100" width="30" height="50" rx="2" fill="#845EC2" opacity="0.2"/>
+              <rect x="40" y="70" width="200" height="90" rx="4" fill="#eef6d8" stroke="#292928" stroke-width="2"/>
+              <path d="M40 70 L140 30 L240 70" fill="#f4f8e8" stroke="#292928" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="70" y="100" width="40" height="35" rx="2" fill="#c3f832" opacity="0.55"/>
+              <rect x="130" y="100" width="40" height="35" rx="2" fill="#c3f832" opacity="0.55"/>
+              <rect x="190" y="100" width="30" height="50" rx="2" fill="#c3f832" opacity="0.35"/>
               <rect x="210" y="130" width="55" height="30" rx="3" fill="#cbd5e1"/>
               <rect x="218" y="118" width="18" height="14" fill="#94a3b8"/>
               <circle cx="235" cy="162" r="8" fill="#64748b"/>
               <circle cx="252" cy="162" r="8" fill="#64748b"/>
-              <rect x="95" y="145" width="28" height="15" rx="2" fill="#c4b5fd"/>
-              <rect x="155" y="150" width="22" height="10" rx="2" fill="#c4b5fd"/>
+              <rect x="95" y="145" width="28" height="15" rx="2" fill="#c3f832"/>
+              <rect x="155" y="150" width="22" height="10" rx="2" fill="#c3f832"/>
             </svg>
           </div>
           <h1 class="aside-title">{{ productName }} Ops</h1>
@@ -190,8 +190,8 @@ declare const google: {
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      background: linear-gradient(135deg, #9b7ad4, var(--ops-brand-purple));
-      color: #fff;
+      background: var(--ops-lime);
+      color: var(--ops-ink);
       font-weight: 800;
       font-size: 1.1rem;
       display: grid;
@@ -270,7 +270,7 @@ declare const google: {
       height: 40px;
       border-radius: 10px;
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-link);
       display: grid;
       place-items: center;
       font-size: 20px;
@@ -299,7 +299,7 @@ declare const google: {
       margin: 0 auto 1rem;
       border-radius: 50%;
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-link);
       display: grid;
       place-items: center;
     }
@@ -355,7 +355,7 @@ declare const google: {
       gap: 0.35rem;
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--ops-primary);
+      color: var(--ops-link);
       text-decoration: none;
       padding: 0.35rem 0.5rem;
       border-radius: var(--ops-radius-sm);

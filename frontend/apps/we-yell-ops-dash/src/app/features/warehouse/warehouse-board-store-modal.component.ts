@@ -254,7 +254,7 @@ export interface WarehouseBoardStoreConfirm {
       cursor: pointer;
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--ops-primary);
+      color: var(--ops-link);
       margin-bottom: 0.5rem;
     }
     .field { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.82rem; margin-top: 0.5rem; }

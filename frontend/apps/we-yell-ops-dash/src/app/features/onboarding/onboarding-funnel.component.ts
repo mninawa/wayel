@@ -167,8 +167,8 @@ import {
     }
     .kpi-icon {
       flex-shrink: 0;
-      background: var(--ops-brand-purple-soft, #ede9fe);
-      color: var(--ops-brand-purple, #7c3aed);
+      background: var(--ops-lime-soft);
+      color: var(--ops-ink);
       border-radius: 8px;
       padding: 0.45rem;
       font-size: 1.15rem !important;
@@ -197,9 +197,9 @@ import {
       cursor: pointer;
     }
     .tab:hover { color: var(--ops-text); }
-    .tab.active { background: var(--ops-brand-purple-soft, #ede9fe); color: var(--ops-brand-purple, #7c3aed); border-color: transparent; }
+    .tab.active { background: var(--ops-lime-soft); color: var(--ops-ink); border-color: transparent; }
     .tab-count { background: rgba(0,0,0,0.06); padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.72rem; }
-    .tab.active .tab-count { background: rgba(124,58,237,0.18); color: inherit; }
+    .tab.active .tab-count { background: rgba(41,41,40,0.1); color: inherit; }
 
     .row-info { padding: 1.5rem; text-align: center; color: var(--ops-text-muted); }
     .row-info.muted { color: var(--ops-text-muted); }
@@ -222,7 +222,7 @@ import {
     .pager { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem; justify-content: center; border-top: 1px solid var(--ops-border); }
     .btn { padding: 0.45rem 0.85rem; border-radius: var(--ops-radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .btn.ghost { background: #fff; border: 1px solid var(--ops-border); color: var(--ops-text); display: inline-flex; align-items: center; gap: 0.35rem; }
-    .btn.ghost:hover:not([disabled]) { border-color: var(--ops-brand-purple, #7c3aed); color: var(--ops-brand-purple, #7c3aed); }
+    .btn.ghost:hover:not([disabled]) { border-color: var(--ops-ink); color: var(--ops-ink); }
     .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
   `,
 })

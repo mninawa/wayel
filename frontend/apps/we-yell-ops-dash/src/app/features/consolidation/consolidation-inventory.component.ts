@@ -189,12 +189,12 @@ import {
       padding: 0.45rem 0.75rem;
       cursor: pointer;
     }
-    .btn-primary { background: var(--ops-primary); color: #fff; border: none; }
+    .btn-primary { background: var(--ops-lime); color: var(--ops-ink); border: none; }
     .btn-ghost { background: transparent; border: 1px solid var(--ops-border); color: var(--ops-muted); }
-    .btn-save { background: var(--ops-brand-green); color: #fff; border: none; margin-top: 0.25rem; width: 100%; }
+    .btn-save { background: var(--ops-lime); color: var(--ops-ink); border: none; margin-top: 0.25rem; width: 100%; }
     .btn-suite {
       background: var(--ops-primary-soft);
-      color: var(--ops-primary);
+      color: var(--ops-link);
       border: none;
       margin-top: 0.25rem;
       width: 100%;
@@ -220,7 +220,7 @@ import {
       border-radius: var(--ops-radius-sm);
       font-size: 0.78rem;
     }
-    .view-link { color: var(--ops-primary); font-weight: 600; text-decoration: none; white-space: nowrap; }
+    .view-link { color: var(--ops-link); font-weight: 600; text-decoration: none; white-space: nowrap; }
     .err-banner { color: var(--ops-danger); background: var(--ops-danger-soft); padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
     .ok-banner { color: #166534; background: #dcfce7; padding: 0.75rem 1rem; border-radius: var(--ops-radius-sm); margin-bottom: 0.85rem; }
   `,

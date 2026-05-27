@@ -122,7 +122,7 @@ export interface CollectionPickupConfirm {
       font-weight: 700;
       border: none;
     }
-    .btn.primary { background: var(--ops-primary); color: #fff; }
+    .btn.primary { background: var(--ops-lime); color: var(--ops-ink); }
     .btn.primary:disabled { opacity: 0.5; }
     .btn.secondary { background: #f1f5f9; color: var(--ops-text); }
     .icon-btn { border: none; background: transparent; color: var(--ops-muted); }

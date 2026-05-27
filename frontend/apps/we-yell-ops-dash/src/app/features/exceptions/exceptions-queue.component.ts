@@ -100,8 +100,8 @@ import { receivingRoutes } from '../../types/receiving.types';
     .sla-warn { color: #b91c1c; font-weight: 600; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; align-items: center; }
     .view-link, .link-btn { font-size: 0.78rem; font-weight: 600; }
-    .view-link { color: var(--ops-primary); text-decoration: none; }
-    .link-btn { background: none; border: none; color: var(--ops-primary); padding: 0; cursor: pointer; }
+    .view-link { color: var(--ops-link); text-decoration: none; }
+    .link-btn { background: none; border: none; color: var(--ops-link); padding: 0; cursor: pointer; }
     .link-btn.resolve { color: #15803d; }
     .pad { padding: 1.25rem; }
     .muted { color: var(--ops-muted); }

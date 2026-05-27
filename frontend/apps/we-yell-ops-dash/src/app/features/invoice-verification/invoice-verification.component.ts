@@ -72,7 +72,7 @@ import { receivingRoutes } from '../../types/receiving.types';
   `,
   styles: `
     .page { max-width: 1100px; }
-    .back-link { color: var(--ops-primary); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+    .back-link { color: var(--ops-link); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
     h1 { margin: 0.75rem 0 0.25rem; font-size: 1.25rem; }
     .sub { color: var(--ops-muted); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; }
