@@ -247,7 +247,7 @@ import { CustomerAccountService } from '../../services/customer-account.service'
     }
     .consent input {
       margin-top: 0.2rem;
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       flex-shrink: 0;
     }
     .err {

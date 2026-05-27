@@ -75,7 +75,7 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
       transition: border-color 0.15s, background 0.15s;
     }
     .upload-card:hover:not(.busy) {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: var(--bb-primary-soft);
     }
     .upload-card.done {
@@ -100,7 +100,7 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
       color: #64748b;
     }
     .upload-card.done .upload-icon { color: #15803d; }
-    .upload-card:hover:not(.busy):not(.done) .upload-icon { color: var(--bb-primary); }
+    .upload-card:hover:not(.busy):not(.done) .upload-icon { color: var(--bb-link); }
     .upload-label {
       font-size: 0.82rem;
       font-weight: 700;
@@ -114,7 +114,7 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
     .upload-status {
       font-size: 0.72rem;
       font-weight: 600;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       margin-top: 0.15rem;
     }
     .upload-card.done .upload-status { color: #15803d; }

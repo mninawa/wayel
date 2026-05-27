@@ -530,7 +530,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       font-size: 0.78rem;
       font-weight: 600;
     }
-    .rail-step--active { color: var(--bb-primary); }
+    .rail-step--active { color: var(--bb-ink); font-weight: 700; }
     .rail-step--done { color: #15803d; }
     .rail-marker {
       width: 1.5rem;
@@ -546,7 +546,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     }
     .rail-step--active .rail-marker {
       background: var(--bb-primary-soft);
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
     }
     .rail-step--done .rail-marker {
       background: #ecfdf3;
@@ -589,7 +589,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .kanban-col--active {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       box-shadow: 0 0 0 2px var(--bb-primary-soft), var(--bb-shadow-md);
     }
     .kanban-col--done {
@@ -639,7 +639,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       height: 1.25rem;
       border-radius: 6px;
       background: var(--bb-primary-soft);
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-size: 0.68rem;
       font-weight: 700;
       display: inline-flex;
@@ -664,7 +664,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     }
     .kanban-col--active .col-status {
       background: var(--bb-primary-soft);
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .kanban-col--done .col-status {
       background: #ecfdf3;
@@ -672,7 +672,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     }
     .kanban-col--pay.kanban-col--active .col-status {
       background: var(--bb-primary-soft);
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .kanban-col--pay.kanban-col--waiting .col-status {
       background: #fffbeb;
@@ -716,7 +716,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       padding: 0;
       font-size: 0.72rem;
       font-weight: 600;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       cursor: pointer;
     }
     .pick-row {
@@ -731,7 +731,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     }
     .pick-row:hover { background: #f8fafc; }
     .pick-row input {
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       grid-row: 1 / span 2;
       margin-top: 0.2rem;
     }
@@ -767,7 +767,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       gap: 0.35rem 0.5rem;
     }
     .pick-ids .ref {
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-weight: 600;
       font-size: 0.68rem;
     }
@@ -905,11 +905,11 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     .method-card input { grid-row: 1 / span 2; margin-top: 0.1rem; }
     .method-price { grid-column: 2; font-weight: 700; font-size: 0.8rem; color: var(--bb-text); }
     .method-card.selected {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: var(--bb-primary-soft);
       box-shadow: 0 0 0 1px var(--bb-primary);
     }
-    .method-card input { accent-color: var(--bb-primary); }
+    .method-card input { accent-color: var(--bb-link); }
     .method-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
     .method-head strong { font-size: 0.88rem; color: var(--bb-text); }
     .tag-rec {
@@ -953,7 +953,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
     .addr-add {
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       text-decoration: none;
       white-space: nowrap;
       border: none;
@@ -987,7 +987,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       background: #f8fafc;
     }
     .addr-empty { font-size: 0.82rem; color: var(--bb-muted); margin: 0; }
-    .addr-empty a { color: var(--bb-primary); font-weight: 600; }
+    .addr-empty a { color: var(--bb-link); font-weight: 600; }
     .sr-only {
       position: absolute;
       width: 1px;
@@ -1166,11 +1166,11 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       background: #fff;
     }
     .renew-card.selected {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: var(--bb-primary-soft);
       box-shadow: 0 0 0 1px var(--bb-primary);
     }
-    .renew-card input { accent-color: var(--bb-primary); margin-top: 0.2rem; }
+    .renew-card input { accent-color: var(--bb-link); margin-top: 0.2rem; }
     .renew-top {
       display: flex;
       align-items: center;
@@ -1204,7 +1204,7 @@ const PICKUP_METHOD: DeliveryMethodChoice = 'PUDO';
       align-items: center;
       gap: 0.2rem;
     }
-    .modal-trust .material-icons-outlined { font-size: 16px !important; color: var(--bb-primary); }
+    .modal-trust .material-icons-outlined { font-size: 16px !important; color: var(--bb-link); }
     .modal-cta { width: 100%; }
 
     .drawer-backdrop {

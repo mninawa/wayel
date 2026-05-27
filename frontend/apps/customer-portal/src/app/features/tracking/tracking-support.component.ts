@@ -221,7 +221,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
     }
     .channel:hover:not(.channel-disabled) {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
       transform: translateY(-1px);
     }
@@ -239,8 +239,8 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       color: #128c7e;
     }
     .channel-email .channel-icon {
-      background: var(--bb-primary-soft);
-      color: var(--bb-primary-deep);
+      background: var(--bb-surface-muted);
+      color: var(--bb-ink);
     }
     .channel-disabled .channel-icon {
       background: #f1f5f9;
@@ -249,7 +249,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .channel-icon .material-icons-outlined { font-size: 1.4rem !important; }
     .channel-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
     .channel-body strong { font-size: 0.95rem; }
-    .channel-body small { font-size: 0.78rem; color: var(--bb-muted); margin-top: 0.15rem; }
+    .channel-body small { font-size: 0.82rem; color: var(--bb-muted); margin-top: 0.2rem; line-height: 1.4; }
     .channel-go {
       color: var(--bb-muted);
       font-size: 1.1rem !important;
@@ -260,7 +260,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       cursor: default;
     }
     .channel-disabled .channel-body small { color: var(--bb-muted); }
-    .field-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--bb-muted); margin-bottom: 0.25rem; }
+    .field-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--bb-muted); margin-bottom: 0.3rem; }
     .field {
       width: 100%;
       padding: 0.55rem 0.75rem;

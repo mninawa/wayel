@@ -80,7 +80,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .err { color: var(--bb-danger); }
     .pill-approved { background: var(--bb-success-soft); color: #15803d; }
     .pill-blocked { background: #fef2f2; color: var(--bb-danger); }
-    .pill-pending { background: var(--bb-primary-soft); color: var(--bb-primary); }
+    .pill-pending { background: var(--bb-primary-soft); color: var(--bb-ink); }
     .pill-muted { background: #f1f5f9; color: var(--bb-muted); }
     .muted-cell { color: var(--bb-muted); font-size: 0.85rem; }
   `,

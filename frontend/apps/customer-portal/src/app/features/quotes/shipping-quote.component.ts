@@ -259,7 +259,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
   `,
   styles: `
     .crumb { font-size: 0.82rem; margin-bottom: 0.75rem; }
-    .crumb a { color: var(--bb-primary); text-decoration: none; font-weight: 600; }
+    .crumb a { color: var(--bb-link); text-decoration: none; font-weight: 600; }
     .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; }
     .head-row h1 { margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.35rem; }
     .head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -306,7 +306,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     }
     .total-line { display: flex; justify-content: space-between; padding: 0.75rem 0; font-weight: 700; }
     .green { color: #15803d; }
-    .info-box { font-size: 0.78rem; padding: 0.65rem; background: var(--bb-primary-soft); border-radius: var(--bb-radius-sm); color: var(--bb-primary); margin: 0; }
+    .info-box { font-size: 0.85rem; padding: 0.7rem 0.85rem; background: var(--bb-info-bg); border: 1px solid var(--bb-info-border); border-radius: var(--bb-radius-sm); color: var(--bb-info-text); margin: 0; line-height: 1.45; }
     .sticky-bar {
       position: fixed;
       bottom: 0;
@@ -346,7 +346,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .sub-title { font-size: 0.85rem; margin: 1rem 0 0.5rem; }
     .linked { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; }
     .linked li { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; padding: 0.35rem 0; border-bottom: 1px solid #f1f5f9; }
-    .linked a { color: var(--bb-primary); font-weight: 600; text-decoration: none; }
+    .linked a { color: var(--bb-link); font-weight: 600; text-decoration: none; }
     @media (max-width: 760px) { .sticky-bar { left: 0; } }
   `,
 })

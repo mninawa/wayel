@@ -107,7 +107,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
           <p class="addr-line">
             {{ suiteAddress()?.city }}, {{ suiteAddress()?.province }} {{ suiteAddress()?.postalCode }}
           </p>
-        <p class="info"><span class="material-icons-outlined">info</span> Use suite {{ suiteAccess().suiteNumber }} on all deliveries.</p>
+        <p class="bb-info"><span class="material-icons-outlined">info</span> Use suite {{ suiteAccess().suiteNumber }} on all deliveries.</p>
         <a routerLink="/my-address" [queryParams]="{ tab: 'suite' }" class="bb-link">View full address details →</a>
       </section>
 
@@ -231,13 +231,13 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       justify-content: center;
       grid-row: span 2;
     }
-    .stat-icon[data-color='blue'] { background: var(--bb-primary-soft); color: var(--bb-primary); }
+    .stat-icon[data-color='blue'] { background: var(--bb-primary-soft); color: var(--bb-ink); }
     .stat-icon[data-color='orange'] { background: var(--bb-warning-soft); color: #b45309; }
     .stat-icon[data-color='teal'] { background: #e0f2fe; color: #0284c7; }
     .stat-icon[data-color='green'] { background: var(--bb-success-soft); color: #15803d; }
     .stat-val { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--bb-text); }
-    .stat-lbl { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--bb-muted); }
-    .stat-link { grid-column: 2; font-size: 0.78rem; font-weight: 600; color: var(--bb-primary); text-decoration: none; }
+    .stat-lbl { margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--bb-muted); }
+    .stat-link { grid-column: 2; font-size: 0.82rem; font-weight: 600; color: var(--bb-link); text-decoration: underline; text-decoration-color: var(--bb-lime); text-underline-offset: 2px; }
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -260,19 +260,12 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .note { font-size: 0.78rem; color: var(--bb-muted); margin: 0 0 1rem; }
     .btn-row { display: flex; flex-direction: column; gap: 0.5rem; }
     .addr-title { font-weight: 700; margin: 0 0 0.35rem; font-size: 0.9rem; }
-    .addr-line { margin: 0 0 0.2rem; font-size: 0.82rem; color: #475569; }
+    .addr-line { margin: 0 0 0.2rem; font-size: 0.85rem; color: var(--bb-text); }
     .info {
       display: flex;
       gap: 0.35rem;
       align-items: flex-start;
-      margin: 1rem 0;
-      padding: 0.65rem;
-      background: var(--bb-primary-soft);
-      border-radius: var(--bb-radius-sm);
-      font-size: 0.78rem;
-      color: var(--bb-primary);
     }
-    .info .material-icons-outlined { font-size: 16px !important; }
     .activity { list-style: none; margin: 0; padding: 0; }
     .activity li {
       display: grid;

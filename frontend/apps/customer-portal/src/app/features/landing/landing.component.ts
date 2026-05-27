@@ -390,7 +390,7 @@ import { RouterLink } from '@angular/router';
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       background: var(--bb-primary-soft);
       padding: 0.3rem 0.6rem;
       border-radius: 999px;
@@ -728,7 +728,7 @@ import { RouterLink } from '@angular/router';
     }
     .ld-step-icon {
       font-size: 1.8rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       margin-bottom: 0.4rem;
     }
     .ld-step h3 {
@@ -770,7 +770,7 @@ import { RouterLink } from '@angular/router';
     }
     .ld-benefit .material-icons-outlined {
       font-size: 1.5rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       background: var(--bb-primary-soft);
       width: 2.4rem;
       height: 2.4rem;
@@ -847,7 +847,7 @@ import { RouterLink } from '@angular/router';
       box-shadow: var(--bb-shadow);
     }
     .ld-plan-featured {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
       box-shadow: 0 20px 40px -20px rgba(132, 94, 194, 0.35);
     }
@@ -882,7 +882,7 @@ import { RouterLink } from '@angular/router';
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       background: var(--bb-primary-soft);
       padding: 0.25rem 0.55rem;
       border-radius: 999px;
@@ -997,7 +997,7 @@ import { RouterLink } from '@angular/router';
     }
     .ld-cta-banner .bb-btn-primary {
       background: #fff;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.35);
     }
     .ld-cta-banner .bb-btn-primary:hover {

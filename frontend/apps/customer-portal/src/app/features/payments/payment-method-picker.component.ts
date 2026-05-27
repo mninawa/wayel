@@ -190,7 +190,7 @@ export interface PaymentMethodChoice {
     }
     .pmp-opt:hover { border-color: var(--bb-primary-soft, #c4b5fd); }
     .pmp-opt.is-selected {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: rgba(124, 58, 237, 0.05);
     }
     .pmp-opt.is-disabled {
@@ -258,7 +258,7 @@ export interface PaymentMethodChoice {
     }
     .pmp-field input[type='tel']:focus {
       outline: none;
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
     }
     .pmp-field input[type='tel'][aria-invalid='true'] {

@@ -180,8 +180,8 @@ type PlanChoice = 'monthly' | 'quarterly';
       font-weight: 700;
       font-size: 0.75rem;
     }
-    .step.done .num { background: var(--bb-primary); border-color: var(--bb-primary); color: #fff; }
-    .step.active .num { border-color: var(--bb-primary); color: var(--bb-primary); }
+    .step.done .num { background: var(--bb-primary); border-color: var(--bb-link); color: #fff; }
+    .step.active .num { border-color: var(--bb-link); color: var(--bb-link); }
     .step.active { color: var(--bb-text); font-weight: 600; }
     .body-grid { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; }
     @media (max-width: 900px) {
@@ -213,7 +213,7 @@ type PlanChoice = 'monthly' | 'quarterly';
       background: #fff;
       position: relative;
     }
-    .plan.selected { border-color: var(--bb-primary); box-shadow: 0 0 0 1px var(--bb-primary); }
+    .plan.selected { border-color: var(--bb-link); box-shadow: 0 0 0 1px var(--bb-primary); }
     .plan .bb-badge { position: absolute; top: 1rem; right: 1rem; }
     .plan strong { display: block; font-size: 1.5rem; }
     .plan .green { color: #15803d; }
@@ -225,7 +225,7 @@ type PlanChoice = 'monthly' | 'quarterly';
       background: var(--bb-primary-soft);
       border-radius: var(--bb-radius-sm);
       font-size: 0.85rem;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       margin: 1rem 0;
     }
     .err-banner {
@@ -254,8 +254,8 @@ type PlanChoice = 'monthly' | 'quarterly';
       font-weight: 600;
     }
     .bb-btn-ghost.pay-later:hover:not([disabled]) {
-      border-color: var(--bb-primary);
-      color: var(--bb-primary);
+      border-color: var(--bb-link);
+      color: var(--bb-link);
     }
     .actions .bb-btn .spin { animation: spin 1s linear infinite; display: inline-block; margin-right: 0.25rem; font-size: 1rem !important; vertical-align: -0.18em; }
     @keyframes spin { to { transform: rotate(360deg); } }

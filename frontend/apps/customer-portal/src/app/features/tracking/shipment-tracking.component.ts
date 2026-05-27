@@ -233,7 +233,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 600;
@@ -268,7 +268,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       margin: 0;
       font-size: 1.75rem;
       font-weight: 800;
-      color: var(--bb-primary);
+      color: var(--bb-ink);
       letter-spacing: -0.02em;
     }
     .icon-btn {
@@ -283,7 +283,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       cursor: pointer;
       color: var(--bb-muted);
     }
-    .icon-btn:hover { border-color: var(--bb-primary); color: var(--bb-primary); }
+    .icon-btn:hover { border-color: var(--bb-link); color: var(--bb-link); }
     .track-header-meta {
       display: flex;
       flex-wrap: wrap;
@@ -354,7 +354,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       border-top: 2px dashed #cbd5e1;
     }
     .route-truck {
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-size: 1.5rem;
       background: #fff;
     }
@@ -401,7 +401,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
     }
     .milestone-icon.active {
       background: var(--bb-primary-soft);
-      color: var(--bb-primary);
+      color: var(--bb-link);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
     .milestone.upcoming .milestone-body strong,
@@ -487,7 +487,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
     .courier-brand {
       font-size: 1.35rem;
       font-weight: 800;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       margin-bottom: 0.75rem;
       letter-spacing: 0.02em;
     }
@@ -504,7 +504,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       margin: 0;
     }
     .info-kv dd { margin: 0.15rem 0 0; font-size: 0.9rem; }
-    .info-kv a { color: var(--bb-primary); }
+    .info-kv a { color: var(--bb-link); }
 
     .event-cell {
       display: inline-flex;
@@ -527,7 +527,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       color: var(--bb-muted);
       margin: 0;
     }
-    .support-hint a { color: var(--bb-primary); font-weight: 600; }
+    .support-hint a { color: var(--bb-link); font-weight: 600; }
   `,
 })
 export class ShipmentTrackingComponent implements OnInit {

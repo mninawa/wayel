@@ -53,7 +53,7 @@ import { WelcomeIntentService } from '../../services/welcome-intent.service';
     }
     .card h1 { margin: 0.75rem 0 0.5rem; font-size: 1.25rem; }
     .card p { margin: 0 0 1.25rem; color: var(--bb-muted); font-size: 0.9rem; }
-    .card .material-icons-outlined { font-size: 2.5rem; color: var(--bb-primary); }
+    .card .material-icons-outlined { font-size: 2.5rem; color: var(--bb-link); }
     .card.ok .material-icons-outlined { color: #15803d; }
     .card.err .material-icons-outlined { color: var(--bb-danger); }
     .spin { animation: spin 1s linear infinite; display: inline-block; }

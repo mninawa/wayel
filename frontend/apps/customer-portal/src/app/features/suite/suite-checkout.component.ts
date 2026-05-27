@@ -415,7 +415,7 @@ const PLAN_FEATURES = [
     }
     .head-icon {
       font-size: 1.5rem;
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .head-sub {
       margin: 0.35rem 0 0;
@@ -464,7 +464,7 @@ const PLAN_FEATURES = [
     }
     .stat-label .material-icons-outlined {
       font-size: 1.05rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .stat-value {
       display: block;
@@ -491,12 +491,15 @@ const PLAN_FEATURES = [
       background: none;
       border: none;
       padding: 0;
-      color: var(--bb-primary);
-      font-size: 0.78rem;
+      color: var(--bb-link);
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       text-align: left;
       margin-top: 0.4rem;
+      text-decoration: underline;
+      text-decoration-color: var(--bb-lime);
+      text-underline-offset: 2px;
     }
     .stat-link:hover { text-decoration: underline; }
 
@@ -564,7 +567,7 @@ const PLAN_FEATURES = [
     }
     .card-head h2 .material-icons-outlined {
       font-size: 1.1rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
 
     .filter select {
@@ -623,9 +626,11 @@ const PLAN_FEATURES = [
       cursor: not-allowed;
     }
     .invoice-link {
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-weight: 600;
-      text-decoration: none;
+      text-decoration: underline;
+      text-decoration-color: #b8860b;
+      text-underline-offset: 2px;
     }
     .invoice-link:hover { text-decoration: underline; }
 
@@ -643,8 +648,8 @@ const PLAN_FEATURES = [
       transition: border-color 0.15s, color 0.15s;
     }
     .icon-btn:hover {
-      border-color: var(--bb-primary);
-      color: var(--bb-primary);
+      border-color: var(--bb-link);
+      color: var(--bb-link);
     }
     .icon-btn .material-icons-outlined { font-size: 1rem !important; }
 
@@ -670,7 +675,7 @@ const PLAN_FEATURES = [
       border: 1px solid var(--bb-border);
     }
     .card-icon .material-icons-outlined {
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .card-meta strong {
       display: block;
@@ -685,7 +690,7 @@ const PLAN_FEATURES = [
       background: none;
       border: none;
       padding: 0;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-weight: 600;
       cursor: pointer;
       font-size: 0.82rem;
@@ -847,7 +852,7 @@ const PLAN_FEATURES = [
     }
     .plan-option:hover { border-color: #93c5fd; }
     .plan-option.selected {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
       box-shadow: 0 0 0 1px var(--bb-primary);
     }
@@ -855,7 +860,7 @@ const PLAN_FEATURES = [
       position: absolute;
       left: 0.85rem;
       top: 1rem;
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       width: 1.05rem;
       height: 1.05rem;
     }
@@ -864,7 +869,7 @@ const PLAN_FEATURES = [
       top: 0.55rem;
       right: 0.55rem;
       font-size: 1.25rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .plan-top {
       display: flex;
@@ -953,14 +958,14 @@ const PLAN_FEATURES = [
       transition: border-color 0.15s, background 0.15s;
     }
     .pay-option.selected {
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
       background: var(--bb-primary-soft);
     }
     .pay-radio {
       position: absolute;
       left: 0.85rem;
       top: 1rem;
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       width: 1.05rem;
       height: 1.05rem;
     }
@@ -1037,7 +1042,7 @@ const PLAN_FEATURES = [
       color: var(--bb-muted);
     }
     .legal-link {
-      color: var(--bb-primary);
+      color: var(--bb-link);
       text-decoration: none;
       font-weight: 600;
     }
@@ -1059,7 +1064,7 @@ const PLAN_FEATURES = [
     }
     .summary-icon {
       font-size: 1.6rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
     }
     .summary-title {
       margin: 0;
@@ -1087,7 +1092,7 @@ const PLAN_FEATURES = [
       margin: 0.25rem 0 0;
       font-size: 1.85rem;
       font-weight: 800;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       letter-spacing: -0.02em;
     }
     .amount-note {

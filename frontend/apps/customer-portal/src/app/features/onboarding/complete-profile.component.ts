@@ -107,7 +107,7 @@ import { CustomerAccountService } from '../../services/customer-account.service'
       font-weight: 700;
     }
     .step.done { opacity: 0.85; }
-    .step.done span:first-child { background: var(--bb-primary); border-color: var(--bb-primary); }
+    .step.done span:first-child { background: var(--bb-primary); border-color: var(--bb-link); }
     .step.active { opacity: 1; font-weight: 600; }
     .step.active span:first-child { border-color: #fff; color: #fff; }
     .main { flex: 1; background: var(--bb-bg); padding: 1.5rem 2rem; }

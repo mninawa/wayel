@@ -268,7 +268,7 @@ const LOCAL_OPS_KEY = 'weyell-local-kyc-ops';
       background: none;
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       cursor: pointer;
     }
   `,

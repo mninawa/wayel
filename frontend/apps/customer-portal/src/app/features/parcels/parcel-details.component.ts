@@ -369,7 +369,7 @@ interface CustomsItem {
       color: var(--bb-muted);
       margin-bottom: 0.75rem;
     }
-    .crumbs a { color: var(--bb-primary); text-decoration: none; font-weight: 600; }
+    .crumbs a { color: var(--bb-link); text-decoration: none; font-weight: 600; }
     .crumbs .material-icons-outlined { font-size: 16px !important; }
     .page-header {
       display: flex;
@@ -419,7 +419,7 @@ interface CustomsItem {
       margin-bottom: 0.75rem;
     }
     .card-head-row .bb-card-title { margin: 0; }
-    .photo-view-all { font-size: 0.75rem; color: var(--bb-primary); font-weight: 600; text-decoration: none; }
+    .photo-view-all { font-size: 0.75rem; color: var(--bb-link); font-weight: 600; text-decoration: none; }
     .photo-view-all:hover { text-decoration: underline; }
     .id-head {
       display: flex;
@@ -434,7 +434,7 @@ interface CustomsItem {
     .icon-btn {
       border: none;
       background: var(--bb-primary-soft);
-      color: var(--bb-primary);
+      color: var(--bb-link);
       border-radius: 6px;
       padding: 0.2rem;
       cursor: pointer;
@@ -494,7 +494,7 @@ interface CustomsItem {
     }
     .metric-input:focus {
       outline: 2px solid var(--bb-primary-soft);
-      border-color: var(--bb-primary);
+      border-color: var(--bb-link);
     }
     .metric-input-full { font-weight: 600; }
     .metric-suffix, .metric-prefix {
@@ -540,7 +540,7 @@ interface CustomsItem {
       line-height: 1.4;
     }
     .info-box .material-icons-outlined { font-size: 18px !important; flex-shrink: 0; }
-    .info-box.success { background: var(--bb-primary-soft); color: var(--bb-primary); }
+    .info-box.success { background: var(--bb-primary-soft); color: var(--bb-ink); }
     .info-box.warn { background: var(--bb-warning-soft); color: #92400e; }
     .photo-grid {
       display: grid;
@@ -659,7 +659,7 @@ interface CustomsItem {
       border: 1px solid var(--bb-border);
       border-radius: var(--bb-radius-sm);
       background: #fff;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       font-weight: 600;
       font-size: 0.88rem;
       text-decoration: none;
@@ -688,7 +688,7 @@ interface CustomsItem {
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
-    .invoice-replace-bar:hover { border-color: var(--bb-primary); color: var(--bb-primary); background: var(--bb-primary-soft); }
+    .invoice-replace-bar:hover { border-color: var(--bb-link); color: var(--bb-link); background: var(--bb-primary-soft); }
     .invoice-replace-bar.uploading { pointer-events: none; opacity: 0.85; }
     .invoice-replace-bar input { display: none; }
     .card-invoice .err { margin-top: 0.5rem; text-align: center; }
@@ -721,7 +721,7 @@ interface CustomsItem {
       color: var(--bb-muted);
     }
     .upload-zone input { display: none; }
-    .upload-zone.uploading { pointer-events: none; border-color: var(--bb-primary); }
+    .upload-zone.uploading { pointer-events: none; border-color: var(--bb-link); }
     .upload-types { font-size: 0.72rem; }
     .spin { animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -729,7 +729,7 @@ interface CustomsItem {
     .err { color: var(--bb-danger); }
     .bb-badge-received { background: var(--bb-success-soft); color: #15803d; }
     .bb-badge-ready { background: var(--bb-warning-soft); color: #b45309; }
-    .bb-badge-transit { background: var(--bb-primary-soft); color: var(--bb-primary); }
+    .bb-badge-transit { background: var(--bb-primary-soft); color: var(--bb-ink); }
     .bb-badge-awaiting { background: var(--bb-warning-soft); color: #b45309; }
     .bb-badge-default { background: #f1f5f9; color: var(--bb-muted); }
     .bb-card-title { margin: 0 0 0.75rem; font-size: 0.95rem; }

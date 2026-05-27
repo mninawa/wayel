@@ -430,7 +430,7 @@ type NotifKey = keyof NotificationPreferences;
     }
     .head-icon {
       font-size: 1.35rem;
-      color: var(--bb-primary);
+      color: var(--bb-ink);
     }
 
     .tabs {
@@ -447,7 +447,7 @@ type NotifKey = keyof NotificationPreferences;
       border: 1px solid var(--bb-border);
       border-radius: 999px;
       background: #fff;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 600;
       color: var(--bb-muted);
       transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -456,17 +456,17 @@ type NotifKey = keyof NotificationPreferences;
       font-size: 1.05rem;
     }
     .tabs button:hover:not(.active) {
-      border-color: #93c5fd;
+      border-color: var(--bb-ink);
       color: var(--bb-text);
     }
     .tabs button.active {
-      background: var(--bb-primary);
-      border-color: var(--bb-primary);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(0, 82, 204, 0.25);
+      background: var(--bb-lime);
+      border-color: var(--bb-lime);
+      color: var(--bb-ink);
+      box-shadow: var(--bb-shadow);
     }
     .tabs button.active .material-icons-outlined {
-      color: #fff;
+      color: var(--bb-ink);
     }
 
     .profile-grid {
@@ -557,14 +557,16 @@ type NotifKey = keyof NotificationPreferences;
     }
     .field-label {
       display: block;
-      font-size: 0.72rem;
+      font-size: 0.75rem;
       color: var(--bb-muted);
-      font-weight: 500;
-      margin-bottom: 0.1rem;
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
     .field-value {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       font-weight: 600;
       color: var(--bb-text);
       word-break: break-word;
@@ -652,7 +654,7 @@ type NotifKey = keyof NotificationPreferences;
     }
     .kyc-consent input {
       margin-top: 0.2rem;
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       flex-shrink: 0;
     }
     .kyc-submit-btn { width: 100%; }
@@ -682,7 +684,7 @@ type NotifKey = keyof NotificationPreferences;
     }
     .notif-bell {
       font-size: 1.75rem !important;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       flex-shrink: 0;
     }
     .notif-head .bb-card-title {
@@ -730,7 +732,7 @@ type NotifKey = keyof NotificationPreferences;
     .notif-check {
       width: 1.1rem;
       height: 1.1rem;
-      accent-color: var(--bb-primary);
+      accent-color: var(--bb-link);
       flex-shrink: 0;
     }
 
@@ -790,15 +792,16 @@ type NotifKey = keyof NotificationPreferences;
       gap: 0.4rem;
       margin: 1rem 0;
       padding: 0.75rem;
-      background: var(--bb-primary-soft);
+      background: var(--bb-info-bg);
+      border: 1px solid var(--bb-info-border);
       border-radius: var(--bb-radius-sm);
-      font-size: 0.82rem;
-      color: var(--bb-primary);
+      font-size: 0.85rem;
+      color: var(--bb-info-text);
     }
     .suite-meta { margin-top: 1.5rem; background: #f8fafc; }
     .suite-meta h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
     .no-suite { color: var(--bb-muted); font-size: 0.9rem; }
-    .no-suite a { color: var(--bb-primary); font-weight: 600; }
+    .no-suite a { color: var(--bb-link); font-weight: 600; }
 
     .delivery-grid { max-width: 800px; }
     .addr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
@@ -808,7 +811,7 @@ type NotifKey = keyof NotificationPreferences;
       border-radius: var(--bb-radius-sm);
       background: #fafbfc;
     }
-    .addr-list li.default { border-color: var(--bb-primary); background: var(--bb-primary-soft); }
+    .addr-list li.default { border-color: var(--bb-ink); background: var(--bb-surface-muted); }
     .addr-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem; }
     .addr-nick { font-size: 0.8rem; color: var(--bb-muted); font-style: italic; }
     .addr-list p { margin: 0 0 0.2rem; font-size: 0.85rem; color: #475569; }
@@ -825,7 +828,7 @@ type NotifKey = keyof NotificationPreferences;
       padding: 0;
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--bb-primary);
+      color: var(--bb-link);
       cursor: pointer;
     }
     .bb-link-btn.danger { color: var(--bb-danger); }

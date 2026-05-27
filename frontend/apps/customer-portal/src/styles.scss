@@ -9,15 +9,23 @@ body.nk-connectivity-offline {
   --bb-ink: #292928;
   --bb-lime: #c3f832;
   --bb-lime-hover: #b5eb24;
-  --bb-lime-soft: #f4fde6;
+  --bb-lime-soft: #eef6d8;
   --bb-lime-muted: rgba(195, 248, 50, 0.22);
 
   --bb-surface-muted: #f2f3f4;
   --bb-bg: #f8f8f8;
   --bb-surface: #ffffff;
   --bb-text: #292928;
-  --bb-muted: #6b7280;
+  --bb-muted: #525252;
+  --bb-subtle: #737373;
   --bb-border: #e8eaed;
+
+  /* Use for links & accent text on light surfaces — never raw lime for body text */
+  --bb-link: #1a1a19;
+  --bb-link-hover: #000000;
+  --bb-info-bg: #f4f5f6;
+  --bb-info-text: #292928;
+  --bb-info-border: #e2e4e8;
 
   /* Semantic aliases — existing components read these */
   --bb-navy: var(--bb-ink);
@@ -27,6 +35,7 @@ body.nk-connectivity-offline {
   --bb-primary: var(--bb-lime);
   --bb-primary-hover: var(--bb-lime-hover);
   --bb-primary-soft: var(--bb-lime-soft);
+  --bb-primary-text: var(--bb-ink);
   --bb-accent: var(--bb-lime);
   --bb-accent-soft: var(--bb-lime-soft);
 
@@ -103,6 +112,8 @@ body {
   font-family: var(--sd-font-family);
   color: var(--sd-color-text);
   background: var(--bb-bg);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -133,8 +144,9 @@ button {
 
 .bb-page-head p {
   margin: 0.35rem 0 0;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--bb-muted);
+  line-height: 1.5;
 }
 
 .bb-page-head {
@@ -300,14 +312,57 @@ button {
 }
 
 .bb-link {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--bb-ink);
-  text-decoration: none;
-  border-bottom: 1px solid var(--bb-lime);
+  color: var(--bb-link);
+  text-decoration: underline;
+  text-decoration-color: var(--bb-lime);
+  text-underline-offset: 2px;
 }
 
-.bb-link:hover { color: var(--bb-muted); }
+.bb-link:hover { color: var(--bb-link-hover); }
+
+/* Readable info / callout banners (avoid lime-on-lime) */
+.bb-info,
+.bb-callout {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  margin: 0.85rem 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--bb-info-bg);
+  border: 1px solid var(--bb-info-border);
+  border-radius: var(--bb-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--bb-info-text);
+  line-height: 1.45;
+}
+
+.bb-info .material-icons-outlined,
+.bb-callout .material-icons-outlined {
+  font-size: 18px !important;
+  color: var(--bb-ink);
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.bb-link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--bb-link);
+  text-decoration: underline;
+  text-decoration-color: var(--bb-lime);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.bb-link-btn:hover { color: var(--bb-link-hover); }
+
+.bb-link-btn.danger { color: var(--bb-danger); text-decoration-color: var(--bb-danger); }
 
 /* ── Tables ── */
 .bb-table {
@@ -318,7 +373,7 @@ button {
 
 .bb-table th {
   text-align: left;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -332,6 +387,7 @@ button {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--bb-border);
   vertical-align: middle;
+  color: var(--bb-text);
 }
 
 .bb-pill {

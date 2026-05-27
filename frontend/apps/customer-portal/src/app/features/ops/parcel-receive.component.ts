@@ -205,7 +205,7 @@ import {
       border-radius: var(--bb-radius-sm);
       font-size: 0.85rem;
     }
-    .profile-suite .material-icons-outlined { color: var(--bb-primary); }
+    .profile-suite .material-icons-outlined { color: var(--bb-link); }
     .profile-suite div { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; }
     .mono { font-family: ui-monospace, monospace; font-weight: 600; }
     .lookup-card {
