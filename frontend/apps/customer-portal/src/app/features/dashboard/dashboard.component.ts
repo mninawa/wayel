@@ -10,12 +10,47 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
   imports: [RouterLink, SuiteExpiredBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bb-page-head">
-      <h1>Welcome back, {{ firstName() }}! 👋</h1>
-      <p>Here's what's happening with your parcels and shipments today.</p>
+    <div class="bb-page-head bb-hide-md-down">
+      <h1>Dashboard</h1>
+      <p>Parcels, suite access, and your South Africa delivery address.</p>
     </div>
 
     <app-suite-expired-banner />
+
+    @if (heroCard(); as hero) {
+      <section class="hero bb-card-dark bb-card-pad">
+        <div class="hero-top">
+          <span class="bb-badge" [class.bb-badge-success]="!suiteAccess().shipOutLocked" [class.bb-badge-info]="suiteAccess().shipOutLocked">
+            {{ hero.statusLabel }}
+          </span>
+          <a routerLink="/my-address" class="hero-link">View address →</a>
+        </div>
+        <h2 class="hero-route">{{ hero.route }}</h2>
+        <p class="hero-id">Suite {{ hero.suiteNumber ?? '—' }}</p>
+        <div class="bb-progress" aria-hidden="true">
+          <span [style.width.%]="hero.progress"></span>
+        </div>
+        <p class="hero-meta">{{ hero.meta }}</p>
+        <div class="hero-actions">
+          <a routerLink="/received-parcels" class="hero-action" title="Parcels">
+            <span class="material-icons-outlined">inventory_2</span>
+            <span>Parcels</span>
+          </a>
+          <a routerLink="/my-address" class="hero-action" title="Address">
+            <span class="material-icons-outlined">location_on</span>
+            <span>Address</span>
+          </a>
+          <a routerLink="/quotes/list" class="hero-action" title="Quotes">
+            <span class="material-icons-outlined">request_quote</span>
+            <span>Quotes</span>
+          </a>
+          <a routerLink="/tracking-support" class="hero-action" title="Support">
+            <span class="material-icons-outlined">support_agent</span>
+            <span>Support</span>
+          </a>
+        </div>
+      </section>
+    }
 
     <section class="stats">
       @for (s of statCards(); track s.title) {
@@ -101,6 +136,69 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     </div>
   `,
   styles: `
+    .hero {
+      margin-bottom: 1.25rem;
+      border-radius: var(--bb-radius);
+    }
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    .hero-link {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.65);
+      text-decoration: none;
+    }
+    .hero-link:hover { color: var(--bb-lime); }
+    .hero-route {
+      margin: 0 0 0.25rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .hero-id {
+      margin: 0 0 1rem;
+      font-size: 0.82rem;
+      opacity: 0.55;
+    }
+    .hero .bb-progress { margin-bottom: 0.65rem; }
+    .hero-meta {
+      margin: 0 0 1.25rem;
+      font-size: 0.78rem;
+      opacity: 0.65;
+    }
+    .hero-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .hero-actions { grid-template-columns: repeat(2, 1fr); }
+    }
+    .hero-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.65rem 0.5rem;
+      border-radius: var(--bb-radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      font-size: 0.72rem;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .hero-action:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--bb-lime);
+    }
+    .hero-action .material-icons-outlined { font-size: 22px !important; }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -108,6 +206,15 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       margin-bottom: 1.25rem;
     }
     @media (max-width: 1100px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      .activity li {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+      }
+      .activity .date { justify-self: start; }
+      .btn-row .bb-btn { width: 100%; }
+    }
     .stat {
       display: grid;
       grid-template-columns: auto 1fr;
@@ -219,11 +326,6 @@ export class DashboardComponent implements OnInit {
     return suite.line2?.trim() ? `${suite.line1}, ${suite.line2}` : suite.line1;
   }
 
-  readonly firstName = () => {
-    const p = this.accountApi.account()?.profile;
-    return p?.firstName ?? p?.displayName.split(' ')[0] ?? 'there';
-  };
-
   readonly recentActivity = computed(() =>
     this.parcelsApi.parcels().slice(0, 4).map((p) => ({
       item: p.itemName,
@@ -250,6 +352,33 @@ export class DashboardComponent implements OnInit {
         cta: this.canRenewSuite() ? 'Renew' : 'Active',
       },
     ];
+  });
+
+  readonly heroCard = computed(() => {
+    const access = this.suiteAccess();
+    const summary = this.parcelsApi.summary();
+    const suite = access.suiteNumber;
+    let progress = 25;
+    if (!access.shipOutLocked) progress = 45;
+    if (summary.total > 0) progress = 65;
+    if (summary.ready > 0) progress = 85;
+    if (summary.total > 0 && summary.ready === summary.total) progress = 100;
+
+    const meta = access.shipOutLocked
+      ? access.customerMessage
+      : summary.ready > 0
+        ? `${summary.ready} parcel${summary.ready === 1 ? '' : 's'} ready to ship`
+        : summary.total > 0
+          ? `${summary.total} parcel${summary.total === 1 ? '' : 's'} in your suite`
+          : 'Use your suite address when shopping in South Africa';
+
+    return {
+      route: 'South Africa → Eswatini',
+      suiteNumber: suite,
+      statusLabel: access.shipOutLocked ? access.status.toUpperCase() : 'ACTIVE',
+      progress,
+      meta,
+    };
   });
 
   ngOnInit(): void {

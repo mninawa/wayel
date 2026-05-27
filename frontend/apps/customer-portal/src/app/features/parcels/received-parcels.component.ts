@@ -228,6 +228,25 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
       margin-bottom: 1rem;
     }
     @media (max-width: 1100px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      .invoice-alert {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .invoice-alert .bb-btn { width: 100%; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-select,
+      .search-wrap { width: 100%; min-width: 0; }
+      .pagination {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .pagination-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
     .stat {
       display: grid;
       grid-template-columns: auto 1fr;

@@ -134,7 +134,7 @@ import { CustomerAccountService } from '../../services/customer-account.service'
       margin-bottom: 2rem;
     }
     .hero h1 { font-size: 2rem; font-weight: 700; line-height: 1.15; margin: 0 0 1rem; }
-    .hero h1 em { color: #6eb5ff; font-style: normal; }
+    .hero h1 em { color: var(--bb-lime); font-style: normal; }
     .hero p { opacity: 0.85; line-height: 1.55; max-width: 400px; }
     .journey-steps {
       list-style: none;

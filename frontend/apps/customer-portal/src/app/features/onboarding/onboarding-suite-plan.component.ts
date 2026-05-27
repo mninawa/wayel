@@ -184,7 +184,23 @@ type PlanChoice = 'monthly' | 'quarterly';
     .step.active .num { border-color: var(--bb-primary); color: var(--bb-primary); }
     .step.active { color: var(--bb-text); font-weight: 600; }
     .body-grid { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; }
-    @media (max-width: 900px) { .body-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+      .onboard { flex-direction: column; }
+      .sidebar { display: none; }
+      .content { padding: 1.25rem 1rem 2rem; }
+      .body-grid { grid-template-columns: 1fr; }
+      .actions { flex-direction: column; }
+      .actions .bb-btn { width: 100%; }
+    }
+    @media (max-width: 640px) {
+      .stepper { gap: 0.35rem; }
+      .step span:not(.num) { display: none; }
+      .step.active span:not(.num),
+      .step.done span:not(.num) { display: inline; }
+      .plan { flex-wrap: wrap; padding: 1rem; }
+      .plan strong { font-size: 1.25rem; }
+      .top { padding: 0 1rem; }
+    }
     .plan {
       display: flex;
       gap: 1rem;

@@ -15,12 +15,11 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
 
     <app-suite-expired-banner />
 
-    <nav class="tabs" aria-label="Quotes sections">
+    <nav class="bb-pill-tabs" aria-label="Quotes sections">
       <a
         routerLink="/quotes/list"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="tab"
       >
         <span class="material-icons-outlined">format_list_bulleted</span>
         Your quotes
@@ -29,7 +28,6 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
         routerLink="/quotes/request"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="tab"
       >
         <span class="material-icons-outlined">add_circle_outline</span>
         Request quote
@@ -42,36 +40,11 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
   `,
   styles: `
     .hub-head { margin-bottom: 0.75rem; }
-    .tabs {
-      display: flex;
-      gap: 0.35rem;
+    .bb-pill-tabs {
       margin-bottom: 1.15rem;
-      padding: 0.25rem;
-      background: #f1f5f9;
-      border-radius: var(--bb-radius-sm);
-      width: fit-content;
-      max-width: 100%;
       flex-wrap: wrap;
     }
-    .tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.55rem 1rem;
-      border-radius: var(--bb-radius-sm);
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--bb-muted);
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .tab .material-icons-outlined { font-size: 18px !important; }
-    .tab:hover { color: var(--bb-text); background: rgba(255, 255, 255, 0.6); }
-    .tab.active {
-      background: #fff;
-      color: var(--bb-primary);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-    }
+    .bb-pill-tabs .material-icons-outlined { font-size: 18px !important; }
     .hub-outlet { min-height: 200px; }
   `,
 })

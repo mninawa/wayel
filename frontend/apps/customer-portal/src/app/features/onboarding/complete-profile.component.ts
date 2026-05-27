@@ -137,6 +137,32 @@ import { CustomerAccountService } from '../../services/customer-account.service'
       color: var(--bb-primary-deep);
     }
     .info-banner p { margin: 0; }
+
+    @media (max-width: 900px) {
+      .onboard { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        padding: 1rem;
+      }
+      .brand {
+        flex: 1 1 100%;
+        margin-bottom: 0;
+      }
+      .stepper {
+        flex: 1 1 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .step { font-size: 0.72rem; padding: 0.25rem; }
+      .step span:first-child { width: 20px; height: 20px; font-size: 0.62rem; }
+      .main { padding: 1rem; }
+      .google-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
   `,
 })
 export class CompleteProfileComponent implements OnInit {

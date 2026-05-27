@@ -40,42 +40,73 @@ function buildNav(): NavItem[] {
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="shell">
-      <aside class="sidebar">
-        <a routerLink="/dashboard" class="brand">
-          <span class="brand-wordmark">{{ productName }}</span>
-          <span class="brand-text">
-            <small>{{ productTagline }}</small>
-          </span>
-        </a>
+    <div class="shell" [class.shell-nav-open]="sidebarOpen()">
+      @if (sidebarOpen()) {
+        <button
+          type="button"
+          class="sidebar-backdrop"
+          aria-label="Close navigation menu"
+          (click)="closeSidebar()"
+        ></button>
+      }
 
-        <nav class="nav">
+      <aside class="sidebar" [class.sidebar-open]="sidebarOpen()">
+        <div class="sidebar-head">
+          <a routerLink="/dashboard" class="brand-mark" (click)="closeSidebar()" [attr.title]="productName">
+            <span class="material-icons-outlined brand-icon">inventory_2</span>
+            <span class="brand-wordmark">{{ productName }}</span>
+          </a>
+          <button
+            type="button"
+            class="sidebar-close"
+            aria-label="Close menu"
+            (click)="closeSidebar()"
+          >
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+
+        <nav class="nav" aria-label="Main">
           @for (item of nav(); track item.path + item.label) {
             <a
               [routerLink]="item.path"
               routerLinkActive="active"
               [routerLinkActiveOptions]="navActiveOptions(item)"
+              [attr.title]="item.label"
+              (click)="closeSidebar()"
             >
-              <span class="material-icons-outlined">{{ item.icon }}</span>
-              {{ item.label }}
+              <span class="material-icons-outlined nav-icon">{{ item.icon }}</span>
+              <span class="nav-label">{{ item.label }}</span>
             </a>
           }
         </nav>
 
-        <div class="sidebar-promo">
-          <span class="material-icons-outlined promo-icon">public</span>
-          <p><strong>More destinations coming soon!</strong></p>
-          <p class="promo-sub">Stay tuned</p>
-          <button type="button" class="promo-btn">Stay tuned →</button>
-        </div>
+        <button type="button" class="nav-logout" title="Sign out" (click)="signOut()">
+          <span class="material-icons-outlined">logout</span>
+          <span class="nav-label">Sign out</span>
+        </button>
       </aside>
 
       <div class="main">
         <header class="topbar">
-          <label class="search">
+          <button
+            type="button"
+            class="menu-btn"
+            aria-label="Open navigation menu"
+            [attr.aria-expanded]="sidebarOpen()"
+            (click)="toggleSidebar()"
+          >
+            <span class="material-icons-outlined">menu</span>
+          </button>
+
+          <div class="topbar-greeting bb-hide-md-down">
+            <span class="greeting-eyebrow">Welcome back</span>
+            <strong class="greeting-name">{{ displayName() }}</strong>
+          </div>
+
+          <label class="search bb-search-pill">
             <span class="material-icons-outlined">search</span>
-            <input type="search" placeholder="Search parcels, shipments, quotes, invoices…" />
-            <kbd>⌘ K</kbd>
+            <input type="search" placeholder="Track parcel, quote, or invoice…" />
           </label>
 
           <div class="topbar-actions">
@@ -128,13 +159,14 @@ function buildNav(): NavItem[] {
               }
             </div>
             <button type="button" class="country-btn">
-              <span class="flag">🇸🇿</span> Eswatini
-              <span class="material-icons-outlined">expand_more</span>
+              <span class="flag">🇸🇿</span>
+              <span class="country-label">Eswatini</span>
+              <span class="material-icons-outlined expand-icon">expand_more</span>
             </button>
-            <button type="button" class="user-btn" (click)="signOut()">
+            <button type="button" class="user-btn" (click)="signOut()" aria-label="Account menu — sign out">
               <span class="avatar">{{ initials() }}</span>
               <span class="user-name">{{ displayName() }}</span>
-              <span class="material-icons-outlined">expand_more</span>
+              <span class="material-icons-outlined expand-icon">expand_more</span>
             </button>
           </div>
         </header>
@@ -155,95 +187,106 @@ function buildNav(): NavItem[] {
     .sidebar {
       width: var(--bb-sidebar-w);
       flex-shrink: 0;
-      background: var(--bb-navy);
+      background: var(--sidebar-bg);
       color: #fff;
       display: flex;
       flex-direction: column;
-      padding: 1.25rem 0.85rem 1.5rem;
+      padding: 1rem 0.65rem;
       position: sticky;
       top: 0;
       height: 100vh;
+      z-index: 100;
     }
 
-    .brand {
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .brand-mark {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.35rem;
       text-decoration: none;
       color: inherit;
-      padding: 0 0.35rem 1.25rem;
-      border-bottom: 1px solid var(--sidebar-border);
-      margin-bottom: 1rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 24px !important;
+      color: var(--bb-lime);
     }
 
     .brand-wordmark {
-      font-size: 1.35rem;
+      display: none;
+      font-size: 1.1rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      line-height: 1.1;
-      color: var(--bb-brand-purple, #845ec2);
-    }
-
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.2;
-    }
-
-    .brand-text small {
-      font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.58);
-      margin-top: 0.15rem;
-      line-height: 1.3;
+      color: #fff;
     }
 
     .nav {
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
+      gap: 0.35rem;
       flex: 1;
     }
 
-    .nav a {
+    .nav a,
+    .nav-logout {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.6rem 0.75rem;
-      border-radius: var(--bb-radius-sm);
+      gap: 0.65rem;
+      padding: 0.75rem;
+      border-radius: 14px;
       color: var(--sidebar-text);
       text-decoration: none;
       font-size: 0.85rem;
       font-weight: 500;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
     }
 
-    .nav a:hover { background: var(--sidebar-bg-hover); }
+    .nav-label {
+      display: none;
+    }
+
+    .nav a:hover,
+    .nav-logout:hover {
+      background: var(--sidebar-bg-hover);
+      color: #fff;
+    }
+
     .nav a.active {
       background: var(--sidebar-bg-active);
       color: var(--sidebar-text-active);
-      font-weight: 600;
+      font-weight: 700;
     }
 
-    .sidebar-promo {
+    .nav a.active .nav-icon {
+      color: var(--bb-ink);
+    }
+
+    .nav-icon {
+      font-size: 22px !important;
+    }
+
+    .nav-logout {
       margin-top: auto;
-      padding: 1rem;
-      background: var(--bb-navy-light);
-      border-radius: var(--bb-radius-sm);
-      border: 1px solid var(--sidebar-border);
-      font-size: 0.78rem;
-    }
-
-    .promo-icon { font-size: 28px !important; opacity: 0.8; margin-bottom: 0.35rem; }
-    .sidebar-promo p { margin: 0 0 0.2rem; }
-    .promo-sub { opacity: 0.65; margin-bottom: 0.65rem !important; }
-    .promo-btn {
-      width: 100%;
-      padding: 0.45rem;
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 6px;
-      background: transparent;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
     }
 
     .main {
@@ -254,63 +297,61 @@ function buildNav(): NavItem[] {
     }
 
     .topbar {
-      height: var(--bb-topbar-h);
+      min-height: var(--bb-topbar-h);
       flex-shrink: 0;
       display: flex;
       align-items: center;
       gap: 1rem;
-      padding: 0 1.5rem;
-      background: var(--bb-surface);
-      border-bottom: 1px solid var(--bb-border);
+      padding: 0.75rem 1.5rem;
+      background: var(--bb-bg);
+    }
+
+    .topbar-greeting {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      min-width: 0;
+    }
+
+    .greeting-eyebrow {
+      font-size: 0.72rem;
+      color: var(--bb-muted);
+      font-weight: 500;
+    }
+
+    .greeting-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--bb-text);
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .search {
       flex: 1;
-      max-width: 520px;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.85rem;
-      background: #f8fafc;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius-sm);
-      color: var(--bb-muted);
-    }
-
-    .search input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-size: 0.85rem;
-      outline: none;
-      color: var(--bb-text);
-    }
-
-    .search kbd {
-      font-size: 0.68rem;
-      padding: 0.15rem 0.4rem;
-      border: 1px solid var(--bb-border);
-      border-radius: 4px;
-      background: #fff;
-      color: var(--bb-muted);
+      max-width: 420px;
+      margin-left: auto;
     }
 
     .topbar-actions {
       display: flex;
       align-items: center;
-      gap: 0.65rem;
-      margin-left: auto;
+      gap: 0.5rem;
+      flex-shrink: 0;
     }
 
     .icon-btn {
       position: relative;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border: none;
-      border-radius: var(--bb-radius-sm);
-      background: #f8fafc;
+      border-radius: var(--bb-radius-pill);
+      background: var(--bb-surface);
       color: var(--bb-muted);
       cursor: pointer;
+      box-shadow: var(--bb-shadow);
     }
 
     .notif-wrap { position: relative; }
@@ -324,8 +365,8 @@ function buildNav(): NavItem[] {
       overflow: auto;
       background: #fff;
       border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius-sm);
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      border-radius: var(--bb-radius);
+      box-shadow: var(--bb-shadow-md);
       z-index: 50;
     }
 
@@ -334,7 +375,7 @@ function buildNav(): NavItem[] {
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       border-bottom: 1px solid var(--bb-border);
       font-size: 0.85rem;
     }
@@ -342,10 +383,12 @@ function buildNav(): NavItem[] {
     .notif-mark-all {
       border: none;
       background: transparent;
-      color: var(--bb-brand-purple, #845ec2);
+      color: var(--bb-ink);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: var(--bb-lime);
     }
 
     .notif-empty {
@@ -367,7 +410,7 @@ function buildNav(): NavItem[] {
       align-items: flex-start;
       gap: 0.2rem;
       width: 100%;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       border: none;
       border-bottom: 1px solid var(--bb-border);
       background: #fff;
@@ -375,8 +418,8 @@ function buildNav(): NavItem[] {
       cursor: pointer;
     }
 
-    .notif-item:hover { background: #f8fafc; }
-    .notif-item.unread { background: #f5f3ff; }
+    .notif-item:hover { background: var(--bb-surface-muted); }
+    .notif-item.unread { background: var(--bb-lime-soft); }
     .notif-title { font-size: 0.82rem; font-weight: 600; color: var(--bb-text); }
     .notif-body { font-size: 0.78rem; color: var(--bb-muted); line-height: 1.35; }
     .notif-time { font-size: 0.7rem; color: var(--bb-muted); margin-top: 0.15rem; }
@@ -389,8 +432,8 @@ function buildNav(): NavItem[] {
       height: 16px;
       padding: 0 4px;
       border-radius: 999px;
-      background: var(--bb-danger);
-      color: #fff;
+      background: var(--bb-ink);
+      color: var(--bb-lime);
       font-size: 0.6rem;
       font-weight: 700;
       display: flex;
@@ -403,22 +446,23 @@ function buildNav(): NavItem[] {
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      padding: 0.35rem 0.6rem;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius-sm);
-      background: #fff;
+      padding: 0.35rem 0.65rem;
+      border: none;
+      border-radius: var(--bb-radius-pill);
+      background: var(--bb-surface);
       font-size: 0.82rem;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--bb-text);
+      box-shadow: var(--bb-shadow);
     }
 
     .avatar {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: #fff;
-      font-size: 0.7rem;
+      background: var(--bb-ink);
+      color: var(--bb-lime);
+      font-size: 0.72rem;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -430,7 +474,146 @@ function buildNav(): NavItem[] {
     .content {
       flex: 1;
       overflow-y: auto;
-      padding: 1.5rem 1.75rem 2.5rem;
+      padding: var(--bb-content-pad-y) var(--bb-content-pad-x) 2.5rem;
+    }
+
+    .menu-btn,
+    .sidebar-close,
+    .sidebar-backdrop {
+      display: none;
+    }
+
+    .sidebar-close {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: var(--bb-radius-sm);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 1023px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--bb-sidebar-w-expanded);
+        padding: 1.25rem 1rem;
+        height: 100%;
+        height: 100dvh;
+        transform: translateX(-100%);
+        transition: transform 0.22s ease;
+        box-shadow: none;
+      }
+
+      .sidebar.sidebar-open {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.28);
+      }
+
+      .sidebar-head {
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+
+      .brand-mark {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .brand-wordmark {
+        display: block;
+      }
+
+      .nav a,
+      .nav-logout {
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+      }
+
+      .nav-label {
+        display: inline;
+      }
+
+      .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 99;
+        border: none;
+        padding: 0;
+        margin: 0;
+        background: rgba(41, 41, 40, 0.55);
+        cursor: pointer;
+      }
+
+      .sidebar-close {
+        display: inline-flex;
+      }
+
+      .menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: var(--bb-radius-pill);
+        background: var(--bb-surface);
+        color: var(--bb-text);
+        cursor: pointer;
+        box-shadow: var(--bb-shadow);
+      }
+
+      .topbar {
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+      }
+
+      .search {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        margin-left: 0;
+      }
+
+      .country-label,
+      .user-name,
+      .expand-icon {
+        display: none;
+      }
+
+      .topbar-actions {
+        gap: 0.35rem;
+      }
+
+      .country-btn,
+      .user-btn {
+        padding: 0.35rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .search {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .country-btn {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .shell-nav-open {
+        overflow: visible;
+      }
     }
   `,
 })
@@ -445,6 +628,7 @@ export class PortalShellComponent implements OnInit {
   private readonly notificationsApi = inject(CustomerInAppNotificationsApiService);
   private readonly router = inject(Router);
 
+  readonly sidebarOpen = signal(false);
   readonly notifOpen = signal(false);
   readonly notificationsLoading = signal(false);
   readonly notifications = signal<CustomerInAppNotification[]>([]);
@@ -473,6 +657,30 @@ export class PortalShellComponent implements OnInit {
     interval(60_000)
       .pipe(startWith(0))
       .subscribe(() => this.refreshUnreadCount());
+
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => this.closeSidebar());
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update((open) => !open);
+    if (this.sidebarOpen()) {
+      this.notifOpen.set(false);
+    }
+    this.syncBodyScrollLock();
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
+    this.syncBodyScrollLock();
+  }
+
+  private syncBodyScrollLock(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    document.body.style.overflow = this.sidebarOpen() ? 'hidden' : '';
   }
 
   unreadBadge(): string {

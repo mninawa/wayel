@@ -492,7 +492,7 @@ const EMPTY: FormState = { email: '', password: '' };
         font-size: 1.25rem;
         font-weight: 700;
         letter-spacing: -0.02em;
-        color: var(--bb-brand-purple, #845ec2);
+        color: var(--bb-ink);
       }
 
       .form-card {
