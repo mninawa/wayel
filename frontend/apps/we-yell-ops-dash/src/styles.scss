@@ -34,7 +34,23 @@
   --ops-info-bg: #f4f5f6;
   --ops-info-text: #292928;
   --ops-info-border: #e2e4e8;
-  --ops-radius: 16px;
+
+  --ops-sidebar-w: 76px;
+  --ops-sidebar-w-expanded: 260px;
+  --ops-topbar-h: 72px;
+  --ops-bp-sm: 480px;
+  --ops-bp-md: 768px;
+  --ops-bp-lg: 1024px;
+  --ops-content-pad-x: 1.75rem;
+  --ops-content-pad-y: 1.5rem;
+
+  --ops-sidebar-bg: var(--ops-ink);
+  --ops-sidebar-text: rgba(255, 255, 255, 0.55);
+  --ops-sidebar-text-active: var(--ops-ink);
+  --ops-sidebar-bg-hover: rgba(255, 255, 255, 0.08);
+  --ops-sidebar-bg-active: var(--ops-lime);
+
+  --ops-radius: 20px;
   --ops-radius-sm: 12px;
   --ops-radius-pill: 999px;
   --ops-shadow: 0 2px 8px rgba(41, 41, 40, 0.04);
@@ -254,8 +270,41 @@ button {
   line-height: 1.45;
 }
 
+.ops-search-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: var(--ops-surface-alt);
+  border: none;
+  border-radius: var(--ops-radius-pill);
+  color: var(--ops-muted);
+}
+
+.ops-search-pill input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.88rem;
+  outline: none;
+  color: var(--ops-text);
+  min-width: 0;
+}
+
+.ops-search-pill input::placeholder {
+  color: var(--ops-muted);
+}
+
+.ops-hide-md-down {
+  display: revert;
+}
+
 @media (max-width: 767px) {
-  .ops-main {
+  .ops-hide-md-down {
+    display: none !important;
+  }
+
+  .ops-content {
     padding: 1rem 1rem 2rem !important;
   }
 }

@@ -5,7 +5,10 @@ import {
   Component,
   ElementRef,
   HostListener,
+  computed,
   inject,
+  input,
+  output,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -22,18 +25,33 @@ import { receivingRoutes } from '../types/receiving.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="topbar">
+      <button
+        type="button"
+        class="menu-btn"
+        aria-label="Open navigation menu"
+        [attr.aria-expanded]="menuExpanded()"
+        (click)="menuClick.emit()"
+      >
+        <span class="material-icons-outlined">menu</span>
+      </button>
+
+      <div class="topbar-greeting ops-hide-md-down">
+        <span class="greeting-eyebrow">Operations</span>
+        <strong class="greeting-name">{{ session.actorName() }}</strong>
+      </div>
+
       <div class="search-area">
-        <label class="search-wrap">
+        <label class="ops-search-pill search">
           <span class="material-icons-outlined">search</span>
           <input
             type="search"
             [(ngModel)]="query"
             (keydown.enter)="runSearch()"
             (focus)="searchOpen.set(true)"
-            placeholder="Search parcels, tracking numbers, retailers, suite matches…"
+            placeholder="Search parcels, tracking, suites…"
             autocomplete="off"
           />
-          <kbd>↵</kbd>
+          <kbd class="ops-hide-md-down">↵</kbd>
         </label>
 
         @if (searchOpen() && (searchBusy() || searchError() || results().length > 0 || query.trim().length >= 2)) {
@@ -66,61 +84,70 @@ import { receivingRoutes } from '../types/receiving.types';
       </div>
 
       <div class="topbar-actions">
-        <button type="button" class="ghost-btn">
-          <span class="dot online"></span>
-          Ops Portal
-          <span class="material-icons-outlined chev">expand_more</span>
-        </button>
         <button type="button" class="icon-btn" aria-label="Notifications">
           <span class="material-icons-outlined">notifications</span>
         </button>
-        <button type="button" class="icon-btn" aria-label="Help">
+        <button type="button" class="icon-btn ops-hide-md-down" aria-label="Help">
           <span class="material-icons-outlined">help_outline</span>
         </button>
-        <div class="profile">
-          <span class="avatar">AC</span>
-          <div>
-            <strong>{{ session.actorName() }}</strong>
-            <span>{{ session.role() || 'operator' }}</span>
-          </div>
-        </div>
-        <button type="button" class="sign-out" (click)="session.disconnect()">Sign out</button>
+        <button type="button" class="user-btn" (click)="session.disconnect()" aria-label="Sign out">
+          <span class="avatar">{{ initials() }}</span>
+          <span class="user-name">{{ session.actorName() }}</span>
+          <span class="material-icons-outlined expand-icon ops-hide-md-down">expand_more</span>
+        </button>
       </div>
     </header>
   `,
   styles: `
     .topbar {
+      min-height: var(--ops-topbar-h);
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       gap: 1rem;
-      padding: 0.75rem 1.25rem;
-      background: var(--ops-surface);
-      border-bottom: 1px solid var(--ops-border);
+      padding: 0.75rem 1.5rem;
+      background: var(--ops-bg);
       position: sticky;
       top: 0;
       z-index: 10;
     }
-    .search-area { flex: 1; max-width: 640px; position: relative; }
-    .search-wrap {
+
+    .topbar-greeting {
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--ops-bg);
-      border: 1px solid var(--ops-border);
-      border-radius: var(--ops-radius-sm);
-      padding: 0.45rem 0.75rem;
-      color: var(--ops-muted);
-    }
-    .search-wrap input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font: inherit;
-      color: var(--ops-text);
-      outline: none;
+      flex-direction: column;
+      line-height: 1.2;
       min-width: 0;
     }
-    .search-wrap kbd {
+
+    .greeting-eyebrow {
+      font-size: 0.72rem;
+      color: var(--ops-muted);
+      font-weight: 500;
+    }
+
+    .greeting-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ops-text);
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .search-area {
+      flex: 1;
+      max-width: 420px;
+      margin-left: auto;
+      position: relative;
+      min-width: 0;
+    }
+
+    .search {
+      width: 100%;
+    }
+
+    .search kbd {
       font-size: 0.68rem;
       background: var(--ops-surface);
       border: 1px solid var(--ops-border);
@@ -128,6 +155,7 @@ import { receivingRoutes } from '../types/receiving.types';
       padding: 0.1rem 0.35rem;
       color: var(--ops-muted);
     }
+
     .search-panel {
       position: absolute;
       top: calc(100% + 0.35rem);
@@ -138,6 +166,7 @@ import { receivingRoutes } from '../types/receiving.types';
       z-index: 20;
       padding: 0.35rem;
     }
+
     .search-hit {
       display: flex;
       flex-direction: column;
@@ -148,62 +177,120 @@ import { receivingRoutes } from '../types/receiving.types';
       color: var(--ops-text);
       font-size: 0.82rem;
     }
-    .search-hit:hover { background: var(--ops-bg); }
+
+    .search-hit:hover { background: var(--ops-surface-alt); }
     .search-hit strong { font-size: 0.88rem; }
     .hit-meta, .hit-time { color: var(--ops-muted); font-size: 0.75rem; }
     .search-msg { margin: 0.65rem 0.75rem; font-size: 0.82rem; color: var(--ops-muted); }
     .search-msg.err { color: var(--ops-danger); }
-    .topbar-actions { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
-    .ghost-btn {
-      display: inline-flex;
+
+    .topbar-actions {
+      display: flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.4rem 0.65rem;
-      background: var(--ops-surface);
-      border: 1px solid var(--ops-border);
-      border-radius: var(--ops-radius-sm);
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--ops-text);
+      gap: 0.5rem;
+      flex-shrink: 0;
     }
-    .ghost-btn .chev { font-size: 18px; color: var(--ops-muted); }
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot.online { background: #22c55e; }
+
     .icon-btn {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--ops-border);
-      border-radius: var(--ops-radius-sm);
+      position: relative;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: var(--ops-radius-pill);
       background: var(--ops-surface);
       color: var(--ops-muted);
-    }
-    .profile { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.35rem; }
-    .avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--ops-primary-soft);
-      color: var(--ops-ink);
+      cursor: pointer;
+      box-shadow: var(--ops-shadow);
       display: grid;
       place-items: center;
-      font-size: 0.75rem;
-      font-weight: 700;
     }
-    .profile div { display: flex; flex-direction: column; line-height: 1.2; }
-    .profile strong { font-size: 0.8rem; }
-    .profile span { font-size: 0.68rem; color: var(--ops-muted); }
-    .sign-out {
-      background: none;
+
+    .user-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.65rem;
       border: none;
-      color: var(--ops-link);
-      font-size: 0.78rem;
+      border-radius: var(--ops-radius-pill);
+      background: var(--ops-surface);
+      font-size: 0.82rem;
       font-weight: 600;
-      padding: 0.35rem;
+      color: var(--ops-text);
+      box-shadow: var(--ops-shadow);
+      cursor: pointer;
     }
-    @media (max-width: 900px) {
-      .profile div, .sign-out, .ghost-btn span:not(.material-icons-outlined):not(.dot), kbd { display: none; }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--ops-ink);
+      color: var(--ops-lime);
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-name {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .expand-icon { font-size: 18px !important; color: var(--ops-muted); }
+
+    .menu-btn {
+      display: none;
+    }
+
+    @media (max-width: 1023px) {
+      .menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: var(--ops-radius-pill);
+        background: var(--ops-surface);
+        color: var(--ops-text);
+        cursor: pointer;
+        box-shadow: var(--ops-shadow);
+      }
+
+      .topbar {
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+      }
+
+      .search-area {
+        flex: 1;
+        max-width: none;
+        margin-left: 0;
+      }
+
+      .user-name,
+      .expand-icon {
+        display: none;
+      }
+
+      .topbar-actions {
+        gap: 0.35rem;
+      }
+
+      .user-btn {
+        padding: 0.35rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .search-area {
+        display: none;
+      }
     }
   `,
 })
@@ -214,11 +301,20 @@ export class OpsTopbarComponent {
   readonly session = inject(OpsSessionService);
   readonly routes = receivingRoutes;
 
+  readonly menuExpanded = input(false);
+  readonly menuClick = output<void>();
+
   query = '';
   readonly searchOpen = signal(false);
   readonly searchBusy = signal(false);
   readonly searchError = signal<string | null>(null);
   readonly results = signal<OpsParcelSearchHitDto[]>([]);
+
+  readonly initials = computed(() => {
+    const name = this.session.actorName() || 'Ops';
+    const parts = name.trim().split(/\s+/);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || 'OP';
+  });
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {

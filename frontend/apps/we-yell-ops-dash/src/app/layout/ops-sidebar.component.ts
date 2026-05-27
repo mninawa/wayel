@@ -1,6 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  input,
+  inject,
+  output,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../brand';
+import { PRODUCT_NAME } from '../brand';
 import { OPS_CAP } from '../services/ops-permissions';
 import { OpsReceivingContextService } from '../services/ops-receiving-context.service';
 import { OpsSessionService } from '../services/ops-session.service';
@@ -17,126 +24,318 @@ export interface OpsNavItem {
   cap?: string;
 }
 
+export interface OpsNavSection {
+  id: string;
+  label: string | null;
+  items: OpsNavItem[];
+}
+
 @Component({
   selector: 'ops-sidebar',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="sidebar" [class.collapsed]="collapsed()">
-      <a [routerLink]="routes.dashboard" class="sidebar-brand">
-        <span class="brand-wordmark" [class.collapsed]="collapsed()">{{ productName }}</span>
-        @if (!collapsed()) {
-          <span class="brand-module">{{ productTagline }}</span>
-        }
-      </a>
+    <aside class="sidebar" [class.sidebar-open]="drawerOpen()">
+      <div class="sidebar-head">
+        <a
+          [routerLink]="routes.dashboard"
+          class="brand-mark"
+          [attr.title]="productName"
+          (click)="onNavClick()"
+        >
+          <span class="material-icons-outlined brand-icon">warehouse</span>
+          <span class="brand-wordmark">{{ productName }}</span>
+        </a>
+        <button
+          type="button"
+          class="sidebar-close"
+          aria-label="Close menu"
+          (click)="closeDrawer.emit()"
+        >
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
 
-      <nav class="sidebar-nav" aria-label="Parcel receiving">
-        @for (item of visiblePrimaryNav(); track item.path) {
-          <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
-            <span class="material-icons-outlined">{{ item.icon }}</span>
-            @if (!collapsed()) {
+      <nav class="nav-scroll" aria-label="Operations">
+        @for (section of navSections(); track section.id) {
+          @if (section.label) {
+            <span class="nav-section">{{ section.label }}</span>
+          } @else if (section.id !== 'receiving') {
+            <span class="nav-divider" aria-hidden="true"></span>
+          }
+
+          @for (item of section.items; track item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              class="nav-item"
+              [attr.title]="item.label"
+              (click)="onNavClick()"
+            >
+              <span class="material-icons-outlined nav-icon">{{ item.icon }}</span>
               <span class="nav-label">{{ item.label }}</span>
               @if (badgeFor(item.path); as count) {
                 <span class="nav-badge">{{ count }}</span>
               }
-            }
-          </a>
-        }
-
-        @if (visibleCollectionNav().length > 0) {
-          @if (!collapsed()) {
-            <span class="nav-section">Eswatini</span>
-          }
-          @for (item of visibleCollectionNav(); track item.path) {
-            <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
-              <span class="material-icons-outlined">{{ item.icon }}</span>
-              @if (!collapsed()) {
-                <span class="nav-label">{{ item.label }}</span>
-              }
             </a>
           }
-        }
-
-        @if (visibleWarehouseNav().length > 0) {
-          @if (!collapsed()) {
-            <span class="nav-section">Warehouse</span>
-          }
-          @for (item of visibleWarehouseNav(); track item.path) {
-            <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
-              <span class="material-icons-outlined">{{ item.icon }}</span>
-              @if (!collapsed()) {
-                <span class="nav-label">{{ item.label }}</span>
-              }
-            </a>
-          }
-        }
-
-        @if (!collapsed()) {
-          <span class="nav-section">Platform</span>
-        }
-        @for (item of platformNav; track item.path) {
-          <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
-            <span class="material-icons-outlined">{{ item.icon }}</span>
-            @if (!collapsed()) {
-              <span class="nav-label">{{ item.label }}</span>
-            }
-          </a>
         }
       </nav>
 
-      <button type="button" class="collapse-btn" (click)="collapsed.set(!collapsed())">
-        <span class="material-icons-outlined">{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</span>
-        @if (!collapsed()) { <span>Collapse</span> }
+      <button type="button" class="nav-logout" title="Sign out" (click)="signOut()">
+        <span class="material-icons-outlined">logout</span>
+        <span class="nav-label">Sign out</span>
       </button>
     </aside>
   `,
   styles: `
-    .sidebar { width: 248px; background: var(--ops-navy); color: #fff; display: flex; flex-direction: column; min-height: 100%; flex-shrink: 0; transition: width 0.2s ease; }
-    .sidebar.collapsed { width: 64px; }
-    .sidebar-brand {
+    .sidebar {
+      width: var(--ops-sidebar-w);
+      flex-shrink: 0;
+      background: var(--ops-sidebar-bg);
+      color: #fff;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      padding: 1.15rem 1rem 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      text-decoration: none;
+      padding: 1rem 0.65rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
     }
-    .brand-wordmark {
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
+
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 24px !important;
       color: var(--ops-lime);
     }
-    .brand-wordmark.collapsed {
-      font-size: 0.72rem;
-      text-align: center;
-      width: 100%;
+
+    .brand-wordmark {
+      display: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
     }
-    .brand-module { font-size: 0.68rem; color: rgba(255,255,255,0.58); line-height: 1.4; font-weight: 500; }
-    .sidebar-nav { flex: 1; padding: 0.75rem 0.55rem; display: flex; flex-direction: column; gap: 0.15rem; overflow-y: auto; }
-    .nav-section { margin: 0.85rem 0.5rem 0.35rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.45); }
-    .nav-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.65rem; border-radius: var(--ops-radius-sm); color: rgba(255,255,255,0.72); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
-    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .nav-item.active { background: var(--ops-lime); color: var(--ops-ink); box-shadow: none; }
-    .nav-item.active .material-icons-outlined { color: var(--ops-ink); }
-    .nav-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .nav-badge { background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999px; }
-    .collapse-btn { display: flex; align-items: center; gap: 0.4rem; margin: 0.75rem; padding: 0.45rem 0.65rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--ops-radius-sm); color: rgba(255,255,255,0.75); font-size: 0.78rem; font-weight: 600; }
-    .sidebar.collapsed .nav-item { justify-content: center; padding: 0.55rem; }
-    .sidebar.collapsed .collapse-btn { justify-content: center; }
-    .sidebar.collapsed .sidebar-brand { padding: 0.75rem 0.5rem; align-items: center; }
+
+    .nav-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    .nav-section {
+      display: none;
+      margin: 0.65rem 0.5rem 0.25rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .nav-divider {
+      display: block;
+      height: 1px;
+      margin: 0.35rem 0.75rem;
+      background: rgba(255, 255, 255, 0.12);
+      flex-shrink: 0;
+    }
+
+    .nav-item,
+    .nav-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 14px;
+      color: var(--ops-sidebar-text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .nav-label {
+      display: none;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    .nav-item:hover,
+    .nav-logout:hover {
+      background: var(--ops-sidebar-bg-hover);
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background: var(--ops-sidebar-bg-active);
+      color: var(--ops-sidebar-text-active);
+      font-weight: 700;
+    }
+
+    .nav-item.active .nav-icon {
+      color: var(--ops-ink);
+    }
+
+    .nav-icon {
+      font-size: 22px !important;
+      flex-shrink: 0;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: var(--ops-danger);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logout {
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .sidebar-close {
+      display: none;
+    }
+
+    @media (max-width: 1023px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--ops-sidebar-w-expanded);
+        padding: 1.25rem 1rem;
+        height: 100%;
+        height: 100dvh;
+        transform: translateX(-100%);
+        transition: transform 0.22s ease;
+        box-shadow: none;
+      }
+
+      .sidebar.sidebar-open {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.28);
+      }
+
+      .sidebar-head {
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .brand-mark {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .brand-wordmark {
+        display: block;
+      }
+
+      .nav-section {
+        display: block;
+      }
+
+      .nav-divider {
+        display: none;
+      }
+
+      .nav-item,
+      .nav-logout {
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+      }
+
+      .nav-label {
+        display: inline;
+      }
+
+      .nav-badge {
+        display: inline-flex;
+        position: static;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+      }
+
+      .sidebar-close {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: var(--ops-radius-sm);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+      }
+    }
   `,
 })
 export class OpsSidebarComponent implements OnInit {
   private readonly receiving = inject(OpsReceivingContextService);
   private readonly session = inject(OpsSessionService);
 
+  readonly drawerOpen = input(false);
+  readonly navClick = output<void>();
+  readonly closeDrawer = output<void>();
+
   readonly productName = PRODUCT_NAME;
-  readonly productTagline = PRODUCT_TAGLINE;
   readonly routes = receivingRoutes;
-  readonly collapsed = signal(false);
   readonly exceptionCount = this.receiving.exceptionCount;
 
   readonly primaryNav: OpsNavItem[] = [
@@ -156,6 +355,36 @@ export class OpsSidebarComponent implements OnInit {
   readonly collectionNav: OpsNavItem[] = [
     { path: collectionRoutes.board, label: 'Collection Board', icon: 'storefront', cap: OPS_CAP.warehouseRead },
   ];
+
+  readonly platformNav: OpsNavItem[] = [
+    { path: platformRoutes.dashboard, label: 'Platform Dashboard', icon: 'analytics' },
+    { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts' },
+    { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work' },
+    { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium' },
+    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune' },
+    { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user' },
+    { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping' },
+    { path: '/ops/settings', label: 'Settings', icon: 'settings' },
+  ];
+
+  navSections(): OpsNavSection[] {
+    const sections: OpsNavSection[] = [
+      { id: 'receiving', label: 'Receiving', items: this.visiblePrimaryNav() },
+    ];
+
+    const collection = this.visibleCollectionNav();
+    if (collection.length > 0) {
+      sections.push({ id: 'collection', label: 'Eswatini', items: collection });
+    }
+
+    const warehouse = this.visibleWarehouseNav();
+    if (warehouse.length > 0) {
+      sections.push({ id: 'warehouse', label: 'Warehouse', items: warehouse });
+    }
+
+    sections.push({ id: 'platform', label: 'Platform', items: this.platformNav });
+    return sections.filter((s) => s.items.length > 0);
+  }
 
   visibleCollectionNav(): OpsNavItem[] {
     return this.collectionNav.filter((item) => !item.cap || this.session.can(item.cap));
@@ -181,14 +410,11 @@ export class OpsSidebarComponent implements OnInit {
     return null;
   }
 
-  readonly platformNav: OpsNavItem[] = [
-    { path: platformRoutes.dashboard, label: 'Platform Dashboard', icon: 'dashboard' },
-    { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts' },
-    { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work' },
-    { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium' },
-    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune' },
-    { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user' },
-    { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping' },
-    { path: '/ops/settings', label: 'Settings', icon: 'settings' },
-  ];
+  onNavClick(): void {
+    this.navClick.emit();
+  }
+
+  signOut(): void {
+    this.session.disconnect();
+  }
 }
