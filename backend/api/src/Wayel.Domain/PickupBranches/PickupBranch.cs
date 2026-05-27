@@ -1,6 +1,6 @@
 namespace Wayel.Domain.PickupBranches;
 
-/// <summary>WeYell Eswatini pickup branch (configured in MongoDB; admin UI later).</summary>
+/// <summary>WeYell pickup branch (configured in MongoDB; admin UI later).</summary>
 public sealed class PickupBranch
 {
     private PickupBranch(
@@ -12,7 +12,15 @@ public sealed class PickupBranch
         string region,
         string description,
         bool isActive,
-        int sortOrder)
+        int sortOrder,
+        string? poBox,
+        string postalCode,
+        string countryCode,
+        string? phone,
+        string? phoneAlt,
+        double? latitude,
+        double? longitude,
+        string? googlePlaceId)
     {
         Id = id;
         Name = name;
@@ -23,6 +31,14 @@ public sealed class PickupBranch
         Description = description;
         IsActive = isActive;
         SortOrder = sortOrder;
+        PoBox = poBox;
+        PostalCode = postalCode;
+        CountryCode = countryCode;
+        Phone = phone;
+        PhoneAlt = phoneAlt;
+        Latitude = latitude;
+        Longitude = longitude;
+        GooglePlaceId = googlePlaceId;
     }
 
     public string Id { get; }
@@ -34,6 +50,14 @@ public sealed class PickupBranch
     public string Description { get; }
     public bool IsActive { get; }
     public int SortOrder { get; }
+    public string? PoBox { get; }
+    public string PostalCode { get; }
+    public string CountryCode { get; }
+    public string? Phone { get; }
+    public string? PhoneAlt { get; }
+    public double? Latitude { get; }
+    public double? Longitude { get; }
+    public string? GooglePlaceId { get; }
 
     public static PickupBranch Create(
         string id,
@@ -43,7 +67,15 @@ public sealed class PickupBranch
         string city,
         string region,
         string description,
-        int sortOrder = 0) =>
+        int sortOrder = 0,
+        string? poBox = null,
+        string postalCode = "",
+        string countryCode = "SZ",
+        string? phone = null,
+        string? phoneAlt = null,
+        double? latitude = null,
+        double? longitude = null,
+        string? googlePlaceId = null) =>
         new(
             id.Trim().ToLowerInvariant(),
             name.Trim(),
@@ -53,7 +85,15 @@ public sealed class PickupBranch
             region.Trim(),
             description.Trim(),
             isActive: true,
-            sortOrder);
+            sortOrder,
+            string.IsNullOrWhiteSpace(poBox) ? null : poBox.Trim(),
+            postalCode.Trim(),
+            countryCode.Trim().ToUpperInvariant(),
+            string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
+            string.IsNullOrWhiteSpace(phoneAlt) ? null : phoneAlt.Trim(),
+            latitude,
+            longitude,
+            string.IsNullOrWhiteSpace(googlePlaceId) ? null : googlePlaceId.Trim());
 
     public static PickupBranch Rehydrate(
         string id,
@@ -64,6 +104,31 @@ public sealed class PickupBranch
         string region,
         string description,
         bool isActive,
-        int sortOrder) =>
-        new(id, name, line1, line2, city, region, description, isActive, sortOrder);
+        int sortOrder,
+        string? poBox = null,
+        string postalCode = "",
+        string countryCode = "SZ",
+        string? phone = null,
+        string? phoneAlt = null,
+        double? latitude = null,
+        double? longitude = null,
+        string? googlePlaceId = null) =>
+        new(
+            id,
+            name,
+            line1,
+            line2,
+            city,
+            region,
+            description,
+            isActive,
+            sortOrder,
+            poBox,
+            postalCode,
+            countryCode,
+            phone,
+            phoneAlt,
+            latitude,
+            longitude,
+            googlePlaceId);
 }

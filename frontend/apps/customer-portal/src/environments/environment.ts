@@ -34,4 +34,6 @@ export const environment = {
   enableKycOpsReview: true,
   /** Warehouse parcel receive at /internal/parcel-receive */
   enableParcelReceive: true,
+  /** Google Maps Embed / JS API key for pickup location maps. */
+  googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
 };

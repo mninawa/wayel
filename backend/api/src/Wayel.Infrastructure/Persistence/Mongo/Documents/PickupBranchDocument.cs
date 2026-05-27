@@ -13,6 +13,14 @@ internal sealed class PickupBranchDocument
     public string Description { get; set; } = "";
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
+    public string? PoBox { get; set; }
+    public string PostalCode { get; set; } = "";
+    public string CountryCode { get; set; } = "SZ";
+    public string? Phone { get; set; }
+    public string? PhoneAlt { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? GooglePlaceId { get; set; }
 
     public static PickupBranchDocument From(PickupBranch branch) => new()
     {
@@ -25,6 +33,14 @@ internal sealed class PickupBranchDocument
         Description = branch.Description,
         IsActive = branch.IsActive,
         SortOrder = branch.SortOrder,
+        PoBox = branch.PoBox,
+        PostalCode = branch.PostalCode,
+        CountryCode = branch.CountryCode,
+        Phone = branch.Phone,
+        PhoneAlt = branch.PhoneAlt,
+        Latitude = branch.Latitude,
+        Longitude = branch.Longitude,
+        GooglePlaceId = branch.GooglePlaceId,
     };
 
     public PickupBranch ToDomain() =>
@@ -37,5 +53,13 @@ internal sealed class PickupBranchDocument
             Region,
             Description,
             IsActive,
-            SortOrder);
+            SortOrder,
+            PoBox,
+            PostalCode,
+            CountryCode,
+            Phone,
+            PhoneAlt,
+            Latitude,
+            Longitude,
+            GooglePlaceId);
 }

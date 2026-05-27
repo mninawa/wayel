@@ -98,6 +98,14 @@ interface WirePickupBranch {
   city: string;
   region: string;
   description: string;
+  poBox?: string | null;
+  postalCode?: string;
+  countryCode?: string;
+  phone?: string | null;
+  phoneAlt?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  googlePlaceId?: string | null;
 }
 
 interface WireNotifications {
@@ -133,6 +141,14 @@ export class CustomerAccountApiService {
             city: b.city,
             region: b.region,
             description: b.description,
+            poBox: b.poBox ?? null,
+            postalCode: b.postalCode,
+            countryCode: b.countryCode,
+            phone: b.phone ?? null,
+            phoneAlt: b.phoneAlt ?? null,
+            latitude: b.latitude ?? null,
+            longitude: b.longitude ?? null,
+            googlePlaceId: b.googlePlaceId ?? null,
           })),
         ),
       );

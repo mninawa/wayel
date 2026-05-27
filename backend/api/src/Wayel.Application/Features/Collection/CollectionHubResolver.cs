@@ -45,7 +45,7 @@ internal static class CollectionHubResolver
         fallback ??= branches.Count > 0 ? branches[0] : null;
         if (fallback is null)
         {
-            return new CollectionHubInfo("mbabane-plaza", "Mbabane Plaza", "Mbabane");
+            return new CollectionHubInfo("mbabane-plaza", "Mbabane New Mall", "Mbabane");
         }
 
         return new CollectionHubInfo(fallback.Id, fallback.Name, fallback.City);

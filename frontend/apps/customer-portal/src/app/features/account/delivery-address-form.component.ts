@@ -9,7 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ESWATINI_PICKUP_BRANCHES } from '../../data/eswatini-pickup-branches';
+import { PickupLocationPickerComponent } from '@wayel/shared/components/pickup-location-picker.component';
+import { environment } from '../../../environments/environment';
+import {
+  ESWATINI_PICKUP_BRANCHES,
+  toPickupBranchSummary,
+} from '../../data/eswatini-pickup-branches';
 import type {
   DeliveryAddress,
   PickupBranch,
@@ -20,29 +25,25 @@ import { CustomerAccountApiService } from '../../services/customer-account-api.s
 @Component({
   selector: 'app-delivery-address-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PickupLocationPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form class="form" (ngSubmit)="submit()">
       <fieldset class="branch-fieldset">
         <legend>Pickup branch</legend>
-        <p class="branch-hint">All Eswatini parcels are collected at a WeYell branch — choose where you will pick up.</p>
-        <div class="branch-grid" role="radiogroup" aria-label="Pickup branch">
-          @for (b of branches(); track b.id) {
-            <label class="branch-card" [class.selected]="branchId() === b.id">
-              <input
-                type="radio"
-                name="branchId"
-                [value]="b.id"
-                [checked]="branchId() === b.id"
-                (change)="selectBranch(b.id)"
-              />
-              <span class="branch-name">{{ b.name }}</span>
-              <span class="branch-addr">{{ b.line1 }}@if (b.line2) {, {{ b.line2 }}}</span>
-              <span class="branch-addr">{{ b.city }}, {{ b.region }}</span>
-            </label>
-          }
-        </div>
+        <p class="branch-hint">
+          All Eswatini parcels are collected at a WeYell branch — choose where you will pick up.
+        </p>
+        <nk-pickup-location-picker
+          regionId="eswatini"
+          [branches]="branchSummaries()"
+          [value]="branchId()"
+          [apiKey]="mapsApiKey"
+          [showMap]="true"
+          [mapHeight]="180"
+          ariaLabel="Pickup branch"
+          (valueChange)="selectBranch($event)"
+        />
       </fieldset>
 
       <label>
@@ -93,28 +94,6 @@ import { CustomerAccountApiService } from '../../services/customer-account-api.s
       color: var(--bb-muted);
       line-height: 1.45;
     }
-    .branch-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-      gap: 0.55rem;
-    }
-    .branch-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 0.65rem 0.75rem;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius-sm);
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .branch-card input { position: absolute; opacity: 0; pointer-events: none; }
-    .branch-card.selected {
-      border-color: var(--bb-primary);
-      background: color-mix(in srgb, var(--bb-primary) 8%, transparent);
-    }
-    .branch-name { font-weight: 600; font-size: 0.88rem; color: var(--bb-text); }
-    .branch-addr { font-size: 0.75rem; color: var(--bb-muted); line-height: 1.35; }
     label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; color: var(--bb-muted); }
     label input {
       font-weight: 400;
@@ -136,8 +115,10 @@ export class DeliveryAddressFormComponent implements OnInit {
   readonly saved = output<UpsertDeliveryAddressRequest>();
   readonly cancelled = output<void>();
 
+  readonly mapsApiKey = environment.googleMapsApiKey;
   readonly editing = () => this.address() !== null;
   readonly branches = signal<PickupBranch[]>(ESWATINI_PICKUP_BRANCHES);
+  readonly branchSummaries = () => this.branches().map(toPickupBranchSummary);
   readonly branchId = signal('mbabane-plaza');
 
   label = '';

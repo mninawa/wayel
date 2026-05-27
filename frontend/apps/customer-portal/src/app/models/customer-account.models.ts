@@ -61,6 +61,14 @@ export interface PickupBranch {
   city: string;
   region: string;
   description: string;
+  poBox?: string | null;
+  postalCode?: string;
+  countryCode?: string;
+  phone?: string | null;
+  phoneAlt?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  googlePlaceId?: string | null;
 }
 
 export interface DeliveryAddress {

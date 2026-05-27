@@ -13,4 +13,6 @@ export const environment = {
   /** Internal ops screens; gate with X-Wayel-Ops-Key. Disable in public cloud prod when not needed. */
   enableKycOpsReview: true,
   enableParcelReceive: true,
+  /** Set at deploy time for pickup location Google Maps embeds. */
+  googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
 };

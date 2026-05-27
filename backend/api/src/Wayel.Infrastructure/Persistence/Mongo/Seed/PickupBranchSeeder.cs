@@ -23,13 +23,20 @@ internal sealed class PickupBranchSeeder(MongoContext context, ILogger<PickupBra
         {
             PickupBranch.Create(
                 "mbabane-plaza",
-                "Mbabane Plaza",
-                "Mbabane Plaza Shopping Centre",
-                null,
+                "Mbabane New Mall",
+                "New Mall, First Floor, Suite 101",
+                "Dr Sishayi Road",
                 "Mbabane",
                 "Hhohho Region",
-                "WeYell pickup point — collect your parcels at Mbabane Plaza.",
-                sortOrder: 1),
+                "WeYell pickup point at New Mall, Mbabane — collect your parcels on the first floor.",
+                sortOrder: 1,
+                poBox: "P.O. Box 1988",
+                postalCode: "H100",
+                countryCode: "SZ",
+                phone: "+268 3454 1872",
+                phoneAlt: "+268 7842 5197",
+                latitude: -26.3197,
+                longitude: 31.1345),
             PickupBranch.Create(
                 "manzini-hub",
                 "Manzini Hub",
@@ -38,7 +45,10 @@ internal sealed class PickupBranchSeeder(MongoContext context, ILogger<PickupBra
                 "Manzini",
                 "Manzini Region",
                 "WeYell pickup point in Manzini.",
-                sortOrder: 2),
+                sortOrder: 2,
+                countryCode: "SZ",
+                latitude: -26.4833,
+                longitude: 31.3667),
             PickupBranch.Create(
                 "siteki-branch",
                 "Siteki Branch",
@@ -47,7 +57,10 @@ internal sealed class PickupBranchSeeder(MongoContext context, ILogger<PickupBra
                 "Siteki",
                 "Lubombo Region",
                 "WeYell pickup point in Siteki.",
-                sortOrder: 3),
+                sortOrder: 3,
+                countryCode: "SZ",
+                latitude: -26.9833,
+                longitude: 31.95),
             PickupBranch.Create(
                 "nhlangano-branch",
                 "Nhlangano Branch",
@@ -56,7 +69,10 @@ internal sealed class PickupBranchSeeder(MongoContext context, ILogger<PickupBra
                 "Nhlangano",
                 "Shiselweni Region",
                 "WeYell pickup point in Nhlangano.",
-                sortOrder: 4),
+                sortOrder: 4,
+                countryCode: "SZ",
+                latitude: -27.1167,
+                longitude: 31.2),
         };
 
         await context.PickupBranches.InsertManyAsync(

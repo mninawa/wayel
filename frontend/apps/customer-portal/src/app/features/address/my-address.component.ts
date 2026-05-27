@@ -25,6 +25,15 @@ import { isProfileComplete } from '../../models/customer-account.models';
 function cloneNotifications(prefs: NotificationPreferences): NotificationPreferences {
   return { ...prefs };
 }
+import { PickupLocationCardComponent } from '@wayel/shared/components/pickup-location-card.component';
+import { findPickupLocationConfig } from '@wayel/shared/pickup/pickup-regions.config';
+import type { PickupLocationConfig } from '@wayel/shared/pickup/pickup-location.types';
+import { enrichPickupLocation } from '@wayel/shared/pickup/pickup-location.utils';
+import { environment } from '../../../environments/environment';
+import {
+  findPickupBranch,
+  toPickupBranchSummary,
+} from '../../data/eswatini-pickup-branches';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
@@ -41,6 +50,7 @@ type NotifKey = keyof NotificationPreferences;
     ProfileFormComponent,
     DeliveryAddressFormComponent,
     KycDocumentUploadComponent,
+    PickupLocationCardComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -354,7 +364,7 @@ type NotifKey = keyof NotificationPreferences;
             </div>
             <p class="hint">
               Parcels are collected at WeYell branches in Eswatini — for example
-              <strong>Mbabane Plaza</strong>. Choose your branch and who will collect.
+              <strong>Mbabane New Mall</strong>. Choose your branch and who will collect.
             </p>
 
             @if (editingAddress()) {
@@ -365,22 +375,27 @@ type NotifKey = keyof NotificationPreferences;
                 (cancelled)="cancelAddressEdit()"
               />
             } @else {
-              <ul class="addr-list">
+              <ul class="addr-list pickup-list">
                 @for (a of acc.deliveryAddresses; track a.id) {
                   <li [class.default]="a.isDefault">
                     <div class="addr-head">
-                      <strong>{{ a.branchName || a.label }}</strong>
+                      <strong>{{ a.fullName }}</strong>
                       @if (a.isDefault) {
                         <span class="bb-badge bb-badge-info">Default</span>
                       }
-                      <span class="bb-badge">Pickup branch</span>
                     </div>
                     @if (a.label && a.label !== a.branchName) {
                       <p class="addr-nick">{{ a.label }}</p>
                     }
-                    <p>{{ a.fullName }} · {{ a.phone }}</p>
-                    <p>{{ a.line1 }}@if (a.line2) {, {{ a.line2 }}}</p>
-                    <p>{{ a.city }}, {{ a.region }}, {{ a.countryLabel }}</p>
+                    <p class="collector-phone">{{ a.phone }}</p>
+                    <nk-pickup-location-card
+                      [location]="pickupLocationFor(a)"
+                      [apiKey]="mapsApiKey"
+                      [regionLabel]="'🇸🇿 Eswatini'"
+                      [compact]="!a.isDefault"
+                      [showMap]="a.isDefault"
+                      [mapHeight]="200"
+                    />
                     <div class="addr-actions">
                       @if (!a.isDefault) {
                         <button type="button" class="bb-link-btn" (click)="setDefault(a.id)">Set default</button>
@@ -797,6 +812,12 @@ type NotifKey = keyof NotificationPreferences;
     .addr-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem; }
     .addr-nick { font-size: 0.8rem; color: var(--bb-muted); font-style: italic; }
     .addr-list p { margin: 0 0 0.2rem; font-size: 0.85rem; color: #475569; }
+    .pickup-list li { display: flex; flex-direction: column; gap: 0.65rem; }
+    .collector-phone {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--bb-muted);
+    }
     .addr-actions { display: flex; gap: 0.75rem; margin-top: 0.65rem; }
     .bb-link-btn {
       border: none;
@@ -827,6 +848,8 @@ export class MyAddressComponent implements OnInit {
   private readonly accountApi = inject(CustomerAccountService);
   private readonly parcelsApi = inject(ParcelsService);
   private readonly route = inject(ActivatedRoute);
+
+  readonly mapsApiKey = environment.googleMapsApiKey;
 
   readonly account = this.accountApi.account;
   readonly suiteAccess = computed(
@@ -1082,6 +1105,26 @@ export class MyAddressComponent implements OnInit {
     this.accountApi.deleteDeliveryAddress(id).subscribe(() => {
       this.showToast('Address removed');
     });
+  }
+
+  pickupLocationFor(address: DeliveryAddress): PickupLocationConfig {
+    const known = findPickupBranch(address.branchId);
+    const summary = known
+      ? toPickupBranchSummary(known)
+      : {
+          id: address.branchId,
+          name: address.branchName || address.label,
+          line1: address.line1,
+          line2: address.line2,
+          city: address.city,
+          region: address.region,
+          description: '',
+        };
+    return enrichPickupLocation(
+      summary,
+      'eswatini',
+      findPickupLocationConfig('eswatini', address.branchId),
+    );
   }
 
   private apiErrorMessage(err: unknown): string {

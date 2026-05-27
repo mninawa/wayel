@@ -12,7 +12,15 @@ public sealed record PickupBranchDto(
     string? Line2,
     string City,
     string Region,
-    string Description);
+    string Description,
+    string? PoBox,
+    string PostalCode,
+    string CountryCode,
+    string? Phone,
+    string? PhoneAlt,
+    double? Latitude,
+    double? Longitude,
+    string? GooglePlaceId);
 
 public sealed record ListEswatiniPickupBranchesQuery : IQuery<IReadOnlyList<PickupBranchDto>>;
 
@@ -35,5 +43,13 @@ internal sealed class ListEswatiniPickupBranchesQueryHandler(IPickupBranchReposi
             branch.Line2,
             branch.City,
             branch.Region,
-            branch.Description);
+            branch.Description,
+            branch.PoBox,
+            branch.PostalCode,
+            branch.CountryCode,
+            branch.Phone,
+            branch.PhoneAlt,
+            branch.Latitude,
+            branch.Longitude,
+            branch.GooglePlaceId);
 }

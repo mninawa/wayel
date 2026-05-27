@@ -173,6 +173,7 @@ public static class DependencyInjection
         services.AddHostedService<SuitePlatformConfigSeeder>();
         services.AddHostedService<SuitePlanSeeder>();
         services.AddHostedService<PickupBranchSeeder>();
+        services.AddHostedService<PickupBranchLocationMigrator>();
         services.AddHostedService<DemoDataSeeder>();
         services.AddHostedService<OpsUserSeeder>();
         services.AddHostedService<WarehouseLocationSeeder>();
