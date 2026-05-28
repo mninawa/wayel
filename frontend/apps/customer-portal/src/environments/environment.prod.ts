@@ -15,6 +15,8 @@ export const environment = {
   enableParcelReceive: true,
   /** Set at deploy time for pickup location Google Maps embeds. */
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  supportWhatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
+  supportWhatsAppLabel: 'WeYell courier',
   supportWhatsAppE164: '',
   supportEmail: '',
 };

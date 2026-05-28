@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -16,7 +15,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
 @Component({
   selector: 'app-tracking-support',
   standalone: true,
-  imports: [RouterLink, DatePipe, SuiteExpiredBannerComponent],
+  imports: [RouterLink, SuiteExpiredBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bb-page-head">
@@ -29,64 +28,63 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     @if (loading()) {
       <p class="loading" aria-live="polite">Loading support…</p>
     } @else if (loadError()) {
-      <div class="bb-card bb-card-pad err-card">
-        <p class="err">{{ loadError() }}</p>
-        <button type="button" class="bb-btn bb-btn-outline" (click)="reload()">Try again</button>
+      <div class="support-shell">
+        <div class="bb-card bb-card-pad err-card">
+          <p class="err">{{ loadError() }}</p>
+          <button type="button" class="bb-btn bb-btn-outline" (click)="reload()">Try again</button>
+        </div>
       </div>
     } @else if (overview()) {
-      @let o = overview()!;
-      <div class="support-layout">
-        <section class="bb-card bb-card-pad channels-card">
-          <h2 class="bb-card-title">Talk to us</h2>
-          <p class="card-lead">Pick the channel that works best for you.</p>
-          <div class="channels">
-            @if (whatsAppLink(); as link) {
-              <a
-                [href]="link"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="channel channel-whatsapp"
-              >
-                <span class="channel-icon" aria-hidden="true">
+      <div class="support-shell">
+        <p class="section-lead">Pick the channel that works best for you.</p>
+
+        <div class="contact-grid">
+          @if (whatsAppLink(); as link) {
+            <a
+              [href]="link"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="contact-tile contact-tile-whatsapp bb-card"
+            >
+              <div class="tile-top">
+                <span class="tile-icon" aria-hidden="true">
                   <span class="material-icons-outlined">chat</span>
                 </span>
-                <span class="channel-body">
-                  <strong>WhatsApp</strong>
-                  <small>{{ whatsAppDisplay() ?? 'Chat with our team' }}</small>
-                </span>
-                <span class="material-icons-outlined channel-go" aria-hidden="true">arrow_forward</span>
-              </a>
-            } @else {
-              <div class="channel channel-disabled" aria-disabled="true">
-                <span class="channel-icon" aria-hidden="true">
+                <span class="material-icons-outlined tile-arrow" aria-hidden="true">north_east</span>
+              </div>
+              <span class="tile-title">WhatsApp</span>
+              <span class="tile-sub">{{ whatsAppDisplay() ?? 'Chat with our team' }}</span>
+            </a>
+          } @else {
+            <div class="contact-tile contact-tile-disabled bb-card" aria-disabled="true">
+              <div class="tile-top">
+                <span class="tile-icon" aria-hidden="true">
                   <span class="material-icons-outlined">chat</span>
-                </span>
-                <span class="channel-body">
-                  <strong>WhatsApp</strong>
-                  <small>Not available yet — please use email below.</small>
                 </span>
               </div>
-            }
+              <span class="tile-title">WhatsApp</span>
+              <span class="tile-sub">Not available yet — please use email.</span>
+            </div>
+          }
 
-            @if (emailLink(); as mailto) {
-              <a [href]="mailto" class="channel channel-email">
-                <span class="channel-icon" aria-hidden="true">
+          @if (emailLink(); as mailto) {
+            <a [href]="mailto" class="contact-tile contact-tile-email bb-card">
+              <div class="tile-top">
+                <span class="tile-icon" aria-hidden="true">
                   <span class="material-icons-outlined">mail</span>
                 </span>
-                <span class="channel-body">
-                  <strong>Email</strong>
-                  <small>{{ o.support.emailAddress }}</small>
-                </span>
-                <span class="material-icons-outlined channel-go" aria-hidden="true">arrow_forward</span>
-              </a>
-            }
-          </div>
-        </section>
+                <span class="material-icons-outlined tile-arrow" aria-hidden="true">north_east</span>
+              </div>
+              <span class="tile-title">Email</span>
+              <span class="tile-sub">{{ emailAddress() }}</span>
+            </a>
+          }
+        </div>
 
-        @if (o.activeShipmentId; as shipId) {
-          <section class="bb-card bb-card-pad active-shipment-link">
+        @if (overview()!.activeShipmentId; as shipId) {
+          <section class="bb-card bb-card-pad shipment-card">
             <h2 class="bb-card-title">Tracking your shipment?</h2>
-            <p class="card-lead">
+            <p class="shipment-lead">
               Step-by-step status, ETA and pickup details are on your shipment page.
             </p>
             <a
@@ -101,74 +99,156 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     }
   `,
   styles: `
-    .loading { color: var(--bb-muted); font-size: 0.9rem; padding: 1rem 0; }
-    .err-card { max-width: 28rem; }
-    .support-layout {
-      display: flex;
-      flex-direction: column;
-      gap: 1.15rem;
-      max-width: 36rem;
+    .loading {
+      color: var(--bb-muted);
+      font-size: 0.9rem;
+      padding: 1rem 0;
     }
-    .card-lead {
-      margin: 0 0 0.85rem;
-      font-size: 0.82rem;
+
+    .support-shell {
+      width: 100%;
+      max-width: 52rem;
+      margin: 0 auto;
+    }
+
+    .section-lead {
+      margin: 0 0 1rem;
+      font-size: 0.9rem;
       color: var(--bb-muted);
       line-height: 1.45;
     }
-    .channels { display: flex; flex-direction: column; gap: 0.65rem; }
-    .channel {
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .contact-tile {
       display: flex;
-      align-items: center;
-      gap: 0.9rem;
-      padding: 0.85rem 1rem;
-      border: 1px solid var(--bb-border);
-      border-radius: var(--bb-radius);
-      background: #fff;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-height: 9.5rem;
+      padding: 1.35rem 1.4rem;
       text-decoration: none;
       color: inherit;
-      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+      transition: box-shadow 140ms ease, transform 140ms ease;
     }
-    .channel:hover:not(.channel-disabled) {
-      border-color: var(--bb-link);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-      transform: translateY(-1px);
+
+    .contact-tile:not(.contact-tile-disabled):hover {
+      box-shadow: var(--bb-shadow-md);
+      transform: translateY(-2px);
     }
-    .channel-icon {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 50%;
+
+    .contact-tile:not(.contact-tile-disabled):focus-visible {
+      outline: 2px solid var(--bb-ink);
+      outline-offset: 3px;
+    }
+
+    .tile-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .tile-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 14px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    .channel-whatsapp .channel-icon {
-      background: rgba(37, 211, 102, 0.12);
+
+    .contact-tile-whatsapp .tile-icon {
+      background: rgba(37, 211, 102, 0.14);
       color: #128c7e;
     }
-    .channel-email .channel-icon {
+
+    .contact-tile-email .tile-icon {
       background: var(--bb-surface-muted);
       color: var(--bb-ink);
     }
-    .channel-disabled .channel-icon {
+
+    .contact-tile-disabled .tile-icon {
       background: #f1f5f9;
       color: #94a3b8;
     }
-    .channel-icon .material-icons-outlined { font-size: 1.4rem !important; }
-    .channel-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-    .channel-body strong { font-size: 0.95rem; }
-    .channel-body small { font-size: 0.82rem; color: var(--bb-muted); margin-top: 0.2rem; line-height: 1.4; }
-    .channel-go {
+
+    .tile-icon .material-icons-outlined {
+      font-size: 1.45rem !important;
+    }
+
+    .tile-arrow {
+      color: var(--bb-subtle);
+      font-size: 1.15rem !important;
+      transition: color 140ms ease, transform 140ms ease;
+    }
+
+    .contact-tile:not(.contact-tile-disabled):hover .tile-arrow {
+      color: var(--bb-ink);
+      transform: translate(2px, -2px);
+    }
+
+    .tile-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--bb-text);
+    }
+
+    .tile-sub {
+      font-size: 0.84rem;
       color: var(--bb-muted);
-      font-size: 1.1rem !important;
-      flex-shrink: 0;
+      line-height: 1.45;
+      word-break: break-word;
     }
-    .channel-disabled {
-      background: #f8fafc;
+
+    .contact-tile-disabled {
+      background: #fafbfc;
       cursor: default;
+      opacity: 0.92;
     }
-    .track-btn { width: 100%; justify-content: center; }
-    .err { color: var(--bb-danger); font-size: 0.85rem; }
+
+    .shipment-card {
+      margin-top: 0.25rem;
+    }
+
+    .shipment-card .bb-card-title {
+      margin-bottom: 0.5rem;
+    }
+
+    .shipment-lead {
+      margin: 0 0 1rem;
+      font-size: 0.84rem;
+      color: var(--bb-muted);
+      line-height: 1.45;
+    }
+
+    .track-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .err-card {
+      max-width: 28rem;
+    }
+
+    .err {
+      color: var(--bb-danger);
+      font-size: 0.85rem;
+      margin: 0 0 0.85rem;
+    }
   `,
 })
 export class TrackingSupportComponent implements OnInit {
@@ -184,17 +264,38 @@ export class TrackingSupportComponent implements OnInit {
       return fromApi;
     }
 
+    const fromEnvLink = environment.supportWhatsAppLink?.trim();
+    if (fromEnvLink) {
+      return fromEnvLink;
+    }
+
     return buildWhatsAppLink(environment.supportWhatsAppE164);
   });
 
   readonly whatsAppDisplay = computed(() => {
+    const link = this.whatsAppLink();
     const fromApi = this.overview()?.support.whatsAppDisplay?.trim();
+
+    if (link?.includes('/message/')) {
+      if (fromApi && !looksLikePhone(fromApi)) {
+        return fromApi;
+      }
+
+      const envLabel = environment.supportWhatsAppLabel?.trim();
+      return envLabel || 'Chat with our team';
+    }
+
     if (fromApi) {
       return fromApi;
     }
 
-    const link = buildWhatsAppLink(environment.supportWhatsAppE164);
-    if (!link) {
+    const envLabel = environment.supportWhatsAppLabel?.trim();
+    if (environment.supportWhatsAppLink?.trim()) {
+      return envLabel || 'Chat with our team';
+    }
+
+    const phoneLink = buildWhatsAppLink(environment.supportWhatsAppE164);
+    if (!phoneLink) {
       return null;
     }
 
@@ -202,9 +303,17 @@ export class TrackingSupportComponent implements OnInit {
     return digits.length >= 10 ? `+${digits}` : 'Chat with our team';
   });
 
+  readonly emailAddress = computed(() => {
+    const fromApi = this.overview()?.support.emailAddress?.trim();
+    if (fromApi) {
+      return fromApi;
+    }
+
+    return environment.supportEmail?.trim() ?? null;
+  });
+
   readonly emailLink = computed(() => {
-    const email = this.overview()?.support.emailAddress?.trim()
-      ?? environment.supportEmail?.trim();
+    const email = this.emailAddress();
     if (!email) {
       return null;
     }
@@ -239,4 +348,9 @@ function buildWhatsAppLink(rawE164: string | undefined | null): string | null {
   }
 
   return `https://wa.me/${digits}`;
+}
+
+function looksLikePhone(value: string): boolean {
+  const digits = value.replace(/\D/g, '');
+  return digits.length >= 8 && /^\+?\d[\d\s-]+$/.test(value.trim());
 }

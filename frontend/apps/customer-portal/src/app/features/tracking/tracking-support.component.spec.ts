@@ -54,12 +54,12 @@ describe('TrackingSupportComponent', () => {
     api.getTrackingSupport.and.returnValue(of(overviewFixture()));
     render();
 
-    const whatsAppLink = fixture.nativeElement.querySelector('a.channel-whatsapp') as HTMLAnchorElement;
+    const whatsAppLink = fixture.nativeElement.querySelector('a.contact-tile-whatsapp') as HTMLAnchorElement;
     expect(whatsAppLink.getAttribute('href')).toBe('https://wa.me/27821234567');
     expect(whatsAppLink.getAttribute('target')).toBe('_blank');
     expect(whatsAppLink.textContent).toContain('+27 82 123 4567');
 
-    const emailLink = fixture.nativeElement.querySelector('a.channel-email') as HTMLAnchorElement;
+    const emailLink = fixture.nativeElement.querySelector('a.contact-tile-email') as HTMLAnchorElement;
     expect(emailLink.getAttribute('href')).toBe(
       `mailto:support@weyell.test?subject=${encodeURIComponent('WeYell support')}`,
     );
@@ -69,13 +69,49 @@ describe('TrackingSupportComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Submit ticket');
   });
 
+  it('renders a WhatsApp Business short link when configured', () => {
+    api.getTrackingSupport.and.returnValue(
+      of(
+        overviewFixture({
+          support: {
+            whatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
+            whatsAppDisplay: 'WeYell courier',
+            emailAddress: 'support@weyell.test',
+          },
+        }),
+      ),
+    );
+    render();
+
+    const whatsAppLink = fixture.nativeElement.querySelector('a.contact-tile-whatsapp') as HTMLAnchorElement;
+    expect(whatsAppLink.getAttribute('href')).toBe('https://wa.me/message/NEGKMQLT5LJNE1');
+    expect(whatsAppLink.textContent).toContain('WeYell courier');
+  });
+
+  it('shows a friendly label for message links when the API returns a phone number', () => {
+    api.getTrackingSupport.and.returnValue(
+      of(
+        overviewFixture({
+          support: {
+            whatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
+            whatsAppDisplay: '+27649611859',
+            emailAddress: 'support@weyell.test',
+          },
+        }),
+      ),
+    );
+    render();
+    expect(fixture.nativeElement.querySelector('a.contact-tile-whatsapp')?.textContent).toContain('Chat with our team');
+    expect(fixture.nativeElement.textContent).not.toContain('+27649611859');
+  });
+
   it('falls back to a disabled WhatsApp tile when no link is configured', () => {
     api.getTrackingSupport.and.returnValue(
       of(overviewFixture({ support: { whatsAppLink: null, whatsAppDisplay: null, emailAddress: 'help@weyell.test' } })),
     );
     render();
-    expect(fixture.nativeElement.querySelector('a.channel-whatsapp')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.channel-disabled')?.textContent).toContain('Not available');
+    expect(fixture.nativeElement.querySelector('a.contact-tile-whatsapp')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.contact-tile-disabled')?.textContent).toContain('Not available');
   });
 
   it('shows an error card + retry button when the overview fails to load', () => {
@@ -100,7 +136,7 @@ describe('TrackingSupportComponent', () => {
     api.getTrackingSupport.and.returnValue(of(overviewFixture({ activeShipmentId: 'ship-1' })));
     render();
 
-    const link = fixture.nativeElement.querySelector('.active-shipment-link a') as HTMLAnchorElement;
+    const link = fixture.nativeElement.querySelector('.shipment-card a') as HTMLAnchorElement;
     expect(link).not.toBeNull();
     expect(link.getAttribute('href')).toContain('/shipments/ship-1/track');
   });

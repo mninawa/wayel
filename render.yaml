@@ -99,10 +99,17 @@ services:
       # the Render service URLs below.
       - key: BorderBox__CustomerPortalBaseUrl
         value: https://wayel-customer.onrender.com
+      # Business short link (preferred) or phone-based wa.me URL.
+      - key: BorderBox__SupportWhatsAppLink
+        value: https://wa.me/message/NEGKMQLT5LJNE1
+      - key: BorderBox__SupportWhatsAppLabel
+        value: WeYell courier
+      # Digits only (no '+'). Used when SupportWhatsAppLink is unset; also
+      # falls back to Notifications__WaSender__SupportInboxPhoneE164.
       - key: BorderBox__SupportWhatsAppE164
         sync: false
       - key: BorderBox__SupportEmail
-        sync: false
+        value: support@weyell.com
       - key: Cors__AllowedOrigins__0
         value: https://wayel-customer.onrender.com
       - key: Cors__AllowedOrigins__1

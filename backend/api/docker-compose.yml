@@ -41,6 +41,8 @@ services:
       Notifications__WaSender__Allowlist__0: ${NOTIFICATIONS__WASENDER__ALLOWLIST__0:-}
       Notifications__Webhooks__WaSenderSecret: ${NOTIFICATIONS__WEBHOOKS__WASENDERSECRET:-}
       BorderBox__CustomerPortalBaseUrl: ${BORDERBOX__CUSTOMERPORTALBASEURL:-http://localhost:8080}
+      BorderBox__SupportWhatsAppLink: ${BORDERBOX__SUPPORTWHATSAPPLINK:-https://wa.me/message/NEGKMQLT5LJNE1}
+      BorderBox__SupportWhatsAppLabel: ${BORDERBOX__SUPPORTWHATSAPPLABEL:-WeYell courier}
       BorderBox__SupportWhatsAppE164: ${BORDERBOX__SUPPORTWHATSAPPE164:-}
       BorderBox__SupportEmail: ${BORDERBOX__SUPPORTEMAIL:-support@weyell.com}
       Firebase__ProjectId: ${FIREBASE__PROJECTID:-}

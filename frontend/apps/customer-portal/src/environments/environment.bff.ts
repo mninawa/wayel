@@ -26,6 +26,8 @@ export const environment = {
   enableKycOpsReview: true,
   enableParcelReceive: true,
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  supportWhatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
+  supportWhatsAppLabel: 'WeYell courier',
   supportWhatsAppE164: '',
   supportEmail: '',
 };

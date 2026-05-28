@@ -49,7 +49,7 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
                 user.NotifyEmail,
                 user.NotifySms,
                 user.NotifyWhatsApp),
-            Support: BuildSupportContact(borderBoxOptions.Value),
+            Support: BuildSupportContact(borderBoxOptions.Value, waSenderOptions.Value),
             WhatsAppTestAvailable: waSenderOptions.Value.IsConfiguredForDelivery);
     }
 
@@ -58,20 +58,64 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
         ?? items.FirstOrDefault(s => s.Status is ShipmentStatus.AwaitingApproval or ShipmentStatus.Paid)
         ?? items.FirstOrDefault(s => s.Status != ShipmentStatus.Draft);
 
-    private static SupportContactDto BuildSupportContact(BorderBoxOptions options)
+    private static SupportContactDto BuildSupportContact(
+        BorderBoxOptions borderBox,
+        WaSenderNotificationOptions waSender)
     {
-        var rawWhatsApp = options.SupportWhatsAppE164?.Trim() ?? string.Empty;
-        var digits = new string(rawWhatsApp.Where(char.IsDigit).ToArray());
-        var whatsAppLink = digits.Length >= 8 ? $"https://wa.me/{digits}" : null;
-        var whatsAppDisplay = digits.Length >= 8 ? FormatE164ForDisplay(digits) : null;
+        var whatsAppLink = NormalizeWaMeLink(borderBox.SupportWhatsAppLink);
+        string? whatsAppDisplay = null;
+        if (whatsAppLink is not null)
+        {
+            var label = borderBox.SupportWhatsAppLabel?.Trim();
+            whatsAppDisplay = string.IsNullOrWhiteSpace(label) ? "Chat with our team" : label;
+        }
+        else
+        {
+            var rawWhatsApp = borderBox.SupportWhatsAppE164?.Trim();
+            if (string.IsNullOrWhiteSpace(rawWhatsApp))
+            {
+                rawWhatsApp = waSender.SupportInboxPhoneE164?.Trim() ?? string.Empty;
+            }
 
-        var email = options.SupportEmail?.Trim();
+            var digits = new string(rawWhatsApp.Where(char.IsDigit).ToArray());
+            whatsAppLink = digits.Length >= 8 ? $"https://wa.me/{digits}" : null;
+            whatsAppDisplay = digits.Length >= 8 ? FormatE164ForDisplay(digits) : null;
+        }
+
+        var email = borderBox.SupportEmail?.Trim();
         if (string.IsNullOrWhiteSpace(email))
         {
             email = null;
         }
 
         return new SupportContactDto(whatsAppLink, whatsAppDisplay, email);
+    }
+
+    private static string? NormalizeWaMeLink(string? raw)
+    {
+        var trimmed = raw?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        if (!uri.Host.Equals("wa.me", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var path = uri.AbsolutePath;
+        if (string.IsNullOrEmpty(path) || path == "/")
+        {
+            return null;
+        }
+
+        return $"https://wa.me{path}";
     }
 
     private static string FormatE164ForDisplay(string digits) =>

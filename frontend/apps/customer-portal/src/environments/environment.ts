@@ -36,7 +36,10 @@ export const environment = {
   enableParcelReceive: true,
   /** Google Maps Embed / JS API key for pickup location maps. */
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
-  /** Fallback when API BorderBox:SupportWhatsAppE164 is unset (digits only, no +). */
+  /** Fallback when API BorderBox:SupportWhatsAppLink is unset. */
+  supportWhatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
+  supportWhatsAppLabel: 'WeYell courier',
+  /** Legacy fallback — digits only, no +, when link and API are both unset. */
   supportWhatsAppE164: '',
   /** Fallback when API BorderBox:SupportEmail is unset. */
   supportEmail: '',

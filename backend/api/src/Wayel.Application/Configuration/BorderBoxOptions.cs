@@ -13,12 +13,23 @@ public sealed class BorderBoxOptions
     public string CustomerPortalBaseUrl { get; init; } = "http://localhost:8080";
 
     /// <summary>
-    /// E.164 phone number customers tap on the Support page to start a
-    /// WhatsApp conversation with our team. We hand-build the
-    /// <c>https://wa.me/&lt;digits&gt;</c> deep link from this in the
-    /// support overview response, so it must not contain a '+' or
-    /// spaces (e.g. <c>27821234567</c>). Empty disables the WhatsApp
-    /// launcher in the UI.
+    /// Full WhatsApp click-to-chat URL for the Support page (e.g.
+    /// <c>https://wa.me/message/NEGKMQLT5LJNE1</c> for a Business short
+    /// link, or <c>https://wa.me/27821234567</c>). Takes precedence over
+    /// <see cref="SupportWhatsAppE164"/>.
+    /// </summary>
+    public string SupportWhatsAppLink { get; init; } = "";
+
+    /// <summary>
+    /// Label shown under the WhatsApp channel when
+    /// <see cref="SupportWhatsAppLink"/> is set. Empty uses a generic default.
+    /// </summary>
+    public string SupportWhatsAppLabel { get; init; } = "";
+
+    /// <summary>
+    /// E.164 digits-only fallback when <see cref="SupportWhatsAppLink"/> is
+    /// empty (we build <c>https://wa.me/&lt;digits&gt;</c>). Also falls back
+    /// to <c>Notifications:WaSender:SupportInboxPhoneE164</c> when unset.
     /// </summary>
     public string SupportWhatsAppE164 { get; init; } = "";
 
