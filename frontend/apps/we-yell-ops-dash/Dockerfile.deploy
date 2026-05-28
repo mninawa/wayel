@@ -9,9 +9,11 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/we-yell-ops-dash/package.json apps/we-yell-ops-dash/
+COPY packages/shared/package.json packages/shared/
 
 RUN npm ci
 
+COPY packages/shared packages/shared
 COPY apps/we-yell-ops-dash apps/we-yell-ops-dash
 
 RUN npm run build --workspace @weyell/we-yell-ops-dash -- --configuration docker
