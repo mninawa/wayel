@@ -1,12 +1,32 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   readSidebarNavExpanded,
   writeSidebarNavExpanded,
 } from './sidebar-nav-preference';
 
+function stubLocalStorage(): void {
+  const store = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  });
+}
+
 describe('sidebar-nav-preference', () => {
   beforeEach(() => {
-    localStorage.clear();
+    stubLocalStorage();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('defaults to expanded when unset', () => {
