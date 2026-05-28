@@ -62,6 +62,19 @@ internal sealed class MongoCustomerAccountEraser(
             context.ParcelOpsExceptions, x => x.ParcelId, parcelIds, cancellationToken);
         var parcelOpsActivity = await DeleteByParcelIdAsync(
             context.ParcelOpsActivity, x => x.ParcelId, parcelIds, cancellationToken);
+        long customerWhatsAppMessagesByParcel = 0;
+        if (parcelGuids.Length > 0)
+        {
+            customerWhatsAppMessagesByParcel = (await context.CustomerWhatsAppMessages.DeleteManyAsync(
+                Builders<CustomerWhatsAppMessageDocument>.Filter.In(
+                    x => x.ParcelId,
+                    parcelGuids.Select(id => (Guid?)id)),
+                cancellationToken)).DeletedCount;
+        }
+        var customerWhatsAppMessagesByUser = (await context.CustomerWhatsAppMessages.DeleteManyAsync(
+            Builders<CustomerWhatsAppMessageDocument>.Filter.Eq(x => x.UserId, userId.Value),
+            cancellationToken)).DeletedCount;
+        var customerWhatsAppMessages = customerWhatsAppMessagesByParcel + customerWhatsAppMessagesByUser;
         var parcelOpsPhotos = await DeleteByParcelIdAsync(
             context.ParcelOpsPhotos, x => x.ParcelId, parcelIds, cancellationToken);
 

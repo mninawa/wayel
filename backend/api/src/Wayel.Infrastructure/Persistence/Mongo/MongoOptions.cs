@@ -31,6 +31,7 @@ public sealed class MongoOptions
     public string ParcelOpsExceptionsCollection { get; init; } = "parcel_ops_exceptions";
     public string OpsExceptionSupportNotificationsCollection { get; init; } = "ops_exception_support_notifications";
     public string ParcelOpsActivityCollection { get; init; } = "parcel_ops_activity";
+    public string CustomerWhatsAppMessagesCollection { get; init; } = "customer_whatsapp_messages";
     public string ParcelOpsPhotosCollection { get; init; } = "parcel_ops_photos";
     public string OpsUsersCollection { get; init; } = "ops_users";
     public string OpsInvitationsCollection { get; init; } = "ops_invitations";

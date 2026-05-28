@@ -208,6 +208,14 @@
   flex-shrink: 0;
 }
 
+.activity-dot-whatsapp {
+  background: #25d366;
+}
+
+.activity-detail {
+  white-space: pre-wrap;
+}
+
 .activity-list p {
   margin: 0.15rem 0;
   font-size: 0.78rem;

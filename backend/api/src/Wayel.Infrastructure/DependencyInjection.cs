@@ -199,6 +199,8 @@ public static class DependencyInjection
         services.AddScoped<IParcelOpsExceptionRepository, MongoParcelOpsExceptionRepository>();
         services.AddScoped<IOpsExceptionSupportNotificationRepository, MongoOpsExceptionSupportNotificationRepository>();
         services.AddScoped<IParcelOpsActivityRepository, MongoParcelOpsActivityRepository>();
+        services.AddScoped<ICustomerWhatsAppMessageLogRepository, MongoCustomerWhatsAppMessageLogRepository>();
+        services.AddScoped<CustomerWhatsAppMessageRecorder>();
         services.AddScoped<IParcelOpsPhotoRepository, MongoParcelOpsPhotoRepository>();
         services.AddScoped<IParcelInvoiceRepository, MongoParcelInvoiceRepository>();
         services.AddScoped<IShipmentRepository, MongoShipmentRepository>();

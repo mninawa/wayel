@@ -10,6 +10,7 @@ namespace Wayel.Infrastructure.Notifications;
 
 internal sealed class BorderBoxWhatsAppNotifier(
     IWhatsAppSender whatsApp,
+    CustomerWhatsAppMessageRecorder messageRecorder,
     IOptions<NotificationWaSenderOptions> options,
     IOptions<BorderBoxOptions> borderBoxOptions,
     ILogger<BorderBoxWhatsAppNotifier> logger) : IBorderBoxWhatsAppNotifier
@@ -165,6 +166,21 @@ internal sealed class BorderBoxWhatsAppNotifier(
     {
         if (!user.NotifyWhatsApp || string.IsNullOrWhiteSpace(user.Phone))
         {
+            var skippedBody = BuildInspectionMessageBody(
+                parcelId,
+                suiteNumber,
+                itemName,
+                conditionStatus,
+                inspectionNotes);
+            await messageRecorder.RecordAsync(
+                user,
+                user.Phone,
+                skippedBody,
+                $"inspection-saved:{parcelId:D}",
+                isImage: imageUrls.Count > 0,
+                sendResult: null,
+                skipReason: "Customer opted out or has no phone",
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -245,14 +261,30 @@ internal sealed class BorderBoxWhatsAppNotifier(
     {
         if (!user.NotifyWhatsApp || string.IsNullOrWhiteSpace(user.Phone))
         {
+            await messageRecorder.RecordAsync(
+                user,
+                user.Phone,
+                BuildImageLogBody(imageUrl, caption),
+                correlationTag,
+                isImage: true,
+                sendResult: null,
+                skipReason: "Customer opted out or has no phone",
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        await SendImageToPhoneAsync(user.Phone, imageUrl, caption, correlationTag, cancellationToken)
+        await SendImageToPhoneAsync(
+                user,
+                user.Phone,
+                imageUrl,
+                caption,
+                correlationTag,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
     private async Task SendImageToPhoneAsync(
+        User? user,
         string rawPhone,
         string imageUrl,
         string? caption,
@@ -266,6 +298,15 @@ internal sealed class BorderBoxWhatsAppNotifier(
                 "Skipping WhatsApp image {Correlation} — invalid phone {Phone}.",
                 correlationTag,
                 rawPhone);
+            await messageRecorder.RecordAsync(
+                user,
+                rawPhone,
+                BuildImageLogBody(imageUrl, caption),
+                correlationTag,
+                isImage: true,
+                sendResult: null,
+                skipReason: "Invalid phone number",
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -282,6 +323,25 @@ internal sealed class BorderBoxWhatsAppNotifier(
                 result.ErrorCode,
                 result.ErrorMessage);
         }
+
+        if (user is not null)
+        {
+            await messageRecorder.RecordAsync(
+                user,
+                to,
+                BuildImageLogBody(imageUrl, caption),
+                correlationTag,
+                isImage: true,
+                sendResult: result,
+                skipReason: null,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static string BuildImageLogBody(string imageUrl, string? caption)
+    {
+        var cap = string.IsNullOrWhiteSpace(caption) ? "" : caption.Trim() + "\n\n";
+        return cap + $"[Image] {imageUrl.Trim()}";
     }
 
     public Task NotifyReadyForCollectionAsync(
@@ -322,7 +382,7 @@ internal sealed class BorderBoxWhatsAppNotifier(
         }
 
         var message = BuildSupportInboxMessage(user, suiteNumber, ticketDisplayNumber, subject, body);
-        return SendToPhoneAsync(
+        return SendInboxToPhoneAsync(
             cfg.SupportInboxPhoneE164,
             message,
             $"support-inbox:{ticketDisplayNumber}",
@@ -342,7 +402,38 @@ internal sealed class BorderBoxWhatsAppNotifier(
 
         var message = BuildReceivingExceptionInboxMessage(exception, exceptionsQueueUrl);
         var correlation = $"ops-exception:{exception.ParcelId:N}:{exception.ExceptionType}";
-        return SendToPhoneAsync(cfg.SupportInboxPhoneE164, message, correlation, cancellationToken);
+        return SendInboxToPhoneAsync(cfg.SupportInboxPhoneE164, message, correlation, cancellationToken);
+    }
+
+    private async Task SendInboxToPhoneAsync(
+        string rawPhone,
+        string body,
+        string correlationTag,
+        CancellationToken cancellationToken)
+    {
+        var to = WhatsAppPhoneNormalizer.ToE164(rawPhone);
+        if (to is null)
+        {
+            logger.LogWarning(
+                "Skipping WhatsApp inbox {Correlation} — invalid phone {Phone}.",
+                correlationTag,
+                rawPhone);
+            return;
+        }
+
+        var result = await whatsApp.SendTextAsync(
+            new WhatsAppTextMessage(to, body, correlationTag, BypassAllowlist: true),
+            cancellationToken).ConfigureAwait(false);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "WhatsApp inbox {Correlation} to {Phone} failed: {Code} {Message}",
+                correlationTag,
+                to,
+                result.ErrorCode,
+                result.ErrorMessage);
+        }
     }
 
     private static string BuildReceivingExceptionInboxMessage(
@@ -411,7 +502,7 @@ internal sealed class BorderBoxWhatsAppNotifier(
             });
     }
 
-    private async Task SendTransactionalToCustomerIfHasPhoneAsync(
+    private Task SendTransactionalToCustomerIfHasPhoneAsync(
         User user,
         string body,
         string correlationTag,
@@ -422,13 +513,21 @@ internal sealed class BorderBoxWhatsAppNotifier(
             logger.LogInformation(
                 "Skipping WhatsApp {Correlation} — customer has no phone on profile.",
                 correlationTag);
-            return;
+            return messageRecorder.RecordAsync(
+                user,
+                null,
+                body,
+                correlationTag,
+                isImage: false,
+                sendResult: null,
+                skipReason: "No phone on profile",
+                cancellationToken);
         }
 
-        await SendToPhoneAsync(user.Phone, body, correlationTag, cancellationToken).ConfigureAwait(false);
+        return SendToPhoneAsync(user, user.Phone, body, correlationTag, cancellationToken);
     }
 
-    private async Task SendToCustomerIfOptedInAsync(
+    private Task SendToCustomerIfOptedInAsync(
         User user,
         string body,
         string correlationTag,
@@ -439,13 +538,22 @@ internal sealed class BorderBoxWhatsAppNotifier(
             logger.LogInformation(
                 "Skipping WhatsApp {Correlation} — customer opted out or has no phone.",
                 correlationTag);
-            return;
+            return messageRecorder.RecordAsync(
+                user,
+                user.Phone,
+                body,
+                correlationTag,
+                isImage: false,
+                sendResult: null,
+                skipReason: "Customer opted out or has no phone",
+                cancellationToken);
         }
 
-        await SendToPhoneAsync(user.Phone, body, correlationTag, cancellationToken).ConfigureAwait(false);
+        return SendToPhoneAsync(user, user.Phone, body, correlationTag, cancellationToken);
     }
 
     private async Task SendToPhoneAsync(
+        User user,
         string rawPhone,
         string body,
         string correlationTag,
@@ -458,6 +566,15 @@ internal sealed class BorderBoxWhatsAppNotifier(
                 "Skipping WhatsApp {Correlation} — invalid phone {Phone}.",
                 correlationTag,
                 rawPhone);
+            await messageRecorder.RecordAsync(
+                user,
+                rawPhone,
+                body,
+                correlationTag,
+                isImage: false,
+                sendResult: null,
+                skipReason: "Invalid phone number",
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -474,5 +591,15 @@ internal sealed class BorderBoxWhatsAppNotifier(
                 result.ErrorCode,
                 result.ErrorMessage);
         }
+
+        await messageRecorder.RecordAsync(
+            user,
+            to,
+            body,
+            correlationTag,
+            isImage: false,
+            sendResult: result,
+            skipReason: null,
+            cancellationToken).ConfigureAwait(false);
     }
 }

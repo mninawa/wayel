@@ -13,7 +13,8 @@ public sealed record ListOpsParcelActivityQuery(Guid ParcelId, int Limit = 50)
 
 internal sealed class ListOpsParcelActivityQueryHandler(
     IParcelRepository parcels,
-    IParcelOpsActivityRepository activities) : IQueryHandler<ListOpsParcelActivityQuery, IReadOnlyList<OpsActivityItemDto>>
+    IParcelOpsActivityRepository activities,
+    ICustomerWhatsAppMessageLogRepository whatsAppMessages) : IQueryHandler<ListOpsParcelActivityQuery, IReadOnlyList<OpsActivityItemDto>>
 {
     public async Task<Result<IReadOnlyList<OpsActivityItemDto>>> Handle(
         ListOpsParcelActivityQuery request,
@@ -26,8 +27,24 @@ internal sealed class ListOpsParcelActivityQueryHandler(
             return Error.NotFound("parcel.not_found", "Parcel not found.");
         }
 
-        var events = await activities.ListForParcelAsync(parcelId, request.Limit, cancellationToken);
-        if (events.Count == 0)
+        var limit = Math.Clamp(request.Limit, 1, 200);
+        var events = await activities.ListForParcelAsync(parcelId, limit, cancellationToken);
+        var whatsApp = await whatsAppMessages.ListForParcelAsync(request.ParcelId, limit, cancellationToken);
+
+        var merged = events
+            .Select(e => new OpsActivityItemDto(
+                e.Id,
+                e.EventType,
+                e.Title,
+                e.Detail,
+                e.Actor,
+                e.OccurredAtUtc))
+            .Concat(whatsApp.Select(MapWhatsAppToActivity))
+            .OrderByDescending(e => e.OccurredAtUtc)
+            .Take(limit)
+            .ToList();
+
+        if (merged.Count == 0)
         {
             IReadOnlyList<OpsActivityItemDto> seeded =
             [
@@ -42,15 +59,60 @@ internal sealed class ListOpsParcelActivityQueryHandler(
             return Result.Success(seeded);
         }
 
-        IReadOnlyList<OpsActivityItemDto> mapped = events.Select(e => new OpsActivityItemDto(
-            e.Id,
-            e.EventType,
-            e.Title,
-            e.Detail,
-            e.Actor,
-            e.OccurredAtUtc)).ToList();
-        return Result.Success(mapped);
+        return Result.Success<IReadOnlyList<OpsActivityItemDto>>(merged);
     }
+
+    private static OpsActivityItemDto MapWhatsAppToActivity(CustomerWhatsAppMessageLogEntry log)
+    {
+        var eventType = log.DeliveryStatus switch
+        {
+            "Sent" => "WHATSAPP_SENT",
+            "Skipped" => "WHATSAPP_SKIPPED",
+            _ => "WHATSAPP_FAILED",
+        };
+
+        var title = log.IsImage
+            ? $"WhatsApp image — {log.MessageKind}"
+            : $"WhatsApp — {log.MessageKind}";
+
+        var statusLine = log.DeliveryStatus switch
+        {
+            "Sent" => "Delivered to provider",
+            "Skipped" => log.SkipReason ?? "Not sent",
+            _ => log.ErrorMessage ?? log.ErrorCode ?? "Send failed",
+        };
+
+        var phone = MaskPhone(log.PhoneE164);
+        var bodyPreview = Truncate(log.Body, 280);
+        var detail = $"To {phone} · {statusLine}\n\n{bodyPreview}";
+
+        return new OpsActivityItemDto(
+            log.Id,
+            eventType,
+            title,
+            detail,
+            "WhatsApp",
+            log.SentAtUtc);
+    }
+
+    private static string MaskPhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return "—";
+        }
+
+        var trimmed = phone.Trim();
+        if (trimmed.Length <= 6)
+        {
+            return trimmed;
+        }
+
+        return $"{trimmed[..Math.Min(4, trimmed.Length)]}***{trimmed[^4..]}";
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..(max - 1)] + "…";
 }
 
 public sealed record DownloadOpsParcelInvoiceQuery(Guid ParcelId) : IQuery<ParcelInvoiceFileDto>;

@@ -122,11 +122,11 @@
                 @if (activity().length) {
                   <ul class="activity-list">
                     @for (a of activity(); track a.id) {
-                      <li>
-                        <div class="activity-dot"></div>
+                      <li [class.activity-whatsapp]="a.eventType.startsWith('WHATSAPP_')">
+                        <div class="activity-dot" [class.activity-dot-whatsapp]="a.eventType.startsWith('WHATSAPP_')"></div>
                         <div>
                           <strong>{{ a.title }}</strong>
-                          @if (a.detail) { <p>{{ a.detail }}</p> }
+                          @if (a.detail) { <p class="activity-detail">{{ a.detail }}</p> }
                           <span class="activity-meta">
                             {{ a.actor ?? 'System' }} · {{ a.occurredAtUtc | date:'MMM d, h:mm a' }}
                           </span>

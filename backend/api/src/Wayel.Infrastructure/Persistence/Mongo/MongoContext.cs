@@ -89,6 +89,9 @@ public sealed class MongoContext
     internal IMongoCollection<ParcelOpsActivityDocument> ParcelOpsActivity =>
         Database.GetCollection<ParcelOpsActivityDocument>(_options.ParcelOpsActivityCollection);
 
+    internal IMongoCollection<CustomerWhatsAppMessageDocument> CustomerWhatsAppMessages =>
+        Database.GetCollection<CustomerWhatsAppMessageDocument>(_options.CustomerWhatsAppMessagesCollection);
+
     internal IMongoCollection<ParcelOpsPhotoDocument> ParcelOpsPhotos =>
         Database.GetCollection<ParcelOpsPhotoDocument>(_options.ParcelOpsPhotosCollection);
 

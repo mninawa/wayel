@@ -149,8 +149,8 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
                   } @else {
                     <ol class="timeline">
                       @for (ev of activity(); track ev.id + ev.occurredAtUtc) {
-                        <li>
-                          <span class="dot"></span>
+                        <li [class.timeline-whatsapp]="ev.eventType.startsWith('WHATSAPP_')">
+                          <span class="dot" [class.dot-whatsapp]="ev.eventType.startsWith('WHATSAPP_')"></span>
                           <div>
                             <strong>{{ ev.title }}</strong>
                             <span class="when">{{ ev.occurredAtUtc | date:'medium' }} · {{ ev.actor || 'System' }}</span>
@@ -536,6 +536,8 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
     .timeline li { display: grid; grid-template-columns: 12px 1fr; gap: 0.75rem; padding: 0.65rem 0; border-bottom: 1px solid var(--ops-border); }
     .timeline li:last-child { border-bottom: none; }
     .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ops-brand-green, #15803d); margin-top: 0.35rem; }
+    .dot-whatsapp { background: #25d366; }
+    .timeline .detail { white-space: pre-wrap; }
     .when { display: block; font-size: 0.72rem; color: var(--ops-muted); margin-top: 0.15rem; }
     .detail { margin: 0.25rem 0 0; font-size: 0.82rem; }
     .hint { font-size: 0.82rem; color: var(--ops-muted); margin: 0; }
