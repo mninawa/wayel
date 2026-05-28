@@ -17,6 +17,7 @@ internal sealed class GetOpsSuitePaymentsOverviewQueryHandler(
     IUserRepository users,
     ISuiteSubscriptionRepository subscriptions,
     ISuiteCheckoutPaymentRepository checkoutPayments,
+    ICustomerSavedCardRepository savedCards,
     ISuitePlanRepository plans,
     IClock clock) : IQueryHandler<GetOpsSuitePaymentsOverviewQuery, SuitePaymentsOverviewDto>
 {
@@ -35,6 +36,7 @@ internal sealed class GetOpsSuitePaymentsOverviewQueryHandler(
             user,
             subscriptions,
             checkoutPayments,
+            savedCards,
             plans,
             clock,
             cancellationToken);

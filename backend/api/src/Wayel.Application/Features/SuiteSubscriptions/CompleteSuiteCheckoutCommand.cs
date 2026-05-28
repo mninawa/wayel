@@ -4,6 +4,7 @@ using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.BorderBox;
+using Wayel.Application.Features.PaymentMethods;
 using Wayel.Domain.Common;
 using Wayel.Domain.Users;
 
@@ -16,6 +17,7 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
     IUserRepository users,
     ISuitePlanRepository plans,
     ISuiteCheckoutPaymentRepository checkoutPayments,
+    ICustomerSavedCardRepository savedCards,
     ISuiteSubscriptionRepository subscriptions,
     ICustomerAddressRepository addresses,
     IWarehouseLocationRepository locations,
@@ -128,6 +130,17 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
         }
 
         await checkoutPayments.MarkCompletedAsync(reference, clock.UtcNow, cancellationToken);
+
+        if (verified.CardAuthorization is not null
+            && string.Equals(paymentGateway.ProviderName, PaymentProviders.Paystack, StringComparison.OrdinalIgnoreCase))
+        {
+            await SavedCardUpsert.TrySaveFromAuthorizationAsync(
+                payment.UserId,
+                verified.CardAuthorization,
+                label: null,
+                savedCards,
+                cancellationToken);
+        }
 
         // The customer paid, so any "Pay later" intent they had is now resolved.
         // No-op when there was no intent (most paying customers don't have one),

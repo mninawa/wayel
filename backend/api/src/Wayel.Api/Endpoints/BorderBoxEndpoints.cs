@@ -6,6 +6,7 @@ using Wayel.Application.Features.Account;
 using Wayel.Application.Features.Dashboard;
 using Wayel.Application.Features.Onboarding;
 using Wayel.Application.Features.Parcels;
+using Wayel.Application.Features.PaymentMethods;
 using Wayel.Application.Features.Payments;
 using Wayel.Application.Features.Quotes;
 using Wayel.Application.Features.Shipments;
@@ -239,6 +240,50 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new CompleteSuiteCheckoutCommand(body.Reference), ct)).ToHttpResult())
             .WithName("CompleteSuiteCheckout");
 
+        group.MapGet("/payment-methods", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new ListPaymentMethodsQuery(), ct)).ToHttpResult())
+            .WithName("ListPaymentMethods");
+
+        group.MapPost("/payment-methods/initiate", async (
+            InitiateAddPaymentMethodRequest body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(
+                new InitiateAddPaymentMethodCommand(body.CallbackUrl, body.Label),
+                ct)).ToHttpResult())
+            .WithName("InitiateAddPaymentMethod");
+
+        group.MapPost("/payment-methods/complete", async (
+            CompleteAddPaymentMethodRequest body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(
+                new CompleteAddPaymentMethodCommand(body.Reference, body.Label),
+                ct)).ToHttpResult())
+            .WithName("CompleteAddPaymentMethod");
+
+        group.MapPost("/payment-methods/{cardId:guid}/default", async (
+            Guid cardId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new SetDefaultPaymentMethodCommand(cardId), ct)).ToHttpResult())
+            .WithName("SetDefaultPaymentMethod");
+
+        group.MapPatch("/payment-methods/{cardId:guid}", async (
+            Guid cardId,
+            UpdatePaymentMethodLabelRequest body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new UpdatePaymentMethodLabelCommand(cardId, body.Label), ct)).ToHttpResult())
+            .WithName("UpdatePaymentMethodLabel");
+
+        group.MapDelete("/payment-methods/{cardId:guid}", async (
+            Guid cardId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new RemovePaymentMethodCommand(cardId), ct)).ToHttpResult())
+            .WithName("RemovePaymentMethod");
+
         group.MapGet("/parcels", async (IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new ListParcelsQuery(), ct)).ToHttpResult())
             .WithName("ListParcels");
@@ -457,4 +502,7 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
         bool IsDefault);
     private sealed record MarkPayLaterIntentRequest(
         [property: JsonPropertyName("planId")] Guid? PlanId);
+    private sealed record InitiateAddPaymentMethodRequest(string CallbackUrl, string? Label);
+    private sealed record CompleteAddPaymentMethodRequest(string Reference, string? Label);
+    private sealed record UpdatePaymentMethodLabelRequest(string? Label);
 }

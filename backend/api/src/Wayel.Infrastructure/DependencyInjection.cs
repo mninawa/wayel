@@ -130,6 +130,7 @@ public static class DependencyInjection
         services.AddSingleton<MtnMomoSandboxProvisioner>();
         services.AddHostedService<MtnMomoBootstrapHostedService>();
 
+        services.AddSingleton<ICardVerificationBillingOptions, CardVerificationBillingOptions>();
         services.AddSingleton<IPaymentGateway, PaystackPaymentGateway>();
         services.AddSingleton<IPaymentGateway, MtnMomoPaymentGateway>();
         services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
@@ -203,6 +204,8 @@ public static class DependencyInjection
         services.AddScoped<IQuoteParcelRepository, MongoQuoteParcelRepository>();
         services.AddScoped<ISupportTicketRepository, MongoSupportTicketRepository>();
         services.AddScoped<ISuiteCheckoutPaymentRepository, MongoSuiteCheckoutPaymentRepository>();
+        services.AddScoped<ICustomerSavedCardRepository, MongoCustomerSavedCardRepository>();
+        services.AddScoped<IPaymentMethodAddIntentRepository, MongoPaymentMethodAddIntentRepository>();
         services.AddScoped<IQuoteCheckoutPaymentRepository, MongoQuoteCheckoutPaymentRepository>();
         services.AddScoped<IQuotePaymentInvoiceRepository, MongoQuotePaymentInvoiceRepository>();
         services.AddScoped<IBorderBoxPricingConfigRepository, MongoBorderBoxPricingConfigRepository>();

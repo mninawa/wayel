@@ -9,11 +9,13 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   BorderboxApiService,
   type InitiateSuiteCheckoutDto,
   type SuiteAccessSummary,
+  type SuitePaymentMethodDto,
   type SuitePaymentsOverviewDto,
   type SuitePlanDto,
 } from '../../services/borderbox-api.service';
@@ -37,7 +39,7 @@ const PLAN_FEATURES = [
 @Component({
   selector: 'app-suite-checkout',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, MomoPendingComponent, PaymentMethodPickerComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, MomoPendingComponent, PaymentMethodPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="page-head">
@@ -213,34 +215,61 @@ const PLAN_FEATURES = [
               <span class="material-icons-outlined">credit_card</span>
               Saved Payment Methods
             </h2>
-            <button type="button" class="bb-btn bb-btn-outline" (click)="addCard()">
+            <button
+              type="button"
+              class="bb-btn bb-btn-outline"
+              (click)="openAddCard()"
+              [disabled]="addCardBusy()"
+            >
               <span class="material-icons-outlined">add</span>
-              Add Card
+              {{ addCardBusy() ? 'Opening Paystack…' : 'Add Card' }}
             </button>
           </header>
 
-          @if (cardsNotice()) {
-            <p class="cards-notice" role="status">{{ cardsNotice() }}</p>
-          }
-
-          @if (overview()?.paymentMethod; as pm) {
-            <div class="card-row">
-              <div class="card-icon">
-                <span class="material-icons-outlined">credit_card</span>
-              </div>
-              <div class="card-meta">
-                <strong>Visa •••• 4242</strong>
-                <span class="muted">Expires 12/27</span>
-              </div>
-              <span class="badge tone-muted">Default</span>
+          @if (savedCards().length === 0) {
+            <div class="empty no-card">
+              <p>
+                Save a personal or business card for faster renewals. We use a small Paystack
+                verification (refunded automatically) — you can add more than one card.
+              </p>
             </div>
-            <button type="button" class="add-card-link" (click)="addCard()">
+          } @else {
+            <ul class="saved-cards-list">
+              @for (card of savedCards(); track card.id) {
+                <li class="card-row" [class.is-default]="card.isDefault">
+                  <div class="card-icon">
+                    <span class="material-icons-outlined">credit_card</span>
+                  </div>
+                  <div class="card-meta">
+                    <strong>{{ cardDisplayTitle(card) }}</strong>
+                    <span class="muted">Expires {{ formatCardExpiry(card) }}</span>
+                  </div>
+                  <div class="card-actions">
+                    @if (card.isDefault) {
+                      <span class="badge tone-muted">Default</span>
+                    } @else {
+                      <button type="button" class="card-action" (click)="setDefaultCard(card)">
+                        Make default
+                      </button>
+                    }
+                    <button type="button" class="card-action" (click)="editCardLabel(card)">
+                      Label
+                    </button>
+                    <button type="button" class="card-action danger" (click)="removeCard(card)">
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+            <button
+              type="button"
+              class="add-card-link"
+              (click)="openAddCard()"
+              [disabled]="addCardBusy()"
+            >
               + Add another card
             </button>
-          } @else {
-            <div class="empty no-card">
-              <p>You have no saved cards yet. Cards are stored securely with Paystack after your next payment.</p>
-            </div>
           }
 
           <p class="security-note">
@@ -405,6 +434,32 @@ const PLAN_FEATURES = [
         </aside>
       </div>
     </section>
+
+    @if (addCardOpen()) {
+      <div class="add-card-backdrop" role="presentation" (click)="cancelAddCard()"></div>
+      <div class="add-card-dialog bb-card" role="dialog" aria-labelledby="add-card-title">
+        <h3 id="add-card-title">Add a card</h3>
+        <p class="dialog-lead">
+          Optional label helps tell cards apart (e.g. Personal, Business). Paystack will verify
+          your card with a small charge that we refund automatically.
+        </p>
+        <label class="dialog-field">
+          <span>Label (optional)</span>
+          <input
+            type="text"
+            maxlength="40"
+            [(ngModel)]="pendingCardLabel"
+            placeholder="Personal, Business, …"
+          />
+        </label>
+        <div class="dialog-actions">
+          <button type="button" class="bb-btn bb-btn-ghost" (click)="cancelAddCard()">Cancel</button>
+          <button type="button" class="bb-btn bb-btn-primary" (click)="confirmAddCard()">
+            Continue to Paystack
+          </button>
+        </div>
+      </div>
+    }
   `,
   styles: `
     .page-head { margin-bottom: 1.25rem; }
@@ -660,14 +715,27 @@ const PLAN_FEATURES = [
 
     .side-col { display: grid; gap: 1.25rem; }
 
+    .saved-cards-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
     .card-row {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 0.75rem;
       padding: 0.85rem;
       border: 1px solid var(--bb-border);
       border-radius: var(--bb-radius-sm);
       background: #f8fafc;
+    }
+    .card-row.is-default {
+      border-color: var(--bb-lime);
+      background: var(--bb-lime-soft);
     }
     .card-icon {
       width: 2.25rem;
@@ -702,15 +770,72 @@ const PLAN_FEATURES = [
     }
     .add-card-link:hover { text-decoration: underline; }
 
-    .cards-notice {
-      margin: 0 0 0.85rem;
-      padding: 0.65rem 0.75rem;
-      border-radius: var(--bb-radius-sm);
-      background: var(--bb-lime-soft);
-      border: 1px solid var(--bb-info-border);
-      font-size: 0.82rem;
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      margin-left: auto;
+    }
+    .card-action {
+      border: none;
+      background: transparent;
+      padding: 0.2rem 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--bb-link);
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: var(--bb-lime);
+    }
+    .card-action.danger {
+      color: #b91c1c;
+      text-decoration-color: #fecaca;
+    }
+
+    .add-card-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(41, 41, 40, 0.45);
+      z-index: 200;
+    }
+    .add-card-dialog {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 201;
+      width: min(420px, calc(100vw - 2rem));
+      padding: 1.25rem 1.35rem;
+    }
+    .add-card-dialog h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.1rem;
+    }
+    .dialog-lead {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--bb-muted);
       line-height: 1.45;
-      color: var(--bb-info-text);
+    }
+    .dialog-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .dialog-field input {
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius-sm);
+      font: inherit;
+    }
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
     }
 
     .security-note {
@@ -1134,7 +1259,16 @@ export class SuiteCheckoutComponent implements OnInit {
   readonly picker = viewChild(PaymentMethodPickerComponent);
   readonly renewSection = viewChild<ElementRef<HTMLElement>>('renewSection');
   readonly cardsSection = viewChild<ElementRef<HTMLElement>>('cardsSection');
-  readonly cardsNotice = signal<string | null>(null);
+  readonly addCardOpen = signal(false);
+  readonly addCardBusy = signal(false);
+  pendingCardLabel = '';
+
+  readonly savedCards = computed((): SuitePaymentMethodDto[] => {
+    const o = this.overview();
+    if (!o) return [];
+    if (o.paymentMethods?.length) return o.paymentMethods;
+    return o.paymentMethod ? [o.paymentMethod] : [];
+  });
   /**
    * Picks the phone we should pre-fill on the MoMo picker, in priority order:
    *   1. Default delivery address phone (set via /my-address).
@@ -1248,11 +1382,33 @@ export class SuiteCheckoutComponent implements OnInit {
 
   lastPaymentBadgeTone = (): string => 'tone-green';
 
-  paymentMethodLabel = (): string =>
-    this.overview()?.paymentMethod ? 'Visa •••• 4242' : 'Not added yet';
+  paymentMethodLabel = (): string => {
+    const card = this.savedCards().find((c) => c.isDefault) ?? this.savedCards()[0];
+    return card ? this.cardDisplayTitle(card) : 'Not added yet';
+  };
 
-  paymentMethodSubLabel = (): string =>
-    this.overview()?.paymentMethod ? 'Expires 12/27' : 'Add a card to renew faster';
+  paymentMethodSubLabel = (): string => {
+    const card = this.savedCards().find((c) => c.isDefault) ?? this.savedCards()[0];
+    return card ? `Expires ${this.formatCardExpiry(card)}` : 'Add a personal or business card';
+  };
+
+  cardDisplayTitle(card: SuitePaymentMethodDto): string {
+    if (card.label?.trim()) {
+      return `${card.label.trim()} · ${this.formatCardBrand(card)} •••• ${card.last4}`;
+    }
+    return card.descriptor || `${this.formatCardBrand(card)} •••• ${card.last4}`;
+  }
+
+  formatCardBrand(card: SuitePaymentMethodDto): string {
+    const t = card.cardType?.trim();
+    if (!t) return 'Card';
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }
+
+  formatCardExpiry(card: SuitePaymentMethodDto): string {
+    const y = card.expYear?.length >= 2 ? card.expYear.slice(-2) : card.expYear;
+    return `${card.expMonth}/${y}`;
+  }
 
   amount = (): number => this.selectedPlan()?.priceZar ?? 0;
 
@@ -1300,39 +1456,91 @@ export class SuiteCheckoutComponent implements OnInit {
     this.cardsSection()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /**
-   * Cards are tokenised by Paystack during suite renewal checkout. Guide the
-   * user to the renew section with card payment pre-selected.
-   */
-  addCard(): void {
+  openAddCard(): void {
+    this.pendingCardLabel = '';
+    this.addCardOpen.set(true);
+  }
+
+  cancelAddCard(): void {
+    this.addCardOpen.set(false);
+  }
+
+  confirmAddCard(): void {
+    this.addCardOpen.set(false);
+    const label = this.pendingCardLabel.trim();
+    if (label) {
+      sessionStorage.setItem('weyell_pending_card_label', label);
+    } else {
+      sessionStorage.removeItem('weyell_pending_card_label');
+    }
+
+    const callbackUrl = `${window.location.origin}/suite-access/payment-methods/added`;
+    this.addCardBusy.set(true);
     this.error.set(null);
 
-    if (this.suiteStillActive()) {
-      this.cardsNotice.set(
-        `Your suite is active until ${this.activeUntilLabel()}. ` +
-          'You can add or update saved cards when renewal opens below — choose card payment and complete checkout with Paystack.',
-      );
-      this.scrollToRenew();
+    this.borderboxApi.initiateAddPaymentMethod(callbackUrl, label || null).subscribe({
+      next: (res) => {
+        this.onAddCardInitiated(res);
+      },
+      error: (err: Error) => {
+        this.addCardBusy.set(false);
+        this.error.set(err?.message ?? 'Could not start card verification.');
+      },
+    });
+  }
+
+  private onAddCardInitiated(res: InitiateSuiteCheckoutDto): void {
+    this.paystack
+      .start(res)
+      .then((outcome) => {
+        this.addCardBusy.set(false);
+        if (outcome.status === 'success') {
+          void this.router.navigateByUrl(
+            `/suite-access/payment-methods/added?reference=${encodeURIComponent(outcome.reference)}`,
+          );
+          return;
+        }
+        if (outcome.status === 'error') {
+          this.error.set(outcome.message);
+        }
+      })
+      .catch(() => {
+        this.addCardBusy.set(false);
+        window.location.href = res.authorizationUrl;
+      });
+  }
+
+  setDefaultCard(card: SuitePaymentMethodDto): void {
+    this.borderboxApi.setDefaultPaymentMethod(card.id).subscribe({
+      next: () => this.reloadOverview(),
+      error: (err: Error) => this.error.set(err?.message ?? 'Could not update default card.'),
+    });
+  }
+
+  removeCard(card: SuitePaymentMethodDto): void {
+    if (!confirm(`Remove ${this.cardDisplayTitle(card)} from your saved cards?`)) {
       return;
     }
+    this.borderboxApi.removePaymentMethod(card.id).subscribe({
+      next: () => this.reloadOverview(),
+      error: (err: Error) => this.error.set(err?.message ?? 'Could not remove card.'),
+    });
+  }
 
-    const picker = this.picker();
-    if (!picker) {
-      this.cardsNotice.set('Loading payment options… try again in a moment.');
-      return;
-    }
+  editCardLabel(card: SuitePaymentMethodDto): void {
+    const next = prompt('Card label (e.g. Personal, Business)', card.label ?? '');
+    if (next === null) return;
+    const trimmed = next.trim();
+    this.borderboxApi.updatePaymentMethodLabel(card.id, trimmed || null).subscribe({
+      next: () => this.reloadOverview(),
+      error: (err: Error) => this.error.set(err?.message ?? 'Could not update label.'),
+    });
+  }
 
-    if (!picker.selectProvider('paystack')) {
-      this.cardsNotice.set(
-        'Card payments are not available right now. Please try again later or contact support.',
-      );
-      return;
-    }
-
-    this.cardsNotice.set(
-      'Choose your plan below, then pay with card via Paystack — your card will be saved for faster renewal next time.',
-    );
-    this.scrollToRenew();
+  private reloadOverview(): void {
+    this.borderboxApi.getSuitePaymentsOverview().subscribe({
+      next: (o) => this.overview.set(o),
+    });
   }
 
   /**

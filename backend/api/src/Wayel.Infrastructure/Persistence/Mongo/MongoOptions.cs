@@ -45,4 +45,6 @@ public sealed class MongoOptions
     public string OpsPhotoUploadSessionsCollection { get; init; } = "ops_photo_upload_sessions";
     public string PayLaterIntentsCollection { get; init; } = "pay_later_intents";
     public string SuiteNumberPoolCollection { get; init; } = "suite_number_pool";
+    public string CustomerSavedCardsCollection { get; init; } = "customer_saved_cards";
+    public string PaymentMethodAddIntentsCollection { get; init; } = "payment_method_add_intents";
 }

@@ -2,6 +2,7 @@ using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
+using Wayel.Application.Features.PaymentMethods;
 using Wayel.Domain.Common;
 using Wayel.Domain.SuitePlans;
 using Wayel.Domain.Users;
@@ -16,6 +17,7 @@ public sealed record SuitePaymentsOverviewDto(
     SuitePaymentsLastPaymentDto? LastPayment,
     SuitePaymentsNextPaymentDto? NextPayment,
     SuitePaymentMethodDto? PaymentMethod,
+    IReadOnlyList<SuitePaymentMethodDto> PaymentMethods,
     IReadOnlyList<SuitePaymentHistoryRowDto> History,
     SuitePaymentsSummaryDto Summary);
 
@@ -46,8 +48,14 @@ public sealed record SuitePaymentsNextPaymentDto(
     int DaysRemaining);
 
 public sealed record SuitePaymentMethodDto(
+    Guid Id,
     string Provider,
     string Descriptor,
+    string CardType,
+    string Last4,
+    string ExpMonth,
+    string ExpYear,
+    string? Label,
     bool IsDefault);
 
 public sealed record SuitePaymentHistoryRowDto(
@@ -71,6 +79,7 @@ internal sealed class GetSuitePaymentsOverviewQueryHandler(
     IUserRepository users,
     ISuiteSubscriptionRepository subscriptions,
     ISuiteCheckoutPaymentRepository checkoutPayments,
+    ICustomerSavedCardRepository savedCards,
     ISuitePlanRepository plans,
     IClock clock) : IQueryHandler<GetSuitePaymentsOverviewQuery, SuitePaymentsOverviewDto>
 {
@@ -90,7 +99,7 @@ internal sealed class GetSuitePaymentsOverviewQueryHandler(
         }
 
         return await SuitePaymentsOverviewProjector
-            .BuildAsync(user, subscriptions, checkoutPayments, plans, clock, cancellationToken);
+            .BuildAsync(user, subscriptions, checkoutPayments, savedCards, plans, clock, cancellationToken);
     }
 }
 
@@ -106,6 +115,7 @@ internal static class SuitePaymentsOverviewProjector
         User user,
         ISuiteSubscriptionRepository subscriptions,
         ISuiteCheckoutPaymentRepository checkoutPayments,
+        ICustomerSavedCardRepository savedCards,
         ISuitePlanRepository plans,
         IClock clock,
         CancellationToken cancellationToken)
@@ -135,12 +145,10 @@ internal static class SuitePaymentsOverviewProjector
 
         var nextPaymentDto = BuildNextPayment(subscription, currentPlan, now);
 
-        var paymentMethodDto = lastCompleted is null
-            ? null
-            : new SuitePaymentMethodDto(
-                Provider: "paystack",
-                Descriptor: "Card via Paystack",
-                IsDefault: true);
+        var cardRecords = await savedCards.ListActiveForUserAsync(user.Id, cancellationToken);
+        var paymentMethods = cardRecords.Select(MapSavedCard).ToList();
+        var paymentMethodDto = paymentMethods.FirstOrDefault(x => x.IsDefault)
+            ?? paymentMethods.FirstOrDefault();
 
         var history = payments
             .Select(p => MapHistoryRow(p, plansById))
@@ -166,9 +174,22 @@ internal static class SuitePaymentsOverviewProjector
             lastPaymentDto,
             nextPaymentDto,
             paymentMethodDto,
+            paymentMethods,
             history,
             summary);
     }
+
+    private static SuitePaymentMethodDto MapSavedCard(CustomerSavedCardRecord card) =>
+        new(
+            card.Id.Value,
+            card.Provider,
+            SavedCardDisplayName.For(card),
+            card.CardType,
+            card.Last4,
+            card.ExpMonth,
+            card.ExpYear,
+            card.Label,
+            card.IsDefault);
 
     private static SuitePaymentsCurrentPlanDto? BuildCurrentPlan(
         Wayel.Domain.SuiteSubscriptions.SuiteSubscription? subscription,

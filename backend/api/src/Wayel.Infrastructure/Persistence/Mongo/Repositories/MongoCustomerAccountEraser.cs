@@ -180,6 +180,14 @@ internal sealed class MongoCustomerAccountEraser(
             Builders<SuiteCheckoutPaymentDocument>.Filter.Eq(x => x.UserId, userGuid),
             cancellationToken)).DeletedCount;
 
+        var savedCards = (await context.CustomerSavedCards.DeleteManyAsync(
+            Builders<CustomerSavedCardDocument>.Filter.Eq(x => x.UserId, userGuid),
+            cancellationToken)).DeletedCount;
+
+        var paymentMethodIntents = (await context.PaymentMethodAddIntents.DeleteManyAsync(
+            Builders<PaymentMethodAddIntentDocument>.Filter.Eq(x => x.UserId, userGuid),
+            cancellationToken)).DeletedCount;
+
         // -----------------------------------------------------------------
         // Root aggregates (after every dependent is gone)
         // -----------------------------------------------------------------

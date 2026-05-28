@@ -65,7 +65,9 @@ export interface SuitePaymentsOverviewDto {
   subscription: SuitePaymentsSubscriptionDto | null;
   lastPayment: SuitePaymentsLastPaymentDto | null;
   nextPayment: SuitePaymentsNextPaymentDto | null;
+  /** Default card for quick display (legacy field). */
   paymentMethod: SuitePaymentMethodDto | null;
+  paymentMethods: SuitePaymentMethodDto[];
   history: SuitePaymentHistoryRowDto[];
   summary: SuitePaymentsSummaryDto;
 }
@@ -101,9 +103,28 @@ export interface SuitePaymentsNextPaymentDto {
 }
 
 export interface SuitePaymentMethodDto {
+  id: string;
   provider: string;
   descriptor: string;
+  cardType: string;
+  last4: string;
+  expMonth: string;
+  expYear: string;
+  label: string | null;
   isDefault: boolean;
+}
+
+export interface CustomerSavedCardDto {
+  id: string;
+  provider: string;
+  cardType: string;
+  last4: string;
+  expMonth: string;
+  expYear: string;
+  bank: string | null;
+  label: string | null;
+  isDefault: boolean;
+  displayName: string;
 }
 
 export interface SuitePaymentHistoryRowDto {
@@ -365,6 +386,48 @@ export class BorderboxApiService {
     return this.http.post(`${this.base}/borderbox/suite-access/checkout/complete`, {
       reference,
     });
+  }
+
+  listPaymentMethods(): Observable<CustomerSavedCardDto[]> {
+    return this.http.get<CustomerSavedCardDto[]>(`${this.base}/borderbox/payment-methods`);
+  }
+
+  initiateAddPaymentMethod(
+    callbackUrl: string,
+    label?: string | null,
+  ): Observable<InitiateSuiteCheckoutDto> {
+    return this.http.post<InitiateSuiteCheckoutDto>(
+      `${this.base}/borderbox/payment-methods/initiate`,
+      { callbackUrl, label: label ?? null },
+    );
+  }
+
+  completeAddPaymentMethod(
+    reference: string,
+    label?: string | null,
+  ): Observable<CustomerSavedCardDto> {
+    return this.http.post<CustomerSavedCardDto>(
+      `${this.base}/borderbox/payment-methods/complete`,
+      { reference, label: label ?? null },
+    );
+  }
+
+  setDefaultPaymentMethod(cardId: string): Observable<CustomerSavedCardDto> {
+    return this.http.post<CustomerSavedCardDto>(
+      `${this.base}/borderbox/payment-methods/${cardId}/default`,
+      {},
+    );
+  }
+
+  updatePaymentMethodLabel(cardId: string, label: string | null): Observable<CustomerSavedCardDto> {
+    return this.http.patch<CustomerSavedCardDto>(
+      `${this.base}/borderbox/payment-methods/${cardId}`,
+      { label },
+    );
+  }
+
+  removePaymentMethod(cardId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/borderbox/payment-methods/${cardId}`);
   }
 
   listPaymentProviders(msisdn?: string): Observable<PaymentProviderOptionDto[]> {

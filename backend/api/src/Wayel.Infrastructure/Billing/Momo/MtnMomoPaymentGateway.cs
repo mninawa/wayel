@@ -95,6 +95,9 @@ internal sealed class MtnMomoPaymentGateway(
         return new PaymentVerifyResult(reference, normalisedStatus, amountMinor, currency);
     }
 
+    public Task RefundChargeAsync(string reference, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("MoMo does not support refunds through this gateway.");
+
     private void EnsureConfigured()
     {
         if (!IsConfigured)

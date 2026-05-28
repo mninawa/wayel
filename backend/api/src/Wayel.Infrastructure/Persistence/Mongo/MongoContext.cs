@@ -129,4 +129,10 @@ public sealed class MongoContext
 
     internal IMongoCollection<SuiteNumberPoolEntryDocument> SuiteNumberPool =>
         Database.GetCollection<SuiteNumberPoolEntryDocument>(_options.SuiteNumberPoolCollection);
+
+    internal IMongoCollection<CustomerSavedCardDocument> CustomerSavedCards =>
+        Database.GetCollection<CustomerSavedCardDocument>(_options.CustomerSavedCardsCollection);
+
+    internal IMongoCollection<PaymentMethodAddIntentDocument> PaymentMethodAddIntents =>
+        Database.GetCollection<PaymentMethodAddIntentDocument>(_options.PaymentMethodAddIntentsCollection);
 }

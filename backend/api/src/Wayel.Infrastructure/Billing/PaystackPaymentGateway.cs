@@ -80,7 +80,48 @@ internal sealed class PaystackPaymentGateway(
             body.Data.Reference ?? reference,
             body.Data.Status ?? "failed",
             body.Data.Amount,
-            body.Data.Currency ?? _opts.Currency);
+            body.Data.Currency ?? _opts.Currency,
+            MapAuthorization(body.Data.Authorization));
+    }
+
+    public async Task RefundChargeAsync(string reference, CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var payload = new { transaction = reference };
+        using var client = CreateClient();
+        using var response = await client.PostAsJsonAsync("refund", payload, cancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<PaystackEnvelope<object>>(
+            PaystackJson.Options,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode || body?.Status != true)
+        {
+            throw new InvalidOperationException(
+                body?.Message ?? $"Paystack refund failed ({(int)response.StatusCode}).");
+        }
+    }
+
+    private static PaymentCardAuthorization? MapAuthorization(AuthorizationData? auth)
+    {
+        if (auth is null || string.IsNullOrWhiteSpace(auth.AuthorizationCode))
+        {
+            return null;
+        }
+
+        if (auth.Reusable == false)
+        {
+            return null;
+        }
+
+        return new PaymentCardAuthorization(
+            auth.AuthorizationCode.Trim(),
+            auth.Last4 ?? "????",
+            auth.CardType ?? "card",
+            string.IsNullOrWhiteSpace(auth.Bank) ? null : auth.Bank.Trim(),
+            auth.ExpMonth ?? "01",
+            auth.ExpYear ?? "2099",
+            auth.Reusable);
     }
 
     private void EnsureConfigured()
@@ -128,6 +169,33 @@ internal sealed class PaystackPaymentGateway(
 
         [JsonPropertyName("currency")]
         public string? Currency { get; init; }
+
+        [JsonPropertyName("authorization")]
+        public AuthorizationData? Authorization { get; init; }
+    }
+
+    private sealed class AuthorizationData
+    {
+        [JsonPropertyName("authorization_code")]
+        public string? AuthorizationCode { get; init; }
+
+        [JsonPropertyName("last4")]
+        public string? Last4 { get; init; }
+
+        [JsonPropertyName("exp_month")]
+        public string? ExpMonth { get; init; }
+
+        [JsonPropertyName("exp_year")]
+        public string? ExpYear { get; init; }
+
+        [JsonPropertyName("card_type")]
+        public string? CardType { get; init; }
+
+        [JsonPropertyName("bank")]
+        public string? Bank { get; init; }
+
+        [JsonPropertyName("reusable")]
+        public bool Reusable { get; init; } = true;
     }
 
     private sealed class PaystackEnvelope<T>

@@ -106,6 +106,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'suite-access/payment-methods/added',
+        canActivate: [profileCompleteGuard],
+        title: 'Card saved',
+        loadComponent: () =>
+          import('./features/suite/payment-method-add-complete.component').then(
+            (m) => m.PaymentMethodAddCompleteComponent,
+          ),
+      },
+      {
         path: 'dashboard',
         canActivate: [portalReadyGuard],
         title: 'Dashboard',

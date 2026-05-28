@@ -22,11 +22,21 @@ public sealed record PaymentInitializeResult(
     string AuthorizationUrl,
     string AccessCode);
 
+public sealed record PaymentCardAuthorization(
+    string AuthorizationCode,
+    string Last4,
+    string CardType,
+    string? Bank,
+    string ExpMonth,
+    string ExpYear,
+    bool Reusable);
+
 public sealed record PaymentVerifyResult(
     string Reference,
     string Status,
     int AmountMinorUnits,
-    string Currency);
+    string Currency,
+    PaymentCardAuthorization? CardAuthorization = null);
 
 public interface IPaymentGateway
 {
@@ -43,6 +53,9 @@ public interface IPaymentGateway
     Task<PaymentVerifyResult> VerifyChargeAsync(
         string reference,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Refund a successful charge by reference (Paystack only).</summary>
+    Task RefundChargeAsync(string reference, CancellationToken cancellationToken = default);
 
     bool IsConfigured { get; }
 
