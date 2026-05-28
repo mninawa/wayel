@@ -88,7 +88,7 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
   imports: [BrandWatermarkBackdropComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nk-brand-watermark-backdrop />
+    <nk-brand-watermark-backdrop [prominent]="true" />
     <main class="page" role="main">
       <section class="card" aria-labelledby="se-title">
         <div class="emblem" aria-hidden="true">
@@ -122,6 +122,7 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
             <span class="material-icons-outlined" aria-hidden="true">verified_user</span>
             <span>Sessions end after a period of inactivity to protect your account.</span>
           </span>
+          <p class="art-credit">Background artwork by Felidaen</p>
         </footer>
       </section>
     </main>
@@ -139,14 +140,16 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
         min-height: 100vh;
         display: grid;
         place-items: center;
+        align-content: center;
         padding: 1.5rem;
+        padding-top: clamp(8rem, 18vh, 11rem);
       }
       .card {
         width: 100%;
         max-width: 480px;
-        background: rgba(255, 255, 255, 0.94);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(15, 23, 42, 0.1);
         border-radius: 4px;
         padding: 2.4rem 2rem 2rem;
@@ -248,7 +251,16 @@ const REASON_COPY: Record<SessionExpiredReason, ReasonCopy> = {
         font-size: 0.78rem;
       }
       .meta-row .material-icons-outlined { font-size: 14px; }
+      .art-credit {
+        margin: 0.65rem 0 0;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+      }
       @media (max-width: 480px) {
+        .page { padding-top: clamp(6rem, 14vh, 9rem); }
         .card { padding: 1.85rem 1.25rem 1.5rem; border-radius: 14px; }
         .title { font-size: 1.25rem; }
         .body { font-size: 0.92rem; }

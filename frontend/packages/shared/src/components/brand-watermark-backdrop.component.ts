@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  input,
 } from '@angular/core';
 import {
   BRAND_WATERMARK_OPTIONS,
@@ -11,11 +12,17 @@ import {
 /**
  * IBM-style ambient backdrop: subtle grid + large low-opacity wordmark.
  * Mount behind auth / session pages (fixed layer, non-interactive).
+ *
+ * Set `prominent` on session / showcase pages so the Felidaen artwork
+ * reads clearly instead of disappearing behind a centred card.
  */
 @Component({
   selector: 'nk-brand-watermark-backdrop',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.wm-host--prominent]': 'prominent()',
+  },
   template: `
     @if (imageUrl()) {
       <div class="wm" aria-hidden="true">
@@ -92,11 +99,43 @@ import {
       transform: rotate(-12deg) scale(1.15);
     }
 
+    :host(.wm-host--prominent) .wm-vignette {
+      background: radial-gradient(
+        ellipse 85% 70% at 50% 28%,
+        transparent 0%,
+        rgba(248, 250, 252, 0.18) 50%,
+        rgba(241, 245, 249, 0.55) 100%
+      );
+    }
+
+    :host(.wm-host--prominent) .wm-logo {
+      filter: saturate(1.05) contrast(1.04);
+    }
+
+    :host(.wm-host--prominent) .wm-logo--hero {
+      top: 14%;
+      width: min(88vw, 760px);
+      height: min(46vh, 420px);
+      transform: translate(-50%, 0);
+      opacity: 0.34;
+    }
+
+    :host(.wm-host--prominent) .wm-logo--tile {
+      opacity: 0.055;
+      background-size: 200px auto;
+    }
+
     @media (max-width: 600px) {
       .wm-logo--hero {
         width: 88vw;
         height: 32vh;
         opacity: 0.06;
+      }
+      :host(.wm-host--prominent) .wm-logo--hero {
+        top: 10%;
+        width: 94vw;
+        height: 38vh;
+        opacity: 0.3;
       }
       .wm-grid {
         background-size: 32px 32px;
@@ -106,6 +145,9 @@ import {
 })
 export class BrandWatermarkBackdropComponent {
   private readonly opts = inject(BRAND_WATERMARK_OPTIONS);
+
+  /** Showcase the artwork more boldly (session-expired, hero auth pages). */
+  readonly prominent = input(false);
 
   readonly imageUrl = computed(() => {
     const url = this.opts.imageUrl?.trim();
