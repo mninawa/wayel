@@ -62,18 +62,6 @@ export interface OpsNavSection {
         </a>
         <button
           type="button"
-          class="sidebar-expand"
-          [attr.aria-label]="desktopExpanded() ? 'Collapse navigation' : 'Expand navigation'"
-          [attr.aria-expanded]="desktopExpanded()"
-          (click)="toggleDesktopExpanded()"
-        >
-          <span class="material-icons-outlined" aria-hidden="true">
-            {{ desktopExpanded() ? 'chevron_left' : 'chevron_right' }}
-          </span>
-          <span class="sidebar-expand-label">{{ desktopExpanded() ? 'Collapse' : 'Expand' }}</span>
-        </button>
-        <button
-          type="button"
           class="sidebar-close"
           aria-label="Close menu"
           (click)="closeDrawer.emit()"
@@ -108,6 +96,18 @@ export interface OpsNavSection {
         }
       </nav>
 
+      <button
+        type="button"
+        class="sidebar-rail-toggle"
+        [attr.aria-label]="desktopExpanded() ? 'Collapse navigation' : 'Expand navigation'"
+        [attr.aria-expanded]="desktopExpanded()"
+        (click)="toggleDesktopExpanded()"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">
+          {{ desktopExpanded() ? 'chevron_left' : 'chevron_right' }}
+        </span>
+      </button>
+
       <button type="button" class="nav-logout" title="Sign out" (click)="signOut()">
         <span class="material-icons-outlined">logout</span>
         <span class="nav-label">Sign out</span>
@@ -127,6 +127,7 @@ export interface OpsNavSection {
       top: 0;
       height: 100vh;
       z-index: 100;
+      overflow: visible;
     }
 
     .sidebar-head {
@@ -273,7 +274,7 @@ export interface OpsNavSection {
     }
 
     .sidebar-close,
-    .sidebar-expand {
+    .sidebar-rail-toggle {
       display: none;
     }
 
@@ -288,40 +289,40 @@ export interface OpsNavSection {
         padding-right: 1rem;
       }
 
-      .sidebar-head {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
-      }
-
-      .sidebar-expand {
+      .sidebar-rail-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.35rem;
-        width: 100%;
-        padding: 0.45rem 0.55rem;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.85);
-        font: inherit;
-        font-size: 0.72rem;
-        font-weight: 600;
+        position: absolute;
+        top: 50%;
+        right: -13px;
+        transform: translateY(-50%);
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 999px;
+        background: var(--ops-ink);
+        color: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         cursor: pointer;
+        z-index: 2;
       }
 
-      .sidebar-expand:hover {
-        background: rgba(255, 255, 255, 0.12);
+      .sidebar-rail-toggle:hover {
+        background: #3a3a38;
         color: #fff;
       }
 
-      .sidebar-expand .material-icons-outlined {
+      .sidebar-rail-toggle .material-icons-outlined {
         font-size: 1.1rem !important;
       }
 
-      .sidebar:not(.sidebar-expanded) .sidebar-expand-label {
-        display: none;
+      .sidebar.sidebar-expanded .sidebar-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
       }
 
       .sidebar.sidebar-expanded .brand-mark {
@@ -345,18 +346,52 @@ export interface OpsNavSection {
 
       .sidebar.sidebar-expanded .nav-item,
       .sidebar.sidebar-expanded .nav-logout {
+        flex-direction: row;
         justify-content: flex-start;
         padding: 0.7rem 0.85rem;
       }
 
       .sidebar.sidebar-expanded .nav-label {
         display: inline;
+        font-size: 0.85rem;
       }
 
       .sidebar.sidebar-expanded .nav-badge {
         position: static;
         display: inline-flex;
         margin-left: auto;
+      }
+
+      /* Collapsed rail: icon + short label so items stay identifiable */
+      .sidebar:not(.sidebar-expanded) .nav-item,
+      .sidebar:not(.sidebar-expanded) .nav-logout {
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.45rem 0.15rem;
+        font-size: 0.62rem;
+      }
+
+      .sidebar:not(.sidebar-expanded) .nav-label {
+        display: -webkit-box;
+        flex: none;
+        max-width: 100%;
+        font-size: 0.58rem;
+        line-height: 1.15;
+        text-align: center;
+        white-space: normal;
+        overflow: hidden;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .sidebar:not(.sidebar-expanded) .nav-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 14px;
+        height: 14px;
+        font-size: 0.55rem;
+        line-height: 14px;
       }
     }
 
