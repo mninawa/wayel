@@ -1,5 +1,9 @@
 import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import {
+  isChunkLoadFailure,
+  tryReloadAfterChunkLoadFailure,
+} from '@wayel/shared/utils/chunk-load-recovery';
 import { ToastService } from './toast.service';
 
 /**
@@ -17,6 +21,17 @@ export class GlobalErrorHandler implements ErrorHandler {
     // HttpErrorResponse is already surfaced by the http-error-interceptor —
     // avoid double-toasting it.
     if (error instanceof HttpErrorResponse) return;
+
+    if (isChunkLoadFailure(error)) {
+      if (tryReloadAfterChunkLoadFailure()) {
+        return;
+      }
+
+      this.toasts.error('A new version of the app is available. Please refresh the page.', {
+        title: 'Update required',
+      });
+      return;
+    }
 
     const message = this.messageFor(error);
     if (!message) return;
