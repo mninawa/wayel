@@ -176,9 +176,9 @@ services:
 
       # ─ WhatsApp via WasenderAPI (opt-in) ────────────────────────────
       - key: Notifications__WaSender__Enabled
-        value: "false"
+        value: "true"
       - key: Notifications__WaSender__ApiKey
-        sync: false
+        sync: true
       - key: Notifications__WaSender__BaseUrl
         value: https://wasenderapi.com
       - key: Notifications__WaSender__SessionId
