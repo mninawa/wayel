@@ -29,6 +29,7 @@ public sealed class MongoOptions
     public string ShipmentTrackingEventsCollection { get; init; } = "shipment_tracking_events";
     public string ParcelOpsMetadataCollection { get; init; } = "parcel_ops_metadata";
     public string ParcelOpsExceptionsCollection { get; init; } = "parcel_ops_exceptions";
+    public string OpsExceptionSupportNotificationsCollection { get; init; } = "ops_exception_support_notifications";
     public string ParcelOpsActivityCollection { get; init; } = "parcel_ops_activity";
     public string ParcelOpsPhotosCollection { get; init; } = "parcel_ops_photos";
     public string OpsUsersCollection { get; init; } = "ops_users";

@@ -796,7 +796,17 @@ const PLAN_FEATURES = [
     }
     .icon-btn .material-icons-outlined { font-size: 1rem !important; }
 
-    .side-col { display: grid; gap: 1.25rem; }
+    .side-col {
+      display: grid;
+      gap: 0.65rem;
+      align-content: start;
+    }
+    .side-col .bb-card {
+      padding: 0.95rem 1.05rem 1rem;
+    }
+    .side-col .card-head {
+      margin-bottom: 0.6rem;
+    }
 
     .saved-cards-list {
       list-style: none;
@@ -804,14 +814,14 @@ const PLAN_FEATURES = [
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.5rem;
     }
     .card-row {
       display: flex;
       align-items: flex-start;
       flex-wrap: wrap;
-      gap: 0.75rem;
-      padding: 0.85rem;
+      gap: 0.65rem;
+      padding: 0.7rem 0.75rem;
       border: 1px solid var(--bb-border);
       border-radius: var(--bb-radius-sm);
       background: #f8fafc;
@@ -842,7 +852,7 @@ const PLAN_FEATURES = [
 
     .add-card-link {
       display: block;
-      margin: 0.85rem 0 0.65rem;
+      margin: 0.5rem 0 0.25rem;
       background: none;
       border: none;
       padding: 0;
@@ -958,7 +968,7 @@ const PLAN_FEATURES = [
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      margin: 0;
+      margin: 0.35rem 0 0;
       font-size: 0.74rem;
       color: var(--bb-muted);
     }
@@ -997,10 +1007,25 @@ const PLAN_FEATURES = [
       border-top: 2px solid var(--bb-border);
     }
 
+    .summary-card .summary-kv > div {
+      padding: 0.3rem 0;
+    }
+    .summary-card .summary-kv .total-row {
+      padding-top: 0.45rem;
+      margin-top: 0.1rem;
+      border-top-width: 1px;
+    }
+    .summary-card .summary-kv dd.strong {
+      font-size: 1rem;
+    }
+
     .view-all {
       width: 100%;
       margin-top: 0.85rem;
       justify-content: center;
+    }
+    .summary-card .view-all {
+      margin-top: 0.55rem;
     }
 
     .empty {

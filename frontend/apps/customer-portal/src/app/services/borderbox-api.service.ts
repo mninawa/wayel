@@ -648,6 +648,7 @@ export interface TrackingSupportOverviewDto {
   recentTicket: SupportTicketSummaryDto | null;
   notifications: { email: boolean; sms: boolean; whatsApp: boolean };
   support: SupportContactDto;
+  whatsAppTestAvailable: boolean;
 }
 
 export interface ShipmentTrackingMilestoneDto {

@@ -16,7 +16,8 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
     IUserRepository users,
     IShipmentRepository shipments,
     ISupportTicketRepository tickets,
-    IOptions<BorderBoxOptions> borderBoxOptions) : IQueryHandler<GetTrackingSupportOverviewQuery, TrackingSupportOverviewDto>
+    IOptions<BorderBoxOptions> borderBoxOptions,
+    IOptions<WaSenderNotificationOptions> waSenderOptions) : IQueryHandler<GetTrackingSupportOverviewQuery, TrackingSupportOverviewDto>
 {
     public async Task<Result<TrackingSupportOverviewDto>> Handle(
         GetTrackingSupportOverviewQuery request,
@@ -48,7 +49,8 @@ internal sealed class GetTrackingSupportOverviewQueryHandler(
                 user.NotifyEmail,
                 user.NotifySms,
                 user.NotifyWhatsApp),
-            Support: BuildSupportContact(borderBoxOptions.Value));
+            Support: BuildSupportContact(borderBoxOptions.Value),
+            WhatsAppTestAvailable: waSenderOptions.Value.IsConfiguredForDelivery);
     }
 
     private static Shipment? PickActiveShipment(IReadOnlyList<Shipment> items) =>

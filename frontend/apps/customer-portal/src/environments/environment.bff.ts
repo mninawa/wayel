@@ -26,4 +26,6 @@ export const environment = {
   enableKycOpsReview: true,
   enableParcelReceive: true,
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  supportWhatsAppE164: '',
+  supportEmail: '',
 };

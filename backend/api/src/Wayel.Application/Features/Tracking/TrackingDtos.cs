@@ -48,4 +48,5 @@ public sealed record TrackingSupportOverviewDto(
     Guid? ActiveShipmentId,
     SupportTicketSummaryDto? RecentTicket,
     NotificationPreferencesDto Notifications,
-    SupportContactDto Support);
+    SupportContactDto Support,
+    bool WhatsAppTestAvailable);

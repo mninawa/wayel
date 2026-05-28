@@ -1,3 +1,4 @@
+using Wayel.Application.Features.Parcels;
 using Wayel.Domain.Users;
 
 namespace Wayel.Application.Abstractions.Notifications;
@@ -38,6 +39,14 @@ public interface IBorderBoxWhatsAppNotifier
         string ticketDisplayNumber,
         string subject,
         string body,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Alerts the operations WhatsApp inbox about a receiving/warehouse exception.
+    /// </summary>
+    Task NotifySupportInboxOfReceivingExceptionAsync(
+        OpsExceptionItemDto exception,
+        string exceptionsQueueUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>

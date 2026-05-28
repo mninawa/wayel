@@ -82,6 +82,10 @@ public sealed class MongoContext
     internal IMongoCollection<ParcelOpsExceptionDocument> ParcelOpsExceptions =>
         Database.GetCollection<ParcelOpsExceptionDocument>(_options.ParcelOpsExceptionsCollection);
 
+    internal IMongoCollection<OpsExceptionSupportNotificationDocument> OpsExceptionSupportNotifications =>
+        Database.GetCollection<OpsExceptionSupportNotificationDocument>(
+            _options.OpsExceptionSupportNotificationsCollection);
+
     internal IMongoCollection<ParcelOpsActivityDocument> ParcelOpsActivity =>
         Database.GetCollection<ParcelOpsActivityDocument>(_options.ParcelOpsActivityCollection);
 

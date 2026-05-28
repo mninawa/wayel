@@ -2,6 +2,8 @@ using MediatR;
 using Wayel.Api.Infrastructure;
 using Wayel.Application.Features.Account;
 using Wayel.Application.Features.SuitePlans;
+using System.Text.Json.Serialization;
+using Wayel.Application.Features.SuitePlatform;
 using Wayel.Application.Features.SuiteSubscriptions;
 
 namespace Wayel.Api.Endpoints;
@@ -71,6 +73,20 @@ public sealed class CustomerOpsEndpoints : IEndpointGroup
                 (await mediator.Send(new GetCustomerAddressActivityQuery(userId, limit ?? 20), ct)).ToHttpResult())
             .WithName("GetOpsCustomerAddressActivity");
 
+        group.MapPost("/{userId:guid}/suite-number", async (
+            Guid userId,
+            UpdateCustomerSuiteNumberRequest body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(
+                new UpdateCustomerSuiteNumberCommand(
+                    userId,
+                    body.NewSuiteNumber,
+                    body.RegenerateFromPool),
+                ct)).ToHttpResult())
+            .WithName("UpdateOpsCustomerSuiteNumber")
+            .WithSummary("Change a customer's suite number and propagate to parcels, pick tasks, and collection board");
+
         // Ops-side mirror of GET /borderbox/suite-plans (active only). The
         // customer endpoint requires a signed-in customer; ops staff carry the
         // ops-key header and never hold a customer session, so we expose the
@@ -79,6 +95,10 @@ public sealed class CustomerOpsEndpoints : IEndpointGroup
             (await mediator.Send(new ListSuitePlansQuery(), ct)).ToHttpResult())
             .WithName("ListOpsSuitePlans");
     }
+
+    private sealed record UpdateCustomerSuiteNumberRequest(
+        [property: JsonPropertyName("newSuiteNumber")] string? NewSuiteNumber,
+        [property: JsonPropertyName("regenerateFromPool")] bool RegenerateFromPool);
 }
 
 /// <summary>

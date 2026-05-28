@@ -125,6 +125,8 @@ export class AccountDetailComponent implements OnInit {
   readonly actionBusy = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly suiteNumberDraft = signal('');
+  readonly suiteNumberBusy = signal(false);
 
   readonly isExpired = computed(() => {
     const sub = this.detail()?.subscription;
@@ -515,6 +517,52 @@ export class AccountDetailComponent implements OnInit {
     if (id) this.load(id);
   }
 
+  regenerateSuiteNumber(): void {
+    const id = this.detail()?.account.profile.userId;
+    if (!id || this.suiteNumberBusy()) return;
+    if (!confirm('Claim a new suite number from the pool for this customer? The previous number will be released.')) {
+      return;
+    }
+
+    this.suiteNumberBusy.set(true);
+    this.error.set(null);
+    this.api.updateSuiteNumber(id, { regenerateFromPool: true }).subscribe({
+      next: (res) => {
+        this.suiteNumberBusy.set(false);
+        this.message.set(`Suite updated: ${res.previousSuiteNumber} → ${res.newSuiteNumber}`);
+        this.suiteNumberDraft.set(res.newSuiteNumber);
+        this.refresh();
+      },
+      error: (err) => {
+        this.suiteNumberBusy.set(false);
+        this.error.set(this.formatError(err));
+      },
+    });
+  }
+
+  applySuiteNumber(): void {
+    const id = this.detail()?.account.profile.userId;
+    const next = this.suiteNumberDraft().trim();
+    if (!id || !next || this.suiteNumberBusy()) return;
+    if (!confirm(`Set this customer's suite number to ${next}? This updates parcels and the collection board.`)) {
+      return;
+    }
+
+    this.suiteNumberBusy.set(true);
+    this.error.set(null);
+    this.api.updateSuiteNumber(id, { newSuiteNumber: next, regenerateFromPool: false }).subscribe({
+      next: (res) => {
+        this.suiteNumberBusy.set(false);
+        this.message.set(`Suite updated: ${res.previousSuiteNumber} → ${res.newSuiteNumber}`);
+        this.refresh();
+      },
+      error: (err) => {
+        this.suiteNumberBusy.set(false);
+        this.error.set(this.formatError(err));
+      },
+    });
+  }
+
   approveKyc(): void {
     const id = this.detail()?.account.profile.userId;
     const key = this.session.opsKey();
@@ -643,6 +691,9 @@ export class AccountDetailComponent implements OnInit {
       next: (d) => {
         this.detail.set(d);
         this.selectedPlanOption.set(d.subscription?.planId ?? null);
+        const currentSuite =
+          d.subscription?.suiteNumber?.trim() ?? d.account.suiteAddress?.suiteNumber?.trim() ?? '';
+        this.suiteNumberDraft.set(currentSuite);
         this.busy.set(false);
       },
       error: (err) => {

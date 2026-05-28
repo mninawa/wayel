@@ -36,4 +36,8 @@ export const environment = {
   enableParcelReceive: true,
   /** Google Maps Embed / JS API key for pickup location maps. */
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  /** Fallback when API BorderBox:SupportWhatsAppE164 is unset (digits only, no +). */
+  supportWhatsAppE164: '',
+  /** Fallback when API BorderBox:SupportEmail is unset. */
+  supportEmail: '',
 };

@@ -119,6 +119,14 @@ internal sealed class MongoIndexInitializer(MongoContext context, ILogger<MongoI
                 new CreateIndexOptions { Name = "ix_pay_later_intents_status_created" }),
             cancellationToken: cancellationToken);
 
+        await context.OpsExceptionSupportNotifications.Indexes.CreateOneAsync(
+            new CreateIndexModel<OpsExceptionSupportNotificationDocument>(
+                Builders<OpsExceptionSupportNotificationDocument>.IndexKeys
+                    .Ascending(x => x.ParcelId)
+                    .Ascending(x => x.ExceptionType),
+                new CreateIndexOptions { Unique = true, Name = "ux_ops_exception_support_notify" }),
+            cancellationToken: cancellationToken);
+
         logger.LogInformation("MongoDB indexes ready.");
     }
 

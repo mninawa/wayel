@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Wayel.Application.Configuration;
 using Wayel.Application.Abstractions.Notifications;
+using Wayel.Application.Features.Parcels;
 using Wayel.Domain.Users;
 
 namespace Wayel.Infrastructure.Notifications;
@@ -326,6 +327,55 @@ internal sealed class BorderBoxWhatsAppNotifier(
             message,
             $"support-inbox:{ticketDisplayNumber}",
             cancellationToken);
+    }
+
+    public Task NotifySupportInboxOfReceivingExceptionAsync(
+        OpsExceptionItemDto exception,
+        string exceptionsQueueUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var cfg = options.Value;
+        if (!cfg.Enabled || string.IsNullOrWhiteSpace(cfg.SupportInboxPhoneE164))
+        {
+            return Task.CompletedTask;
+        }
+
+        var message = BuildReceivingExceptionInboxMessage(exception, exceptionsQueueUrl);
+        var correlation = $"ops-exception:{exception.ParcelId:N}:{exception.ExceptionType}";
+        return SendToPhoneAsync(cfg.SupportInboxPhoneE164, message, correlation, cancellationToken);
+    }
+
+    private static string BuildReceivingExceptionInboxMessage(
+        OpsExceptionItemDto exception,
+        string exceptionsQueueUrl)
+    {
+        var due = exception.DueAtUtc is null
+            ? "—"
+            : exception.DueAtUtc.Value.ToString("d MMM yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture);
+        var overdue = exception.IsOverdue ? " ⚠️ OVERDUE" : string.Empty;
+        var tracking = string.IsNullOrWhiteSpace(exception.TrackingNumber)
+            ? "—"
+            : exception.TrackingNumber.Trim();
+
+        return string.Join(
+            '\n',
+            new[]
+            {
+                "WeYell receiving exception",
+                string.Empty,
+                $"Parcel: {exception.DisplayId}",
+                $"Tracking: {tracking}",
+                $"Type: {exception.ExceptionType} ({exception.Severity}) — {exception.Status}{overdue}",
+                $"Retailer: {exception.Retailer}",
+                $"Customer: {exception.CustomerDisplayName}",
+                $"Suite: {exception.SuiteNumber}",
+                $"Due: {due}",
+                exception.AssignedTo is null ? null : $"Assigned: {exception.AssignedTo}",
+                exception.EscalatedTo is null ? null : $"Escalated: {exception.EscalatedTo}",
+                string.IsNullOrWhiteSpace(exception.Notes) ? null : $"Notes: {exception.Notes.Trim()}",
+                string.Empty,
+                $"Queue: {exceptionsQueueUrl.Trim()}",
+            }.Where(line => line is not null));
     }
 
     private static string BuildSupportInboxMessage(

@@ -36,11 +36,15 @@ public static class DependencyInjection
         services.AddOptions<AuthOptions>()
             .Bind(configuration.GetSection(AuthOptions.SectionName));
 
+        services.AddOptions<WaSenderNotificationOptions>()
+            .Bind(configuration.GetSection(WaSenderNotificationOptions.SectionName));
+
         services.AddScoped<ISsoAdmissionPolicy, ConfigBackedSsoAdmissionPolicy>();
         services.AddScoped<ISuiteNumberAllocator, SuiteNumberAllocator>();
         services.AddScoped<CustomerAccountResponseBuilder>();
         services.AddScoped<ShipmentTrackingDetailLoader>();
         services.AddScoped<ShipmentTrackingEventWriter>();
+        services.AddScoped<CustomerSuiteNumberChanger>();
 
         return services;
     }

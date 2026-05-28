@@ -113,6 +113,8 @@ public static class DependencyInjection
 
         services.AddOptions<QuoteQueueAutoProcessorOptions>()
             .Bind(configuration.GetSection(QuoteQueueAutoProcessorOptions.SectionName));
+        services.AddOptions<OpsExceptionSupportAlertOptions>()
+            .Bind(configuration.GetSection(OpsExceptionSupportAlertOptions.SectionName));
 
         services.AddOptions<MtnMomoOptions>()
             .Bind(configuration.GetSection(MtnMomoOptions.SectionName));
@@ -195,6 +197,7 @@ public static class DependencyInjection
         services.AddScoped<IParcelRepository, MongoParcelRepository>();
         services.AddScoped<IParcelOpsMetadataRepository, MongoParcelOpsMetadataRepository>();
         services.AddScoped<IParcelOpsExceptionRepository, MongoParcelOpsExceptionRepository>();
+        services.AddScoped<IOpsExceptionSupportNotificationRepository, MongoOpsExceptionSupportNotificationRepository>();
         services.AddScoped<IParcelOpsActivityRepository, MongoParcelOpsActivityRepository>();
         services.AddScoped<IParcelOpsPhotoRepository, MongoParcelOpsPhotoRepository>();
         services.AddScoped<IParcelInvoiceRepository, MongoParcelInvoiceRepository>();
@@ -260,6 +263,14 @@ public static class DependencyInjection
         if (quoteQueueAutoProcessorEnabled)
         {
             services.AddHostedService<QuoteQueueAutoProcessorHostedService>();
+        }
+
+        var opsExceptionAlertsEnabled = configuration.GetValue(
+            $"{OpsExceptionSupportAlertOptions.SectionName}:Enabled",
+            true);
+        if (opsExceptionAlertsEnabled)
+        {
+            services.AddHostedService<OpsExceptionSupportAlertHostedService>();
         }
 
         RegisterEmailTransport(services, configuration);

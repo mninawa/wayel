@@ -99,6 +99,10 @@ services:
       # the Render service URLs below.
       - key: BorderBox__CustomerPortalBaseUrl
         value: https://wayel-customer.onrender.com
+      - key: BorderBox__SupportWhatsAppE164
+        sync: false
+      - key: BorderBox__SupportEmail
+        sync: false
       - key: Cors__AllowedOrigins__0
         value: https://wayel-customer.onrender.com
       - key: Cors__AllowedOrigins__1

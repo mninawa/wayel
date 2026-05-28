@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Options;
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Notifications;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
+using Wayel.Application.Configuration;
 using Wayel.Domain.Common;
 using Wayel.Domain.Users;
 
@@ -17,10 +19,9 @@ public sealed record WhatsAppTestSendResultDto(
 internal sealed class SendSupportWhatsAppTestCommandHandler(
     ICurrentUser current,
     IUserRepository users,
-    IWhatsAppSender whatsApp) : ICommandHandler<SendSupportWhatsAppTestCommand, WhatsAppTestSendResultDto>
+    IWhatsAppSender whatsApp,
+    IOptions<WaSenderNotificationOptions> waSenderOptions) : ICommandHandler<SendSupportWhatsAppTestCommand, WhatsAppTestSendResultDto>
 {
-    private const string LoggingStubId = "logging-stub";
-
     public async Task<Result<WhatsAppTestSendResultDto>> Handle(
         SendSupportWhatsAppTestCommand request,
         CancellationToken cancellationToken)
@@ -28,6 +29,13 @@ internal sealed class SendSupportWhatsAppTestCommandHandler(
         if (current.UserId is null)
         {
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
+        }
+
+        if (!waSenderOptions.Value.IsConfiguredForDelivery)
+        {
+            return Error.Validation(
+                "whatsapp.not_configured",
+                "WhatsApp delivery is not enabled on this server. Ask your administrator to set Notifications__WaSender__Enabled=true and Notifications__WaSender__ApiKey on the API service.");
         }
 
         var user = await users.GetByIdAsync(current.UserId.Value, cancellationToken);
@@ -58,13 +66,6 @@ internal sealed class SendSupportWhatsAppTestCommandHandler(
                 "support.whatsapp_test",
                 BypassAllowlist: true),
             cancellationToken);
-
-        if (result.IsSuccess && string.Equals(result.ProviderMessageId, LoggingStubId, StringComparison.Ordinal))
-        {
-            return Error.Validation(
-                "whatsapp.not_configured",
-                "WhatsApp delivery is not enabled on this environment. Contact support by email or open a ticket.");
-        }
 
         if (!result.IsSuccess)
         {

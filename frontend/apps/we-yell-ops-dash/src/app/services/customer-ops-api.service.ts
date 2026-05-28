@@ -213,6 +213,12 @@ export interface DeletedAccountCountsDto {
   otherDependents: number;
 }
 
+export interface UpdateCustomerSuiteNumberResultDto {
+  userId: string;
+  previousSuiteNumber: string;
+  newSuiteNumber: string;
+}
+
 export interface DeleteCustomerAccountResultDto {
   userId: string;
   email: string;
@@ -271,6 +277,17 @@ export class CustomerOpsApiService {
   getAddressActivity(userId: string, limit = 20): Observable<CustomerAddressActivityItemDto[]> {
     return this.http.get<CustomerAddressActivityItemDto[]>(
       `${this.base}/${userId}/address-activity?limit=${limit}`,
+      { headers: buildOpsHeaders() },
+    );
+  }
+
+  updateSuiteNumber(
+    userId: string,
+    body: { newSuiteNumber?: string | null; regenerateFromPool: boolean },
+  ): Observable<UpdateCustomerSuiteNumberResultDto> {
+    return this.http.post<UpdateCustomerSuiteNumberResultDto>(
+      `${this.base}/${userId}/suite-number`,
+      body,
       { headers: buildOpsHeaders() },
     );
   }

@@ -84,6 +84,7 @@ internal sealed class AssignOpsExceptionCommandHandler(
             parcels,
             workflows,
             activities,
+            supportNotifications: null,
             ops,
             clock,
             unitOfWork,
@@ -146,6 +147,7 @@ internal sealed class ResolveOpsExceptionCommandHandler(
     IParcelRepository parcels,
     IParcelOpsExceptionRepository workflows,
     IParcelOpsActivityRepository activities,
+    IOpsExceptionSupportNotificationRepository supportNotifications,
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork) : ICommandHandler<ResolveOpsExceptionCommand, OpsExceptionWorkflowResultDto>
@@ -173,6 +175,7 @@ internal sealed class ResolveOpsExceptionCommandHandler(
             parcels,
             workflows,
             activities,
+            supportNotifications,
             ops,
             clock,
             unitOfWork,
@@ -193,6 +196,7 @@ internal static class OpsExceptionWorkflowHandlers
         IParcelRepository parcels,
         IParcelOpsExceptionRepository workflows,
         IParcelOpsActivityRepository activities,
+        IOpsExceptionSupportNotificationRepository? supportNotifications,
         IOpsCallerContext ops,
         IClock clock,
         IUnitOfWork unitOfWork,
@@ -224,6 +228,12 @@ internal static class OpsExceptionWorkflowHandlers
             now);
 
         await workflows.UpsertAsync(workflow, cancellationToken);
+        if (string.Equals(status, "RESOLVED", StringComparison.OrdinalIgnoreCase)
+            && supportNotifications is not null)
+        {
+            await supportNotifications.ClearAsync(parcelId, type, cancellationToken);
+        }
+
         await OpsParcelActivityWriter.LogAsync(
             activities,
             parcelId,

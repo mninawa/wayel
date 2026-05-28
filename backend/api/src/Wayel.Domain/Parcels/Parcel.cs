@@ -84,6 +84,16 @@ public sealed class Parcel : AggregateRoot<ParcelId>
         return Result.Success();
     }
 
+    public void RebindSuiteNumber(string suiteNumber)
+    {
+        if (string.IsNullOrWhiteSpace(suiteNumber))
+        {
+            throw new ArgumentException("Suite number is required.", nameof(suiteNumber));
+        }
+
+        SuiteNumber = suiteNumber.Trim();
+    }
+
     public Result UpdatePhysicalAttributes(
         decimal? weightKg,
         string? dimensionsLabel,

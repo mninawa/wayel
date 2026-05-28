@@ -294,6 +294,41 @@
               </div>
             </dl>
 
+            <div class="suite-number-ops">
+              <p class="suite-number-ops-lead">
+                When the suite format changes or a legacy placeholder was saved, regenerate from the pool or set an explicit number.
+                Updates propagate to parcels, pick tasks, and the collection board.
+              </p>
+              <label class="suite-number-field">
+                <span>New suite number</span>
+                <input
+                  type="text"
+                  [value]="suiteNumberDraft()"
+                  (input)="suiteNumberDraft.set($any($event.target).value)"
+                  placeholder="e.g. SZ-1A2B3C4D"
+                  [disabled]="suiteNumberBusy()"
+                />
+              </label>
+              <div class="suite-number-actions">
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-outline"
+                  [disabled]="suiteNumberBusy()"
+                  (click)="regenerateSuiteNumber()"
+                >
+                  @if (suiteNumberBusy()) { Updating… } @else { Regenerate from pool }
+                </button>
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-primary"
+                  [disabled]="suiteNumberBusy() || !suiteNumberDraft().trim()"
+                  (click)="applySuiteNumber()"
+                >
+                  Apply suite number
+                </button>
+              </div>
+            </div>
+
             <a href="#" class="help-link suite-help-link">
               <span class="material-icons-outlined">headset_mic</span>
               Visit Help Center
