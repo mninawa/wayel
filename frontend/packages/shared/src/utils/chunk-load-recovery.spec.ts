@@ -4,6 +4,22 @@ import {
   tryReloadAfterChunkLoadFailure,
 } from './chunk-load-recovery';
 
+function stubSessionStorage(): void {
+  const store = new Map<string, string>();
+  vi.stubGlobal('sessionStorage', {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  });
+}
+
 describe('chunk-load-recovery', () => {
   it('detects dynamically imported module fetch failures', () => {
     expect(
@@ -32,7 +48,7 @@ describe('chunk-load-recovery', () => {
     const reload = vi.fn();
 
     beforeEach(() => {
-      sessionStorage.clear();
+      stubSessionStorage();
       reload.mockReset();
       vi.stubGlobal('window', { location: { reload } } as Window & typeof globalThis);
     });
