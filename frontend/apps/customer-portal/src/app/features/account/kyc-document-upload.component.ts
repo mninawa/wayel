@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import type { CustomerProfile, KycDocumentSide } from '../../models/customer-account.models';
 import { CustomerAccountApiService } from '../../services/customer-account-api.service';
+import { KycDocumentSampleComponent } from './kyc-document-sample.component';
 
 const KYC_MAX_BYTES = 12 * 1024 * 1024;
 const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
@@ -17,11 +18,14 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
 @Component({
   selector: 'app-kyc-document-upload',
   standalone: true,
+  imports: [KycDocumentSampleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="kyc-uploads">
       @for (side of requiredSides(); track side) {
-        <label class="upload-card" [class.done]="uploadedSides().has(side)" [class.busy]="uploadBusy() === side">
+        <div class="upload-slot">
+          <app-kyc-document-sample [side]="side" [idDocumentType]="profile().idDocumentType" />
+          <label class="upload-card" [class.done]="uploadedSides().has(side)" [class.busy]="uploadBusy() === side">
           <input
             type="file"
             class="file-input"
@@ -45,9 +49,10 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
           } @else if (uploadBusy() === side) {
             <span class="upload-status">Uploading…</span>
           } @else {
-            <span class="upload-status">Tap to choose file</span>
+            <span class="upload-status">Tap to upload your photo</span>
           }
         </label>
+        </div>
       }
     </div>
     @if (error()) {
@@ -57,8 +62,13 @@ const KYC_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'ima
   styles: `
     .kyc-uploads {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .upload-slot {
+      display: flex;
+      flex-direction: column;
     }
     .upload-card {
       position: relative;

@@ -217,7 +217,8 @@ type NotifKey = keyof NotificationPreferences;
                   <section class="kyc-upload-panel">
                     <h3 class="kyc-upload-title">Upload your {{ idDocumentLabel(acc.profile) }}</h3>
                     <p class="kyc-upload-lead">
-                      Take clear photos in good lighting. Make sure all text on your document is readable.
+                      Match each example below, then upload your photo. Use good lighting and keep the full
+                      document in frame — no glare, blur, or cropped edges.
                     </p>
                     <app-kyc-document-upload #kycUpload [profile]="acc.profile" />
                     <label class="kyc-consent">
