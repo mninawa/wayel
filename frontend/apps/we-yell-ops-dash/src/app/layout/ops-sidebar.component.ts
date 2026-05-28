@@ -12,7 +12,7 @@ import {
   readSidebarNavExpanded,
   writeSidebarNavExpanded,
 } from '@wayel/shared/utils/sidebar-nav-preference';
-import { PRODUCT_NAME } from '../brand';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../brand';
 import { OPS_CAP } from '../services/ops-permissions';
 import { OPS_REGION, type OpsRegion } from '../services/ops-regions';
 import { OpsReceivingContextService } from '../services/ops-receiving-context.service';
@@ -57,8 +57,10 @@ export interface OpsNavSection {
           [attr.title]="productName"
           (click)="onNavClick()"
         >
-          <span class="material-icons-outlined brand-icon">warehouse</span>
-          <span class="brand-wordmark">{{ productName }}</span>
+          <span class="brand-logo-wrap">
+            <img src="/weyell-brand-logo.png" alt="" class="brand-logo-compact" aria-hidden="true" />
+            <img src="/weyell-brand-logo.png" [alt]="productName" class="brand-logo-full" />
+          </span>
         </a>
         <button
           type="button"
@@ -143,29 +145,33 @@ export interface OpsNavSection {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0;
       text-decoration: none;
       color: inherit;
+      width: 100%;
     }
 
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      font-size: 24px !important;
-      color: var(--ops-lime);
+    .brand-logo-wrap {
+      display: block;
+      width: 100%;
+      overflow: hidden;
     }
 
-    .brand-wordmark {
+    .brand-logo-full {
       display: none;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #fff;
+      width: 100%;
+      max-width: 168px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .brand-logo-compact {
+      display: block;
+      width: 44px;
+      height: 36px;
+      object-fit: cover;
+      object-position: top center;
+      margin: 0 auto;
     }
 
     .nav-scroll {
@@ -236,11 +242,12 @@ export interface OpsNavSection {
     .nav-item.active {
       background: var(--ops-sidebar-bg-active);
       color: var(--ops-sidebar-text-active);
-      font-weight: 700;
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--ops-sidebar-active-border);
     }
 
     .nav-item.active .nav-icon {
-      color: var(--ops-ink);
+      color: var(--ops-sidebar-text-active);
     }
 
     .nav-icon {
@@ -326,13 +333,16 @@ export interface OpsNavSection {
       }
 
       .sidebar.sidebar-expanded .brand-mark {
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: center;
-        gap: 0.65rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
       }
 
-      .sidebar.sidebar-expanded .brand-wordmark {
+      .sidebar.sidebar-expanded .brand-logo-compact {
+        display: none;
+      }
+
+      .sidebar.sidebar-expanded .brand-logo-full {
         display: block;
       }
 
@@ -424,8 +434,13 @@ export interface OpsNavSection {
         align-items: center;
       }
 
-      .brand-wordmark {
+      .brand-logo-compact {
+        display: none;
+      }
+
+      .brand-logo-full {
         display: block;
+        max-width: 140px;
       }
 
       .nav-section {
@@ -481,6 +496,7 @@ export class OpsSidebarComponent implements OnInit {
   readonly desktopExpanded = signal(readSidebarNavExpanded('ops'));
 
   readonly productName = PRODUCT_NAME;
+  readonly productTagline = PRODUCT_TAGLINE;
   readonly routes = receivingRoutes;
   readonly exceptionCount = this.receiving.exceptionCount;
 

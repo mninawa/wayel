@@ -10,7 +10,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { OpsAuthService } from '../services/ops-auth.service';
 import { OpsSessionService } from '../services/ops-session.service';
-import { PRODUCT_NAME } from '../brand';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../brand';
 import { environment } from '../../environments/environment';
 
 declare const google: {
@@ -41,8 +41,7 @@ declare const google: {
 
       <header class="auth-header">
         <div class="brand-lockup">
-          <span class="brand-mark" aria-hidden="true">W</span>
-          <span class="brand-name">{{ productName }}</span>
+          <img src="/weyell-brand-logo.png" [alt]="productName" class="brand-logo" />
           <span class="ops-badge">OPS</span>
         </div>
       </header>
@@ -53,15 +52,15 @@ declare const google: {
             <svg viewBox="0 0 320 200" class="warehouse-svg">
               <rect x="40" y="70" width="200" height="90" rx="4" fill="#eef6d8" stroke="#292928" stroke-width="2"/>
               <path d="M40 70 L140 30 L240 70" fill="#f4f8e8" stroke="#292928" stroke-width="2" stroke-linejoin="round"/>
-              <rect x="70" y="100" width="40" height="35" rx="2" fill="#c3f832" opacity="0.55"/>
-              <rect x="130" y="100" width="40" height="35" rx="2" fill="#c3f832" opacity="0.55"/>
-              <rect x="190" y="100" width="30" height="50" rx="2" fill="#c3f832" opacity="0.35"/>
+              <rect x="70" y="100" width="40" height="35" rx="2" fill="#ffc107" opacity="0.55"/>
+              <rect x="130" y="100" width="40" height="35" rx="2" fill="#ffc107" opacity="0.55"/>
+              <rect x="190" y="100" width="30" height="50" rx="2" fill="#ffc107" opacity="0.35"/>
               <rect x="210" y="130" width="55" height="30" rx="3" fill="#cbd5e1"/>
               <rect x="218" y="118" width="18" height="14" fill="#94a3b8"/>
               <circle cx="235" cy="162" r="8" fill="#64748b"/>
               <circle cx="252" cy="162" r="8" fill="#64748b"/>
-              <rect x="95" y="145" width="28" height="15" rx="2" fill="#c3f832"/>
-              <rect x="155" y="150" width="22" height="10" rx="2" fill="#c3f832"/>
+              <rect x="95" y="145" width="28" height="15" rx="2" fill="#ffc107"/>
+              <rect x="155" y="150" width="22" height="10" rx="2" fill="#ffc107"/>
             </svg>
           </div>
           <h1 class="aside-title">{{ productName }} Ops</h1>
@@ -182,26 +181,14 @@ declare const google: {
     .brand-lockup {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.65rem;
       max-width: 1100px;
       margin: 0 auto;
     }
-    .brand-mark {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--ops-lime);
-      color: var(--ops-ink);
-      font-weight: 800;
-      font-size: 1.1rem;
-      display: grid;
-      place-items: center;
-    }
-    .brand-name {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.02em;
+    .brand-logo {
+      height: 40px;
+      width: auto;
+      display: block;
     }
     .ops-badge {
       margin-left: 0.15rem;

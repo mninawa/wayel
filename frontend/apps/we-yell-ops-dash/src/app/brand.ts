@@ -1,9 +1,10 @@
 export const PRODUCT_NAME = 'WeYell';
-export const PRODUCT_TAGLINE = 'Parcel receiving & warehouse operations';
+export const PRODUCT_TAGLINE = 'Delivering What Matters';
 
-/** GlobeTrans-aligned accent (sidebar, primary actions). */
-export const BRAND_LIME = '#c3f832';
-export const BRAND_INK = '#292928';
+/** WeYell brand yellow (logo exclamation mark) */
+export const BRAND_YELLOW = '#ffc107';
+export const BRAND_LIME = BRAND_YELLOW;
+export const BRAND_INK = '#000000';
 
 /** @deprecated Use BRAND_LIME — kept for legacy references */
 export const BRAND_PURPLE = BRAND_LIME;

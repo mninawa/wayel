@@ -1,10 +1,11 @@
-/* WeYell Ops Dashboard — GlobeTrans-aligned warehouse UI */
+/* WeYell Ops Dashboard — WeYell brand (black + yellow) */
 
 :root {
-  --ops-ink: #292928;
-  --ops-lime: #c3f832;
-  --ops-lime-hover: #b5eb24;
-  --ops-lime-soft: #eef6d8;
+  --ops-ink: #000000;
+  --ops-lime: #ffc107;
+  --ops-lime-hover: #ffb300;
+  --ops-lime-soft: #fff8e1;
+  --ops-lime-muted: rgba(255, 193, 7, 0.22);
 
   --ops-navy: var(--ops-ink);
   --ops-brand-purple: var(--ops-lime);
@@ -17,7 +18,7 @@
   --ops-link: #1a1a19;
   --ops-link-hover: #000000;
 
-  --ops-accent: #ff8c42;
+  --ops-accent: #ffc107;
   --ops-success: #22c55e;
   --ops-success-soft: #ecfdf3;
   --ops-danger: #ef4444;
@@ -26,7 +27,7 @@
   --ops-bg: #f8f8f8;
   --ops-surface: #ffffff;
   --ops-surface-alt: #f2f3f4;
-  --ops-text: #292928;
+  --ops-text: #111111;
   --ops-text-muted: #525252;
   --ops-muted: #525252;
   --ops-subtle: #737373;
@@ -44,11 +45,12 @@
   --ops-content-pad-x: 1.75rem;
   --ops-content-pad-y: 1.5rem;
 
-  --ops-sidebar-bg: var(--ops-ink);
-  --ops-sidebar-text: rgba(255, 255, 255, 0.55);
-  --ops-sidebar-text-active: var(--ops-ink);
-  --ops-sidebar-bg-hover: rgba(255, 255, 255, 0.08);
-  --ops-sidebar-bg-active: var(--ops-lime);
+  --ops-sidebar-bg: #000000;
+  --ops-sidebar-text: rgba(255, 255, 255, 0.62);
+  --ops-sidebar-text-active: var(--ops-lime);
+  --ops-sidebar-bg-hover: rgba(255, 255, 255, 0.06);
+  --ops-sidebar-bg-active: rgba(255, 193, 7, 0.1);
+  --ops-sidebar-active-border: var(--ops-lime);
 
   --ops-radius: 20px;
   --ops-radius-sm: 12px;
