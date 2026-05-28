@@ -369,6 +369,16 @@ export class PaymentMethodPickerComponent implements OnInit {
     this.emit();
   }
 
+  /** Programmatically pick a provider (e.g. when user taps “Add card”). */
+  selectProvider(provider: 'paystack' | 'momo'): boolean {
+    const opt = this.providers().find((p) => p.provider === provider);
+    if (!opt?.isConfigured) {
+      return false;
+    }
+    this.onProviderChange(provider);
+    return true;
+  }
+
   onMsisdnChange(value: string): void {
     this.userTouchedMsisdn = true;
     this.momoMsisdn.set(value ?? '');

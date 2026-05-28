@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   OnInit,
   computed,
   inject,
@@ -212,11 +213,15 @@ const PLAN_FEATURES = [
               <span class="material-icons-outlined">credit_card</span>
               Saved Payment Methods
             </h2>
-            <button type="button" class="bb-btn bb-btn-outline" (click)="scrollToCards()">
+            <button type="button" class="bb-btn bb-btn-outline" (click)="addCard()">
               <span class="material-icons-outlined">add</span>
               Add Card
             </button>
           </header>
+
+          @if (cardsNotice()) {
+            <p class="cards-notice" role="status">{{ cardsNotice() }}</p>
+          }
 
           @if (overview()?.paymentMethod; as pm) {
             <div class="card-row">
@@ -229,7 +234,7 @@ const PLAN_FEATURES = [
               </div>
               <span class="badge tone-muted">Default</span>
             </div>
-            <button type="button" class="add-card-link" (click)="scrollToCards()">
+            <button type="button" class="add-card-link" (click)="addCard()">
               + Add another card
             </button>
           } @else {
@@ -697,6 +702,17 @@ const PLAN_FEATURES = [
     }
     .add-card-link:hover { text-decoration: underline; }
 
+    .cards-notice {
+      margin: 0 0 0.85rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--bb-radius-sm);
+      background: var(--bb-lime-soft);
+      border: 1px solid var(--bb-info-border);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--bb-info-text);
+    }
+
     .security-note {
       display: flex;
       align-items: center;
@@ -1116,6 +1132,9 @@ export class SuiteCheckoutComponent implements OnInit {
   readonly selectedPlan = signal<SuitePlanDto | null>(null);
   readonly paymentChoice = signal<PaymentMethodChoice | null>(null);
   readonly picker = viewChild(PaymentMethodPickerComponent);
+  readonly renewSection = viewChild<ElementRef<HTMLElement>>('renewSection');
+  readonly cardsSection = viewChild<ElementRef<HTMLElement>>('cardsSection');
+  readonly cardsNotice = signal<string | null>(null);
   /**
    * Picks the phone we should pre-fill on the MoMo picker, in priority order:
    *   1. Default delivery address phone (set via /my-address).
@@ -1274,13 +1293,46 @@ export class SuiteCheckoutComponent implements OnInit {
   }
 
   scrollToRenew(): void {
-    const el = document.querySelector('.renew-card');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.renewSection()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   scrollToCards(): void {
-    const el = document.querySelector('.cards-card');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.cardsSection()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /**
+   * Cards are tokenised by Paystack during suite renewal checkout. Guide the
+   * user to the renew section with card payment pre-selected.
+   */
+  addCard(): void {
+    this.error.set(null);
+
+    if (this.suiteStillActive()) {
+      this.cardsNotice.set(
+        `Your suite is active until ${this.activeUntilLabel()}. ` +
+          'You can add or update saved cards when renewal opens below — choose card payment and complete checkout with Paystack.',
+      );
+      this.scrollToRenew();
+      return;
+    }
+
+    const picker = this.picker();
+    if (!picker) {
+      this.cardsNotice.set('Loading payment options… try again in a moment.');
+      return;
+    }
+
+    if (!picker.selectProvider('paystack')) {
+      this.cardsNotice.set(
+        'Card payments are not available right now. Please try again later or contact support.',
+      );
+      return;
+    }
+
+    this.cardsNotice.set(
+      'Choose your plan below, then pay with card via Paystack — your card will be saved for faster renewal next time.',
+    );
+    this.scrollToRenew();
   }
 
   /**
