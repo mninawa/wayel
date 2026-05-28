@@ -108,7 +108,16 @@ function buildNav(): NavItem[] {
         </button>
       </aside>
 
-      <div class="main">
+      <div class="main" [class.main-has-kyc-ticker]="showKycTicker()">
+        @if (notifOpen()) {
+          <button
+            type="button"
+            class="notif-backdrop"
+            aria-label="Close notifications"
+            (click)="closeNotifications()"
+          ></button>
+        }
+
         <header class="topbar">
           <button
             type="button"
@@ -326,6 +335,7 @@ function buildNav(): NavItem[] {
       display: flex;
       flex-direction: column;
       min-height: 0;
+      overflow: visible;
     }
 
     .topbar {
@@ -336,6 +346,9 @@ function buildNav(): NavItem[] {
       gap: 1rem;
       padding: 0.75rem 1.5rem;
       background: var(--bb-bg);
+      position: relative;
+      z-index: 20;
+      overflow: visible;
     }
 
     .topbar-greeting {
@@ -386,20 +399,30 @@ function buildNav(): NavItem[] {
       box-shadow: var(--bb-shadow);
     }
 
-    .notif-wrap { position: relative; }
+    .notif-wrap {
+      position: relative;
+      z-index: 30;
+    }
+
+    .notif-backdrop {
+      display: none;
+    }
 
     .notif-panel {
       position: absolute;
       top: calc(100% + 0.5rem);
       right: 0;
-      width: min(360px, 92vw);
-      max-height: 420px;
+      left: auto;
+      width: min(360px, calc(100vw - 2rem));
+      max-height: min(420px, 70vh);
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
       background: #fff;
       border: 1px solid var(--bb-border);
       border-radius: var(--bb-radius);
       box-shadow: var(--bb-shadow-md);
-      z-index: 50;
+      z-index: 120;
+      color: var(--bb-text);
     }
 
     .notif-head {
@@ -643,6 +666,38 @@ function buildNav(): NavItem[] {
       .search {
         display: none;
       }
+
+      /* Without the search bar, actions must pin right or the dropdown opens over the menu. */
+      .topbar-actions {
+        margin-left: auto;
+      }
+
+      .notif-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        border: none;
+        padding: 0;
+        margin: 0;
+        background: rgba(41, 41, 40, 0.45);
+        cursor: pointer;
+      }
+
+      .notif-panel {
+        position: fixed;
+        top: calc(var(--bb-topbar-h) + 0.35rem);
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+        max-width: none;
+        max-height: min(420px, calc(100dvh - var(--bb-topbar-h) - 2rem));
+      }
+
+      .main-has-kyc-ticker .notif-panel {
+        top: calc(var(--bb-topbar-h) + 2.85rem);
+        max-height: min(420px, calc(100dvh - var(--bb-topbar-h) - 3.5rem));
+      }
     }
 
     @media (max-width: 480px) {
@@ -804,9 +859,13 @@ export class PortalShellComponent implements OnInit {
   toggleSidebar(): void {
     this.sidebarOpen.update((open) => !open);
     if (this.sidebarOpen()) {
-      this.notifOpen.set(false);
+      this.closeNotifications();
     }
     this.syncBodyScrollLock();
+  }
+
+  closeNotifications(): void {
+    this.notifOpen.set(false);
   }
 
   closeSidebar(): void {
@@ -838,6 +897,8 @@ export class PortalShellComponent implements OnInit {
     const open = !this.notifOpen();
     this.notifOpen.set(open);
     if (open) {
+      this.sidebarOpen.set(false);
+      this.syncBodyScrollLock();
       this.loadNotifications();
     }
   }
@@ -874,7 +935,7 @@ export class PortalShellComponent implements OnInit {
         },
       });
     }
-    this.notifOpen.set(false);
+    this.closeNotifications();
     if (n.linkPath) {
       void this.router.navigateByUrl(n.linkPath);
     }
