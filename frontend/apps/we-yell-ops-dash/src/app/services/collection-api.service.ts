@@ -4,6 +4,16 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { buildOpsHeaders } from './ops-request-headers';
 
+export interface OpsCollectionParcelLineDto {
+  parcelId: string;
+  displayId: string;
+  itemName: string;
+  retailer: string;
+  category: string | null;
+  weightKg: number | null;
+  statusLabel: string;
+}
+
 export interface OpsCollectionBoardCardDto {
   cardKey: string;
   columnId: string;
@@ -20,9 +30,43 @@ export interface OpsCollectionBoardCardDto {
   readyForCollectionAtUtc: string | null;
   collectedAtUtc: string | null;
   notificationSent: boolean;
+  notificationSentAtUtc: string | null;
   collectorIdType: string | null;
   collectorIdNumberMasked: string | null;
   coverPhotoId?: string | null;
+  parcels?: OpsCollectionParcelLineDto[] | null;
+}
+
+export interface OpsCollectionTrackingEventDto {
+  title: string;
+  detail: string | null;
+  occurredAtUtc: string;
+}
+
+export interface OpsCollectionNotificationChannelDto {
+  channel: string;
+  statusLabel: string;
+  title: string;
+  body: string;
+  sentAtUtc: string | null;
+  detail: string | null;
+}
+
+export interface OpsCollectionCustomerNotificationDto {
+  triggered: boolean;
+  triggeredAtUtc: string | null;
+  channels: OpsCollectionNotificationChannelDto[];
+}
+
+export interface OpsCollectionShipmentDetailDto {
+  card: OpsCollectionBoardCardDto;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  deliveryMethod: string | null;
+  destination: string | null;
+  parcels: OpsCollectionParcelLineDto[];
+  timeline: OpsCollectionTrackingEventDto[];
+  customerNotification: OpsCollectionCustomerNotificationDto | null;
 }
 
 export interface OpsCollectionBoardColumnDto {
@@ -78,6 +122,12 @@ export class CollectionApiService {
     if (params?.hubCity) q.set('hubCity', params.hubCity);
     const suffix = q.toString() ? `?${q}` : '';
     return this.http.get<OpsCollectionBoardDto>(`${this.base}/board${suffix}`, {
+      headers: buildOpsHeaders(),
+    });
+  }
+
+  getShipmentDetail(shipmentId: string): Observable<OpsCollectionShipmentDetailDto> {
+    return this.http.get<OpsCollectionShipmentDetailDto>(`${this.base}/shipments/${shipmentId}`, {
       headers: buildOpsHeaders(),
     });
   }

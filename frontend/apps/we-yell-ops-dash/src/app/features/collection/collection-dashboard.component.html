@@ -93,9 +93,14 @@
             @for (card of col.cards; track card.cardKey) {
               <article
                 class="board-card"
+                role="button"
+                tabindex="0"
                 [class.hub-manzini]="hubAccent(card.hubCity) === 'manzini'"
+                [class.selected]="selectedCard()?.cardKey === card.cardKey"
                 [class.dragging]="dragPayload()?.card?.cardKey === card.cardKey"
                 [attr.draggable]="canMove() ? true : null"
+                (click)="selectCard(card)"
+                (keydown.enter)="selectCard(card)"
                 (dragstart)="onDragStart($event, card, col.columnId)"
                 (dragend)="onDragEnd()"
               >
@@ -121,15 +126,36 @@
                     }
                     · {{ card.parcelCount }} parcel{{ card.parcelCount === 1 ? '' : 's' }}
                   </p>
+                  @if (parcelPreview(card).length) {
+                    <ul class="parcel-preview" aria-label="Shipment contents">
+                      @for (p of parcelPreview(card).slice(0, 3); track p.parcelId) {
+                        <li>
+                          <span class="preview-item">{{ p.itemName }}</span>
+                          <span class="preview-meta">{{ p.retailer }} · {{ p.displayId }}</span>
+                        </li>
+                      }
+                      @if (parcelPreview(card).length > 3) {
+                        <li class="preview-more">+{{ parcelPreview(card).length - 3 }} more — click for details</li>
+                      }
+                    </ul>
+                  }
                   <footer class="card-foot">
                     <span class="status-pill" [class]="col.columnId">{{ card.statusLabel }}</span>
-                    @if (card.notificationSent && col.columnId === 'ready_for_collection') {
-                      <span class="notified" title="Customer notified">
-                        <span class="material-icons-outlined">notifications_active</span>
-                      </span>
+                    @if (col.columnId !== 'in_transit') {
+                      @if (card.notificationSent && card.notificationSentAtUtc) {
+                        <span class="notify-chip ok" title="Customer notification sent">
+                          <span class="material-icons-outlined">notifications_active</span>
+                          Notified {{ card.notificationSentAtUtc | date:'MMM d, h:mm a' }}
+                        </span>
+                      } @else if (col.columnId === 'ready_for_collection') {
+                        <span class="notify-chip warn" title="Customer notification not recorded">
+                          <span class="material-icons-outlined">notifications_off</span>
+                          Not notified
+                        </span>
+                      }
                     }
                     @if (col.columnId === 'ready_for_collection' && canMove()) {
-                      <button type="button" class="collect-btn" (click)="openPickup(card)">
+                      <button type="button" class="collect-btn" (click)="openPickup(card); $event.stopPropagation()">
                         Collect
                       </button>
                     }
@@ -148,6 +174,16 @@
     </div>
   </div>
 </div>
+
+@if (selectedCard()) {
+  <div class="detail-backdrop" (click)="selectedCard.set(null)">
+    <ops-collection-board-detail
+      [card]="selectedCard()"
+      (closed)="selectedCard.set(null)"
+      (click)="$event.stopPropagation()"
+    />
+  </div>
+}
 
 @if (pickupCard(); as card) {
   <ops-collection-pickup-modal

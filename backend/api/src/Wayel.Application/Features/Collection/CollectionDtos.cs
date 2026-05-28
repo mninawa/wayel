@@ -1,5 +1,14 @@
 namespace Wayel.Application.Features.Collection;
 
+public sealed record OpsCollectionParcelLineDto(
+    Guid ParcelId,
+    string DisplayId,
+    string ItemName,
+    string Retailer,
+    string? Category,
+    decimal? WeightKg,
+    string StatusLabel);
+
 public sealed record OpsCollectionBoardCardDto(
     string CardKey,
     string ColumnId,
@@ -16,9 +25,39 @@ public sealed record OpsCollectionBoardCardDto(
     DateTime? ReadyForCollectionAtUtc,
     DateTime? CollectedAtUtc,
     bool NotificationSent,
+    DateTime? NotificationSentAtUtc,
     string? CollectorIdType,
     string? CollectorIdNumberMasked,
-    Guid? CoverPhotoId = null);
+    Guid? CoverPhotoId = null,
+    IReadOnlyList<OpsCollectionParcelLineDto>? Parcels = null);
+
+public sealed record OpsCollectionNotificationChannelDto(
+    string Channel,
+    string StatusLabel,
+    string Title,
+    string Body,
+    DateTime? SentAtUtc,
+    string? Detail);
+
+public sealed record OpsCollectionCustomerNotificationDto(
+    bool Triggered,
+    DateTime? TriggeredAtUtc,
+    IReadOnlyList<OpsCollectionNotificationChannelDto> Channels);
+
+public sealed record OpsCollectionTrackingEventDto(
+    string Title,
+    string? Detail,
+    DateTime OccurredAtUtc);
+
+public sealed record OpsCollectionShipmentDetailDto(
+    OpsCollectionBoardCardDto Card,
+    string? CustomerEmail,
+    string? CustomerPhone,
+    string? DeliveryMethod,
+    string? Destination,
+    IReadOnlyList<OpsCollectionParcelLineDto> Parcels,
+    IReadOnlyList<OpsCollectionTrackingEventDto> Timeline,
+    OpsCollectionCustomerNotificationDto? CustomerNotification);
 
 public sealed record OpsCollectionBoardColumnDto(
     string ColumnId,

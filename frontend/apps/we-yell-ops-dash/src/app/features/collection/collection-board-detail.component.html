@@ -1,0 +1,150 @@
+@if (card(); as card) {
+  <aside class="detail-drawer ops-card">
+    <header class="drawer-head">
+      <div class="head-main">
+        <div class="shipment-icon" aria-hidden="true">
+          <span class="material-icons-outlined">inventory_2</span>
+        </div>
+        <div>
+          <span class="card-id">{{ card.displayId }}</span>
+          <h2>{{ card.customerDisplayName }}</h2>
+          <span class="hub-line">{{ card.hubName }} · {{ card.hubCity }}</span>
+        </div>
+      </div>
+      <button type="button" class="icon-btn" (click)="closed.emit()" aria-label="Close">
+        <span class="material-icons-outlined">close</span>
+      </button>
+    </header>
+
+    @if (loading()) {
+      <p class="muted pad">Loading shipment details…</p>
+    } @else {
+      <div class="drawer-body">
+        <div class="status-row">
+          <ops-pill [label]="card.statusLabel" [tone]="statusTone(card.columnId)" />
+        </div>
+
+        @if (detail()?.customerNotification; as notification) {
+          <section class="notification-panel" aria-labelledby="customer-notification-heading">
+            <header class="notification-head">
+              <div>
+                <h3 id="customer-notification-heading">Customer notification</h3>
+                @if (notification.triggeredAtUtc) {
+                  <p class="notification-meta">
+                    Triggered {{ notification.triggeredAtUtc | date:'MMM d, y, h:mm a' }}
+                  </p>
+                }
+              </div>
+              <span class="notification-summary" [class.ok]="notification.triggered" [class.warn]="!notification.triggered">
+                {{ notification.triggered ? 'Sent to customer' : 'Not fully sent' }}
+              </span>
+            </header>
+
+            @for (channel of notification.channels; track channel.channel) {
+              <article class="channel-card" [attr.data-status]="channelStatus(channel.statusLabel)">
+                <header class="channel-head">
+                  <span class="channel-name">
+                    @if (channel.channel === 'WhatsApp') {
+                      <span class="material-icons-outlined">chat</span>
+                    } @else if (channel.channel === 'Email') {
+                      <span class="material-icons-outlined">mail</span>
+                    } @else {
+                      <span class="material-icons-outlined">notifications</span>
+                    }
+                    {{ channel.channel }}
+                  </span>
+                  <ops-pill [label]="channel.statusLabel" [tone]="channelTone(channel.statusLabel)" />
+                </header>
+                <p class="channel-title">{{ channel.title }}</p>
+                @if (channel.detail) {
+                  <p class="channel-detail">{{ channel.detail }}</p>
+                }
+                <pre class="message-body">{{ channel.body }}</pre>
+                @if (channel.sentAtUtc) {
+                  <span class="channel-time">{{ channel.sentAtUtc | date:'MMM d, h:mm a' }}</span>
+                }
+              </article>
+            }
+          </section>
+        } @else if (card.columnId === 'in_transit') {
+          <section class="notification-panel pending">
+            <h3>Customer notification</h3>
+            <p class="muted">Notification will be sent when this shipment is marked ready for collection.</p>
+          </section>
+        }
+
+        <h3>Shipment</h3>
+        <dl class="info-grid">
+          <div><dt>Suite</dt><dd>{{ card.suiteNumber || '—' }}</dd></div>
+          <div><dt>Hub</dt><dd>{{ card.hubName }}</dd></div>
+          <div><dt>Parcels</dt><dd>{{ card.parcelCount }}</dd></div>
+          @if (detail()?.destination) {
+            <div><dt>Destination</dt><dd>{{ detail()?.destination }}</dd></div>
+          }
+          @if (detail()?.deliveryMethod) {
+            <div><dt>Service</dt><dd>{{ detail()?.deliveryMethod }}</dd></div>
+          }
+          @if (detail()?.customerEmail) {
+            <div><dt>Email</dt><dd>{{ detail()?.customerEmail }}</dd></div>
+          }
+          @if (detail()?.customerPhone) {
+            <div><dt>Phone</dt><dd>{{ detail()?.customerPhone }}</dd></div>
+          }
+        </dl>
+
+        @if (card.readyForCollectionAtUtc) {
+          <dl class="info-grid">
+            <div><dt>Ready since</dt><dd>{{ card.readyForCollectionAtUtc | date:'MMM d, y, h:mm a' }}</dd></div>
+          </dl>
+        }
+        @if (card.collectedAtUtc) {
+          <dl class="info-grid">
+            <div><dt>Collected</dt><dd>{{ card.collectedAtUtc | date:'MMM d, h:mm a' }}</dd></div>
+            @if (card.collectorIdType && card.collectorIdNumberMasked) {
+              <div><dt>ID on file</dt><dd>{{ card.collectorIdType }} {{ card.collectorIdNumberMasked }}</dd></div>
+            }
+          </dl>
+        }
+
+        <h3>Contents ({{ parcels().length }})</h3>
+        @if (parcels().length) {
+          <ul class="parcel-list">
+            @for (p of parcels(); track p.parcelId) {
+              <li class="parcel-row">
+                <span class="retailer-icon" [title]="p.retailer">{{ retailerInitial(p.retailer) }}</span>
+                <div class="parcel-copy">
+                  <strong>{{ p.itemName }}</strong>
+                  <span class="parcel-meta">
+                    {{ p.displayId }}
+                    · {{ p.retailer }}
+                    @if (p.category) { · {{ p.category }} }
+                    @if (p.weightKg != null) { · {{ p.weightKg | number:'1.0-1' }} kg }
+                  </span>
+                  <ops-pill [label]="p.statusLabel" tone="gray" />
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">No parcel lines found for this shipment.</p>
+        }
+
+        @if (detail()?.timeline?.length) {
+          <h3>Tracking</h3>
+          <ul class="timeline">
+            @for (ev of detail()!.timeline; track ev.occurredAtUtc + ev.title) {
+              <li>
+                <div class="timeline-dot"></div>
+                <div>
+                  <strong>{{ ev.title }}</strong>
+                  @if (ev.detail) { <p>{{ ev.detail }}</p> }
+                  <span class="timeline-meta">{{ ev.occurredAtUtc | date:'MMM d, h:mm a' }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </aside>
+}

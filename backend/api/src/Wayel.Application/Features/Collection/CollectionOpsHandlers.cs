@@ -3,10 +3,13 @@ using Wayel.Application.Abstractions.Notifications;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
+using Wayel.Application.Configuration;
 using Wayel.Application.Features.Parcels;
 using Wayel.Application.Features.Tracking;
+using Microsoft.Extensions.Options;
 using Wayel.Domain.Collection;
 using Wayel.Domain.Common;
+using Wayel.Domain.Parcels;
 using Wayel.Domain.Shipments;
 using Wayel.Domain.Users;
 using Wayel.Domain.Warehouse;
@@ -24,6 +27,7 @@ internal sealed class GetOpsCollectionBoardQueryHandler(
     IShipmentRepository shipments,
     IPickTaskRepository pickTasks,
     IPackingTaskRepository packingTasks,
+    IParcelRepository parcels,
     IParcelOpsPhotoRepository photos,
     IUserRepository users,
     ICustomerAddressRepository addresses,
@@ -82,6 +86,7 @@ internal sealed class GetOpsCollectionBoardQueryHandler(
         }
 
         await ApplyCoverPhotosAsync(buckets, cancellationToken);
+        await EnrichWithParcelsAsync(buckets, cancellationToken);
 
         var columns = ColumnOrder
             .Select(c => new OpsCollectionBoardColumnDto(
@@ -142,6 +147,7 @@ internal sealed class GetOpsCollectionBoardQueryHandler(
             record.ReadyForCollectionAtUtc,
             record.CollectedAtUtc,
             record.NotificationSentAtUtc is not null,
+            record.NotificationSentAtUtc,
             record.CollectorIdType,
             MaskIdNumber(record.CollectorIdNumber));
 
@@ -189,6 +195,75 @@ internal sealed class GetOpsCollectionBoardQueryHandler(
         }
     }
 
+    private async Task EnrichWithParcelsAsync(
+        Dictionary<string, List<OpsCollectionBoardCardDto>> buckets,
+        CancellationToken cancellationToken)
+    {
+        foreach (var columnId in buckets.Keys.ToList())
+        {
+            var enriched = new List<OpsCollectionBoardCardDto>();
+            foreach (var card in buckets[columnId])
+            {
+                var lines = await LoadParcelLinesAsync(card.ShipmentId, cancellationToken);
+                enriched.Add(card with { Parcels = lines });
+            }
+
+            buckets[columnId] = enriched;
+        }
+    }
+
+    private async Task<IReadOnlyList<OpsCollectionParcelLineDto>> LoadParcelLinesAsync(
+        Guid shipmentId,
+        CancellationToken cancellationToken)
+    {
+        var pick = await pickTasks.GetByShipmentIdAsync(shipmentId, cancellationToken);
+        if (pick is { Parcels.Count: > 0 })
+        {
+            var lines = new List<OpsCollectionParcelLineDto>();
+            foreach (var line in pick.Parcels)
+            {
+                var parcel = await parcels.GetByIdAsync(new ParcelId(line.ParcelId), cancellationToken);
+                lines.Add(new OpsCollectionParcelLineDto(
+                    line.ParcelId,
+                    line.DisplayId,
+                    line.ItemName,
+                    parcel?.Retailer ?? "—",
+                    parcel?.Category,
+                    parcel?.WeightKg,
+                    parcel is null ? "—" : OpsParcelLabels.Status(parcel.Status)));
+            }
+
+            return lines;
+        }
+
+        var shipment = await shipments.GetByIdAsync(new ShipmentId(shipmentId), cancellationToken);
+        if (shipment is null)
+        {
+            return [];
+        }
+
+        var fallback = new List<OpsCollectionParcelLineDto>();
+        foreach (var parcelId in shipment.ParcelIds)
+        {
+            var parcel = await parcels.GetByIdAsync(parcelId, cancellationToken);
+            if (parcel is null)
+            {
+                continue;
+            }
+
+            fallback.Add(new OpsCollectionParcelLineDto(
+                parcel.Id.Value,
+                OpsParcelDisplayIds.Format(parcel),
+                parcel.ItemName,
+                parcel.Retailer,
+                parcel.Category,
+                parcel.WeightKg,
+                OpsParcelLabels.Status(parcel.Status)));
+        }
+
+        return fallback;
+    }
+
     private static string StatusLabel(string status) => status switch
     {
         ShipmentCollectionStatuses.InTransit => "In transit",
@@ -232,10 +307,305 @@ internal sealed class GetOpsCollectionBoardQueryHandler(
         }
 
         var q = search.ToLowerInvariant();
-        return card.DisplayId.Contains(q, StringComparison.OrdinalIgnoreCase)
+        if (card.DisplayId.Contains(q, StringComparison.OrdinalIgnoreCase)
             || card.CustomerDisplayName.Contains(q, StringComparison.OrdinalIgnoreCase)
             || (card.SuiteNumber?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
-            || card.HubName.Contains(q, StringComparison.OrdinalIgnoreCase);
+            || card.HubName.Contains(q, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return card.Parcels?.Any(p =>
+            p.DisplayId.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || p.ItemName.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || p.Retailer.Contains(q, StringComparison.OrdinalIgnoreCase)) ?? false;
+    }
+}
+
+public sealed record GetOpsCollectionShipmentDetailQuery(Guid ShipmentId)
+    : IQuery<OpsCollectionShipmentDetailDto>;
+
+internal sealed class GetOpsCollectionShipmentDetailQueryHandler(
+    IShipmentCollectionRepository collections,
+    IShipmentRepository shipments,
+    IPickTaskRepository pickTasks,
+    IPackingTaskRepository packingTasks,
+    IParcelRepository parcels,
+    IUserRepository users,
+    IShipmentTrackingEventRepository trackingEvents,
+    ICustomerWhatsAppMessageLogRepository whatsAppMessages,
+    IOptions<BorderBoxOptions> borderBoxOptions) : IQueryHandler<GetOpsCollectionShipmentDetailQuery, OpsCollectionShipmentDetailDto>
+{
+    public async Task<Result<OpsCollectionShipmentDetailDto>> Handle(
+        GetOpsCollectionShipmentDetailQuery request,
+        CancellationToken cancellationToken)
+    {
+        var record = await collections.GetByShipmentIdAsync(request.ShipmentId, cancellationToken);
+        if (record is null)
+        {
+            return Error.NotFound("collection.not_found", "Shipment is not on the collection board.");
+        }
+
+        var card = new OpsCollectionBoardCardDto(
+            $"shipment:{record.ShipmentId:D}",
+            record.Status,
+            record.ShipmentId,
+            record.ShipmentDisplayId,
+            record.CustomerDisplayName,
+            record.SuiteNumber,
+            record.HubId,
+            record.HubName,
+            record.HubCity,
+            record.ParcelCount,
+            StatusLabel(record.Status),
+            EventAt(record),
+            record.ReadyForCollectionAtUtc,
+            record.CollectedAtUtc,
+            record.NotificationSentAtUtc is not null,
+            record.NotificationSentAtUtc,
+            record.CollectorIdType,
+            MaskIdNumber(record.CollectorIdNumber));
+
+        var parcelLines = await LoadParcelLinesAsync(
+            request.ShipmentId,
+            shipments,
+            pickTasks,
+            parcels,
+            cancellationToken);
+
+        var user = await users.GetByIdAsync(new UserId(record.UserId), cancellationToken);
+        var pack = await packingTasks.GetByShipmentIdAsync(request.ShipmentId, cancellationToken);
+        var timeline = await BuildTimelineAsync(request.ShipmentId, record, cancellationToken);
+        var customerNotification = await BuildCustomerNotificationAsync(record, user, cancellationToken);
+
+        return new OpsCollectionShipmentDetailDto(
+            card with { Parcels = parcelLines },
+            user?.Email.Value,
+            user?.Phone,
+            pack?.DeliveryMethod,
+            pack?.Destination,
+            parcelLines,
+            timeline,
+            customerNotification);
+    }
+
+    private async Task<OpsCollectionCustomerNotificationDto?> BuildCustomerNotificationAsync(
+        ShipmentCollectionRecord record,
+        User? user,
+        CancellationToken cancellationToken)
+    {
+        if (record.ReadyForCollectionAtUtc is null && record.NotificationSentAtUtc is null)
+        {
+            return null;
+        }
+
+        var portalBase = borderBoxOptions.Value.CustomerPortalBaseUrl;
+        var whatsAppTag = CollectionNotificationPreview.WhatsAppCorrelationTag(record.ShipmentId);
+        var whatsAppLog = await whatsAppMessages.GetLatestByCorrelationTagAsync(whatsAppTag, cancellationToken);
+        var triggeredAt = record.NotificationSentAtUtc ?? record.ReadyForCollectionAtUtc;
+        var channels = new List<OpsCollectionNotificationChannelDto>();
+
+        if (whatsAppLog is not null)
+        {
+            var whatsAppStatus = whatsAppLog.DeliveryStatus switch
+            {
+                "Sent" => "Sent",
+                "Skipped" => "Skipped",
+                _ => "Failed",
+            };
+            var whatsAppDetail = whatsAppLog.DeliveryStatus switch
+            {
+                "Sent" => $"To {CollectionNotificationPreview.MaskPhone(whatsAppLog.PhoneE164)} · Delivered to provider",
+                "Skipped" => whatsAppLog.SkipReason ?? "Not sent",
+                _ => whatsAppLog.ErrorMessage ?? whatsAppLog.ErrorCode ?? "Send failed",
+            };
+            channels.Add(new OpsCollectionNotificationChannelDto(
+                "WhatsApp",
+                whatsAppStatus,
+                "Ready for collection",
+                whatsAppLog.Body,
+                whatsAppLog.SentAtUtc,
+                whatsAppDetail));
+        }
+        else if (user is not null)
+        {
+            var previewBody = CollectionNotificationPreview.BuildWhatsAppBody(
+                record.ShipmentDisplayId,
+                record.HubName,
+                record.HubCity,
+                portalBase);
+            var previewStatus = user.NotifyWhatsApp && !string.IsNullOrWhiteSpace(user.Phone)
+                ? "Pending"
+                : "Skipped";
+            var previewDetail = previewStatus == "Skipped"
+                ? "Customer opted out or has no phone on file"
+                : "No WhatsApp log recorded yet";
+            channels.Add(new OpsCollectionNotificationChannelDto(
+                "WhatsApp",
+                previewStatus,
+                "Ready for collection",
+                previewBody,
+                null,
+                previewDetail));
+        }
+
+        if (user is not null)
+        {
+            var emailSubject = CollectionNotificationPreview.BuildEmailSubject(record.ShipmentDisplayId);
+            var emailBody = CollectionNotificationPreview.BuildEmailBody(
+                user,
+                record.ShipmentDisplayId,
+                record.HubName,
+                record.HubCity,
+                portalBase);
+            channels.Add(new OpsCollectionNotificationChannelDto(
+                "Email",
+                user.NotifyEmail ? "Sent" : "Skipped",
+                emailSubject,
+                emailBody,
+                user.NotifyEmail ? triggeredAt : null,
+                user.NotifyEmail ? user.Email.Value : "Customer opted out of email"));
+        }
+
+        if (user is not null)
+        {
+            channels.Add(new OpsCollectionNotificationChannelDto(
+                "In-app",
+                "Posted",
+                CollectionNotificationPreview.BuildInAppTitle(),
+                CollectionNotificationPreview.BuildInAppBody(
+                    record.ShipmentDisplayId,
+                    record.HubName,
+                    record.HubCity),
+                triggeredAt,
+                "Visible in customer portal notifications"));
+        }
+
+        return new OpsCollectionCustomerNotificationDto(
+            record.NotificationSentAtUtc is not null,
+            triggeredAt,
+            channels);
+    }
+
+    private static string StatusLabel(string status) => status switch
+    {
+        ShipmentCollectionStatuses.InTransit => "In transit",
+        ShipmentCollectionStatuses.ReadyForCollection => "Ready for collection",
+        ShipmentCollectionStatuses.Collected => "Collected",
+        _ => status.Replace('_', ' '),
+    };
+
+    private static DateTime EventAt(ShipmentCollectionRecord record) =>
+        record.CollectedAtUtc
+        ?? record.ReadyForCollectionAtUtc
+        ?? record.DispatchedAtUtc;
+
+    private static string? MaskIdNumber(string? idNumber)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return null;
+        }
+
+        var trimmed = idNumber.Trim();
+        if (trimmed.Length <= 4)
+        {
+            return new string('*', trimmed.Length);
+        }
+
+        return new string('*', trimmed.Length - 4) + trimmed[^4..];
+    }
+
+    private static async Task<IReadOnlyList<OpsCollectionParcelLineDto>> LoadParcelLinesAsync(
+        Guid shipmentId,
+        IShipmentRepository shipments,
+        IPickTaskRepository pickTasks,
+        IParcelRepository parcels,
+        CancellationToken cancellationToken)
+    {
+        var pick = await pickTasks.GetByShipmentIdAsync(shipmentId, cancellationToken);
+        if (pick is { Parcels.Count: > 0 })
+        {
+            var lines = new List<OpsCollectionParcelLineDto>();
+            foreach (var line in pick.Parcels)
+            {
+                var parcel = await parcels.GetByIdAsync(new ParcelId(line.ParcelId), cancellationToken);
+                lines.Add(new OpsCollectionParcelLineDto(
+                    line.ParcelId,
+                    line.DisplayId,
+                    line.ItemName,
+                    parcel?.Retailer ?? "—",
+                    parcel?.Category,
+                    parcel?.WeightKg,
+                    parcel is null ? "—" : OpsParcelLabels.Status(parcel.Status)));
+            }
+
+            return lines;
+        }
+
+        var shipment = await shipments.GetByIdAsync(new ShipmentId(shipmentId), cancellationToken);
+        if (shipment is null)
+        {
+            return [];
+        }
+
+        var fallback = new List<OpsCollectionParcelLineDto>();
+        foreach (var parcelId in shipment.ParcelIds)
+        {
+            var parcel = await parcels.GetByIdAsync(parcelId, cancellationToken);
+            if (parcel is null)
+            {
+                continue;
+            }
+
+            fallback.Add(new OpsCollectionParcelLineDto(
+                parcel.Id.Value,
+                OpsParcelDisplayIds.Format(parcel),
+                parcel.ItemName,
+                parcel.Retailer,
+                parcel.Category,
+                parcel.WeightKg,
+                OpsParcelLabels.Status(parcel.Status)));
+        }
+
+        return fallback;
+    }
+
+    private async Task<IReadOnlyList<OpsCollectionTrackingEventDto>> BuildTimelineAsync(
+        Guid shipmentId,
+        ShipmentCollectionRecord record,
+        CancellationToken cancellationToken)
+    {
+        var events = await trackingEvents.ListForShipmentAsync(new ShipmentId(shipmentId), cancellationToken);
+        var projected = events
+            .OrderByDescending(e => e.OccurredAtUtc)
+            .Select(e => new OpsCollectionTrackingEventDto(
+                e.EventLabel,
+                string.IsNullOrWhiteSpace(e.Details) ? e.Location : e.Details,
+                e.OccurredAtUtc))
+            .ToList();
+
+        if (record.ReadyForCollectionAtUtc is { } readyAt
+            && projected.All(e => !string.Equals(e.Title, "Ready for Pickup", StringComparison.OrdinalIgnoreCase)))
+        {
+            projected.Insert(0, new OpsCollectionTrackingEventDto(
+                "Ready for pickup",
+                $"Available at {record.HubName}",
+                readyAt));
+        }
+
+        if (record.CollectedAtUtc is { } collectedAt
+            && projected.All(e => !e.Title.Contains("Collected", StringComparison.OrdinalIgnoreCase)))
+        {
+            projected.Insert(0, new OpsCollectionTrackingEventDto(
+                "Collected",
+                record.CollectorName is not null
+                    ? $"Collected by {record.CollectorName}"
+                    : "ID verified at hub",
+                collectedAt));
+        }
+
+        return projected;
     }
 }
 

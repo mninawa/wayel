@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   CollectionApiService,
   type OpsCollectionBoardCardDto,
   type OpsCollectionBoardDto,
+  type OpsCollectionParcelLineDto,
 } from '../../services/collection-api.service';
 import { OpsCoverPhotoLoaderService } from '../../services/ops-cover-photo-loader.service';
 import { OPS_CAP } from '../../services/ops-permissions';
@@ -19,11 +21,12 @@ import {
   CollectionPickupModalComponent,
   type CollectionPickupConfirm,
 } from './collection-pickup-modal.component';
+import { CollectionBoardDetailComponent } from './collection-board-detail.component';
 
 @Component({
   selector: 'ops-collection-dashboard',
   standalone: true,
-  imports: [FormsModule, CollectionPickupModalComponent],
+  imports: [FormsModule, DatePipe, CollectionPickupModalComponent, CollectionBoardDetailComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './collection-dashboard.component.html',
   styleUrl: './collection-dashboard.component.css',
@@ -43,6 +46,7 @@ export class CollectionDashboardComponent implements OnInit, OnDestroy {
   readonly message = signal<string | null>(null);
   readonly pickupCard = signal<OpsCollectionBoardCardDto | null>(null);
   readonly pickupError = signal<string | null>(null);
+  readonly selectedCard = signal<OpsCollectionBoardCardDto | null>(null);
   readonly dragPayload = signal<{ card: OpsCollectionBoardCardDto; fromColumnId: string } | null>(null);
   readonly dropTargetColumn = signal<string | null>(null);
   readonly dropBlockedColumn = signal<string | null>(null);
@@ -279,5 +283,13 @@ export class CollectionDashboardComponent implements OnInit, OnDestroy {
   hubAccent(city: string): string {
     if (city.toLowerCase().includes('manzini')) return 'manzini';
     return 'mbabane';
+  }
+
+  selectCard(card: OpsCollectionBoardCardDto): void {
+    this.selectedCard.set(card);
+  }
+
+  parcelPreview(card: OpsCollectionBoardCardDto): OpsCollectionParcelLineDto[] {
+    return card.parcels ?? [];
   }
 }

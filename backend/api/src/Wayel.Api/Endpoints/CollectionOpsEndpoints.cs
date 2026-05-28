@@ -23,6 +23,13 @@ public sealed class CollectionOpsEndpoints : IEndpointGroup
             (await mediator.Send(new GetOpsCollectionBoardQuery(search, hubCity, limit), ct)).ToHttpResult())
             .WithName("GetOpsCollectionBoard");
 
+        group.MapGet("/shipments/{shipmentId:guid}", async (
+            Guid shipmentId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new GetOpsCollectionShipmentDetailQuery(shipmentId), ct)).ToHttpResult())
+            .WithName("GetOpsCollectionShipmentDetail");
+
         group.MapPost("/scan-arrival", async (
             ScanArrivalRequest body,
             IMediator mediator,
