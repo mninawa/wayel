@@ -5,4 +5,5 @@ public interface IOpsCallerContext
     bool IsOps { get; }
     string Role { get; }
     string Actor { get; }
+    IReadOnlyList<string> Regions { get; }
 }

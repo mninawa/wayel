@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.Configuration;
+using Wayel.Application.Features.OpsAuth;
 
 namespace Wayel.Infrastructure.Security;
 
@@ -14,16 +15,20 @@ internal sealed class OpsJwtTokenIssuer(
     IOptions<OpsAuthOptions> opsAuthOptions,
     IClock clock) : IOpsJwtTokenIssuer
 {
-    public const string OpsRoleClaimType = "ops_role";
-
     private readonly JwtOptions _jwt = jwtOptions.Value;
     private readonly OpsAuthOptions _opsAuth = opsAuthOptions.Value;
 
-    public AccessToken Issue(Guid opsUserId, string role, string email, string displayName)
+    public AccessToken Issue(
+        Guid opsUserId,
+        string role,
+        string email,
+        string displayName,
+        IReadOnlyList<string> regions)
     {
         var now = clock.UtcNow;
         var expires = now.AddMinutes(_jwt.AccessTokenLifetimeMinutes);
         var normalizedRole = role.Trim().ToLowerInvariant();
+        var normalizedRegions = string.Join(',', regions);
 
         var claims = new List<Claim>
         {
@@ -31,7 +36,8 @@ internal sealed class OpsJwtTokenIssuer(
             new(JwtRegisteredClaimNames.Email, email),
             new(JwtRegisteredClaimNames.Name, displayName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            new(OpsRoleClaimType, normalizedRole),
+            new(OpsAuthClaimTypes.Role, normalizedRole),
+            new(OpsAuthClaimTypes.Regions, normalizedRegions),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey));

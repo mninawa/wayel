@@ -9,7 +9,11 @@ namespace Wayel.Application.Features.Parcels;
 
 public sealed record GetOpsAccessQuery : IQuery<OpsAccessDto>;
 
-public sealed record OpsAccessDto(string Role, string Actor, IReadOnlyList<string> Capabilities);
+public sealed record OpsAccessDto(
+    string Role,
+    string Actor,
+    IReadOnlyList<string> Capabilities,
+    IReadOnlyList<string> Regions);
 
 internal sealed class GetOpsAccessQueryHandler(IOpsCallerContext ops)
     : IQueryHandler<GetOpsAccessQuery, OpsAccessDto>
@@ -22,8 +26,13 @@ internal sealed class GetOpsAccessQueryHandler(IOpsCallerContext ops)
                 Error.Unauthorized("ops.required", "Ops authentication required."));
         }
 
+        var regions = ops.Regions;
         return Task.FromResult<Result<OpsAccessDto>>(
-            new OpsAccessDto(ops.Role, ops.Actor, OpsPermissions.CapabilitiesFor(ops.Role)));
+            new OpsAccessDto(
+                ops.Role,
+                ops.Actor,
+                OpsPermissions.CapabilitiesFor(ops.Role, regions),
+                regions));
     }
 }
 

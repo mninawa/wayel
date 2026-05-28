@@ -52,7 +52,7 @@ export class CollectionDashboardComponent implements OnInit, OnDestroy {
   hubFilter = '';
   scanHubCity = 'Mbabane';
 
-  readonly canMove = computed(() => this.session.can(OPS_CAP.warehouseWrite));
+  readonly canMove = computed(() => this.session.can(OPS_CAP.collectionWrite));
   readonly hubOptions = ['Mbabane', 'Manzini'];
   readonly bulkAdvanceLabel = bulkAdvanceLabel;
   readonly canBulkAdvance = canBulkAdvance;

@@ -14,6 +14,8 @@ export const OPS_CAP = {
   quoteSend: 'quote.send',
   search: 'search',
   teamManage: 'team.manage',
+  collectionRead: 'collection.read',
+  collectionWrite: 'collection.write',
   warehouseRead: 'warehouse.read',
   warehouseWrite: 'warehouse.write',
   pickingWrite: 'picking.write',

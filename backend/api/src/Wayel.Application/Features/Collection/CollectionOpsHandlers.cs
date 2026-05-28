@@ -5,7 +5,6 @@ using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.Features.Parcels;
 using Wayel.Application.Features.Tracking;
-using Wayel.Application.Features.Warehouse;
 using Wayel.Domain.Collection;
 using Wayel.Domain.Common;
 using Wayel.Domain.Shipments;
@@ -265,7 +264,7 @@ internal sealed class ScanOpsCollectionArrivalCommandHandler(
         CancellationToken cancellationToken)
     {
         var denied = OpsPermissions.Require(
-            WarehouseOpsPermissions.CanWrite(ops.Role),
+            OpsPermissions.CanWriteCollection(ops.Role, ops.Regions),
             "collection.forbidden",
             "Your role cannot scan collection arrivals.");
         if (denied is not null)
@@ -463,7 +462,7 @@ internal sealed class ConfirmOpsCollectionPickupCommandHandler(
         CancellationToken cancellationToken)
     {
         var denied = OpsPermissions.Require(
-            WarehouseOpsPermissions.CanWrite(ops.Role),
+            OpsPermissions.CanWriteCollection(ops.Role, ops.Regions),
             "collection.forbidden",
             "Your role cannot confirm collection pickup.");
         if (denied is not null)

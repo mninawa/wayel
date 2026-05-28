@@ -49,7 +49,8 @@ internal sealed class OpsUserSeeder(
                 GoogleSubject: null,
                 IsDisabled: false,
                 now,
-                null);
+                null,
+                Regions: []);
 
             await users.AddAsync(user, cancellationToken);
             logger.LogInformation("Bootstrap ops lead provisioned for {Email}", email);

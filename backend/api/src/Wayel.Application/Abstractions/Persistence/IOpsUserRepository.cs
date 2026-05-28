@@ -18,4 +18,5 @@ public sealed record OpsUserRecord(
     string? GoogleSubject,
     bool IsDisabled,
     DateTime CreatedAtUtc,
-    DateTime? LastLoginAtUtc);
+    DateTime? LastLoginAtUtc,
+    IReadOnlyList<string> Regions);

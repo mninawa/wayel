@@ -35,6 +35,16 @@
         </div>
         <span class="role-badge" [attr.data-role]="roleBadgeClass(meRole())">{{ meRole() || '—' }}</span>
       </div>
+      @if (meRegions().length > 0) {
+        <div class="ya-caps">
+          <span class="caps-label muted">Regions</span>
+          <ul class="caps-list">
+            @for (r of meRegions(); track r) {
+              <li class="cap">{{ formatRegions([r]) }}</li>
+            }
+          </ul>
+        </div>
+      }
       @if (meCapabilities().length > 0) {
         <div class="ya-caps">
           <span class="caps-label muted">Capabilities</span>
@@ -92,10 +102,16 @@
         </label>
         <label>
           <span>Role</span>
-          <select [(ngModel)]="inviteRole" name="inviteRole">
+          <select
+            [ngModel]="inviteRole"
+            (ngModelChange)="onInviteRoleChange($event)"
+            name="inviteRole"
+          >
+            <option value="receiver">Receiver (parcel capture)</option>
+            <option value="collector">Collector (Eswatini)</option>
             <option value="clerk">Clerk</option>
-            <option value="lead">Lead</option>
             <option value="finance">Finance</option>
+            <option value="lead">Lead</option>
           </select>
         </label>
         <button
@@ -107,6 +123,22 @@
           {{ busy() ? 'Sending…' : 'Send invitation' }}
         </button>
       </div>
+      <fieldset class="region-picker">
+        <legend>Regions</legend>
+        <p class="muted region-hint">Controls which areas of the ops console they can open after sign-in.</p>
+        <div class="region-grid">
+          @for (opt of regionOptions; track opt.id) {
+            <label class="region-chip">
+              <input
+                type="checkbox"
+                [checked]="isInviteRegionChecked(opt.id)"
+                (change)="toggleInviteRegion(opt.id)"
+              />
+              <span>{{ opt.label }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
       @if (recentInviteLink(); as link) {
         <div class="invite-link-banner">
           <div>
@@ -148,6 +180,7 @@
               <div class="invite-main">
                 <strong>{{ row.email }}</strong>
                 <span class="role-badge" [attr.data-role]="roleBadgeClass(row.role)">{{ row.role }}</span>
+                <span class="muted">{{ formatRegions(row.regions) }}</span>
                 <span class="muted">Expires {{ row.expiresAtUtc | date:'mediumDate' }}</span>
               </div>
               <div class="invite-actions">
@@ -206,11 +239,14 @@
                     (ngModelChange)="changeRole(u, $event)"
                     [disabled]="busy()"
                   >
+                    <option value="receiver">Receiver</option>
+                    <option value="collector">Collector</option>
                     <option value="clerk">Clerk</option>
-                    <option value="lead">Lead</option>
                     <option value="finance">Finance</option>
+                    <option value="lead">Lead</option>
                   </select>
                 </label>
+                <span class="muted region-line">{{ formatRegions(u.regions) }}</span>
                 <span class="user-status" [class.disabled]="u.isDisabled">
                   {{ u.isDisabled ? 'Disabled' : 'Active' }}
                 </span>

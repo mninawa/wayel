@@ -5,7 +5,6 @@ using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.Features.Parcels;
 using Wayel.Application.Features.Tracking;
-using Wayel.Application.Features.Warehouse;
 using Wayel.Domain.Collection;
 using Wayel.Domain.Common;
 
@@ -36,7 +35,7 @@ internal sealed class MoveOpsCollectionBoardItemCommandHandler(
         CancellationToken cancellationToken)
     {
         var denied = OpsPermissions.Require(
-            WarehouseOpsPermissions.CanWrite(ops.Role),
+            OpsPermissions.CanWriteCollection(ops.Role, ops.Regions),
             "collection.forbidden",
             "Your role cannot move collection board items.");
         if (denied is not null)
@@ -131,7 +130,7 @@ internal sealed class BulkAdvanceOpsCollectionColumnCommandHandler(
         CancellationToken cancellationToken)
     {
         var denied = OpsPermissions.Require(
-            WarehouseOpsPermissions.CanWrite(ops.Role),
+            OpsPermissions.CanWriteCollection(ops.Role, ops.Regions),
             "collection.forbidden",
             "Your role cannot bulk-advance collection items.");
         if (denied is not null)

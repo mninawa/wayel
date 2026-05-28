@@ -50,7 +50,7 @@ internal sealed class ReceiveParcelCommandHandler(
         if (ops.IsOps)
         {
             var denied = OpsPermissions.Require(
-                OpsPermissions.CanIntake(ops.Role),
+                OpsPermissions.CanIntake(ops.Role, ops.Regions),
                 "ops.intake.forbidden",
                 "Your role cannot receive parcels.");
             if (denied is not null)

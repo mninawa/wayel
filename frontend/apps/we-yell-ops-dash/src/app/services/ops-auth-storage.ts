@@ -8,6 +8,7 @@ export interface StoredOpsUser {
   email: string;
   displayName: string;
   role: string;
+  regions?: string[];
 }
 
 /** True when the ops JWT or stored expiry indicates the session is no longer valid. */

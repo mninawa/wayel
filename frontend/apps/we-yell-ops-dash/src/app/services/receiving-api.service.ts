@@ -43,6 +43,7 @@ export interface OpsAccessDto {
   role: string;
   actor: string;
   capabilities: string[];
+  regions: string[];
 }
 
 export interface OpsActivityItemDto {

@@ -17,10 +17,17 @@ import {
   type OpsUserDto,
 } from '../../services/ops-auth.service';
 import { OPS_CAP } from '../../services/ops-permissions';
+import {
+  OPS_REGION,
+  OPS_REGION_LABELS,
+  regionsForRole,
+  normalizeOpsRegions,
+  type OpsRegion,
+} from '../../services/ops-regions';
 import { OpsSessionService } from '../../services/ops-session.service';
 
 interface RoleDescription {
-  key: 'lead' | 'finance' | 'clerk';
+  key: string;
   label: string;
   badge: string;
   blurb: string;
@@ -71,6 +78,7 @@ export class OpsTeamSettingsComponent implements OnInit {
   readonly meName = computed(() => this.session.actorName());
   readonly meRole = computed(() => this.session.role());
   readonly meCapabilities = computed(() => this.session.capabilities());
+  readonly meRegions = computed(() => this.session.regions());
 
   /** Role descriptions inlined as a learning aid — keeps ops staff
    *  honest about what each role can/cannot do without bouncing to docs.
@@ -111,11 +119,39 @@ export class OpsTeamSettingsComponent implements OnInit {
         'Picking, packing, dispatch (no admin)',
       ],
     },
+    {
+      key: 'receiver',
+      label: 'Receiver',
+      badge: 'receiver',
+      blurb: 'Parcel capture only — South Africa receiving desk at /ops/receiving/new.',
+      bullets: [
+        'Receive and capture inbound parcels',
+        'No collection board or platform admin',
+      ],
+    },
+    {
+      key: 'collector',
+      label: 'Collector',
+      badge: 'collector',
+      blurb: 'Eswatini last-mile — collection board only at /ops/collection.',
+      bullets: [
+        'Mark ready for collection and confirm pickup',
+        'No receiving or platform admin',
+      ],
+    },
+  ];
+
+  readonly regionOptions: { id: OpsRegion; label: string }[] = [
+    { id: OPS_REGION.receiving, label: OPS_REGION_LABELS.receiving },
+    { id: OPS_REGION.collection, label: OPS_REGION_LABELS.collection },
+    { id: OPS_REGION.warehouse, label: OPS_REGION_LABELS.warehouse },
+    { id: OPS_REGION.platform, label: OPS_REGION_LABELS.platform },
   ];
 
   // ── Invite form state ───────────────────────────────────────────────
   inviteEmail = '';
   inviteRole = 'clerk';
+  readonly inviteRegions = signal<OpsRegion[]>(regionsForRole('clerk', null));
   readonly recentInviteLink = signal<string | null>(null);
 
   // ── Filtered views ──────────────────────────────────────────────────
@@ -228,14 +264,43 @@ export class OpsTeamSettingsComponent implements OnInit {
   }
 
   // ── Invitations ─────────────────────────────────────────────────────
+  onInviteRoleChange(role: string): void {
+    this.inviteRole = role;
+    this.inviteRegions.set(regionsForRole(role, null));
+  }
+
+  isInviteRegionChecked(region: OpsRegion): boolean {
+    return this.inviteRegions().includes(region);
+  }
+
+  toggleInviteRegion(region: OpsRegion): void {
+    this.inviteRegions.update((current) => {
+      if (current.includes(region)) {
+        return current.filter((r) => r !== region);
+      }
+      return [...current, region];
+    });
+  }
+
+  formatRegions(regions: readonly string[] | undefined | null): string {
+    return normalizeOpsRegions(regions)
+      .map((r) => OPS_REGION_LABELS[r])
+      .join(' · ');
+  }
+
   sendInvite(): void {
     const token = this.session.accessToken();
     if (!token || !this.inviteEmail.trim()) return;
+    const regions = this.inviteRegions();
+    if (regions.length === 0) {
+      this.error.set('Select at least one region for this user.');
+      return;
+    }
     this.busy.set(true);
     this.error.set(null);
     this.message.set(null);
     this.recentInviteLink.set(null);
-    this.api.createInvitation(token, this.inviteEmail.trim(), this.inviteRole).subscribe({
+    this.api.createInvitation(token, this.inviteEmail.trim(), this.inviteRole, regions).subscribe({
       next: (inv) => {
         this.busy.set(false);
         this.message.set(`Invitation created for ${inv.email}. Share the link below.`);
@@ -295,7 +360,8 @@ export class OpsTeamSettingsComponent implements OnInit {
     }
     const token = this.session.accessToken();
     if (!token) return;
-    this.api.updateUserRole(token, user.id, role).subscribe({
+    const regions = regionsForRole(role, null);
+    this.api.updateUserRole(token, user.id, role, regions).subscribe({
       next: () => {
         this.message.set(`Role updated for ${user.email} → ${role}.`);
         this.reload();
@@ -354,6 +420,10 @@ export class OpsTeamSettingsComponent implements OnInit {
         return 'finance';
       case 'clerk':
         return 'clerk';
+      case 'receiver':
+        return 'receiver';
+      case 'collector':
+        return 'collector';
       default:
         return 'other';
     }

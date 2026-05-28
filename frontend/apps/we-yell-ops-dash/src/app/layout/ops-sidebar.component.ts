@@ -9,6 +9,7 @@ import {
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { PRODUCT_NAME } from '../brand';
 import { OPS_CAP } from '../services/ops-permissions';
+import { OPS_REGION, type OpsRegion } from '../services/ops-regions';
 import { OpsReceivingContextService } from '../services/ops-receiving-context.service';
 import { OpsSessionService } from '../services/ops-session.service';
 import { receivingRoutes } from '../types/receiving.types';
@@ -22,6 +23,9 @@ export interface OpsNavItem {
   label: string;
   icon: string;
   cap?: string;
+  region?: OpsRegion;
+  /** Hide for scoped roles that should only see a single screen. */
+  hideForRoles?: string[];
 }
 
 export interface OpsNavSection {
@@ -39,7 +43,7 @@ export interface OpsNavSection {
     <aside class="sidebar" [class.sidebar-open]="drawerOpen()">
       <div class="sidebar-head">
         <a
-          [routerLink]="routes.dashboard"
+          [routerLink]="homeLink()"
           class="brand-mark"
           [attr.title]="productName"
           (click)="onNavClick()"
@@ -339,32 +343,89 @@ export class OpsSidebarComponent implements OnInit {
   readonly exceptionCount = this.receiving.exceptionCount;
 
   readonly primaryNav: OpsNavItem[] = [
-    { path: receivingRoutes.dashboard, label: 'Overview', icon: 'dashboard', cap: OPS_CAP.search },
-    { path: receivingRoutes.newParcel, label: 'Receive Parcel', icon: 'move_to_inbox', cap: OPS_CAP.intake },
-    { path: receivingRoutes.exceptions, label: 'Exceptions', icon: 'warning_amber', cap: OPS_CAP.search },
-    { path: receivingRoutes.readyForQuote, label: 'Ready for Quote', icon: 'request_quote', cap: OPS_CAP.quoteSend },
+    {
+      path: receivingRoutes.dashboard,
+      label: 'Overview',
+      icon: 'dashboard',
+      cap: OPS_CAP.search,
+      region: OPS_REGION.receiving,
+      hideForRoles: ['receiver'],
+    },
+    {
+      path: receivingRoutes.newParcel,
+      label: 'Receive Parcel',
+      icon: 'move_to_inbox',
+      cap: OPS_CAP.intake,
+      region: OPS_REGION.receiving,
+    },
+    {
+      path: receivingRoutes.exceptions,
+      label: 'Exceptions',
+      icon: 'warning_amber',
+      cap: OPS_CAP.search,
+      region: OPS_REGION.receiving,
+      hideForRoles: ['receiver'],
+    },
+    {
+      path: receivingRoutes.readyForQuote,
+      label: 'Ready for Quote',
+      icon: 'request_quote',
+      cap: OPS_CAP.quoteSend,
+      region: OPS_REGION.receiving,
+      hideForRoles: ['receiver'],
+    },
   ];
 
   readonly warehouseNav: OpsNavItem[] = [
-    { path: warehouseRoutes.dashboard, label: 'Board (Kanban)', icon: 'view_kanban', cap: OPS_CAP.warehouseRead },
-    { path: warehouseRoutes.locations, label: 'Locations', icon: 'grid_view', cap: OPS_CAP.warehouseRead },
-    { path: warehouseRoutes.movements, label: 'Movements', icon: 'swap_horiz', cap: OPS_CAP.warehouseRead },
-    { path: warehouseRoutes.manifests, label: 'Manifests', icon: 'assignment', cap: OPS_CAP.warehouseRead },
+    {
+      path: warehouseRoutes.dashboard,
+      label: 'Board (Kanban)',
+      icon: 'view_kanban',
+      cap: OPS_CAP.warehouseRead,
+      region: OPS_REGION.warehouse,
+    },
+    {
+      path: warehouseRoutes.locations,
+      label: 'Locations',
+      icon: 'grid_view',
+      cap: OPS_CAP.warehouseRead,
+      region: OPS_REGION.warehouse,
+    },
+    {
+      path: warehouseRoutes.movements,
+      label: 'Movements',
+      icon: 'swap_horiz',
+      cap: OPS_CAP.warehouseRead,
+      region: OPS_REGION.warehouse,
+    },
+    {
+      path: warehouseRoutes.manifests,
+      label: 'Manifests',
+      icon: 'assignment',
+      cap: OPS_CAP.warehouseRead,
+      region: OPS_REGION.warehouse,
+    },
   ];
 
   readonly collectionNav: OpsNavItem[] = [
-    { path: collectionRoutes.board, label: 'Collection Board', icon: 'storefront', cap: OPS_CAP.warehouseRead },
+    {
+      path: collectionRoutes.board,
+      label: 'Collection Board',
+      icon: 'storefront',
+      cap: OPS_CAP.collectionRead,
+      region: OPS_REGION.collection,
+    },
   ];
 
   readonly platformNav: OpsNavItem[] = [
-    { path: platformRoutes.dashboard, label: 'Platform Dashboard', icon: 'analytics' },
-    { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts' },
-    { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work' },
-    { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium' },
-    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune' },
-    { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user' },
-    { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping' },
-    { path: '/ops/settings', label: 'Settings', icon: 'settings' },
+    { path: platformRoutes.dashboard, label: 'Platform Dashboard', icon: 'analytics', region: OPS_REGION.platform },
+    { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts', region: OPS_REGION.platform },
+    { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work', region: OPS_REGION.platform },
+    { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium', region: OPS_REGION.platform },
+    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune', region: OPS_REGION.platform },
+    { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user', region: OPS_REGION.platform },
+    { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping', region: OPS_REGION.platform },
+    { path: '/ops/settings', label: 'Settings', icon: 'settings', region: OPS_REGION.platform, cap: OPS_CAP.teamManage },
   ];
 
   navSections(): OpsNavSection[] {
@@ -382,20 +443,45 @@ export class OpsSidebarComponent implements OnInit {
       sections.push({ id: 'warehouse', label: 'Warehouse', items: warehouse });
     }
 
-    sections.push({ id: 'platform', label: 'Platform', items: this.platformNav });
+    const platform = this.visiblePlatformNav();
+    if (platform.length > 0) {
+      sections.push({ id: 'platform', label: 'Platform', items: platform });
+    }
     return sections.filter((s) => s.items.length > 0);
   }
 
+  homeLink(): string {
+    return this.session.homePath();
+  }
+
   visibleCollectionNav(): OpsNavItem[] {
-    return this.collectionNav.filter((item) => !item.cap || this.session.can(item.cap));
+    return this.collectionNav.filter((item) => this.isNavVisible(item));
   }
 
   visibleWarehouseNav(): OpsNavItem[] {
-    return this.warehouseNav.filter((item) => !item.cap || this.session.can(item.cap));
+    return this.warehouseNav.filter((item) => this.isNavVisible(item));
   }
 
   visiblePrimaryNav(): OpsNavItem[] {
-    return this.primaryNav.filter((item) => !item.cap || this.session.can(item.cap));
+    return this.primaryNav.filter((item) => this.isNavVisible(item));
+  }
+
+  visiblePlatformNav(): OpsNavItem[] {
+    return this.platformNav.filter((item) => this.isNavVisible(item));
+  }
+
+  private isNavVisible(item: OpsNavItem): boolean {
+    const role = this.session.role().toLowerCase();
+    if (item.hideForRoles?.includes(role)) {
+      return false;
+    }
+    if (item.region && !this.session.hasRegion(item.region)) {
+      return false;
+    }
+    if (item.cap && !this.session.can(item.cap)) {
+      return false;
+    }
+    return true;
   }
 
   ngOnInit(): void {

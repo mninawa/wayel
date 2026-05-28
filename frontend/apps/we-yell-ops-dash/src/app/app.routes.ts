@@ -1,11 +1,15 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
+import { opsHomeRedirectGuard } from './guards/ops-home.guard';
+import { opsRegionGuard } from './guards/ops-region.guard';
+import { OPS_REGION } from './services/ops-regions';
 import { RECEIVING_BASE } from './types/receiving.types';
 
 export const routes: Routes = [
-  { path: '', redirectTo: RECEIVING_BASE, pathMatch: 'full' },
+  { path: '', canActivate: [opsHomeRedirectGuard], children: [] },
   {
     path: 'ops/receiving',
+    canActivate: [opsRegionGuard(OPS_REGION.receiving)],
     children: [
       {
         path: '',
@@ -80,6 +84,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/warehouse',
+    canActivate: [opsRegionGuard(OPS_REGION.warehouse)],
     children: [
       {
         path: '',
@@ -158,6 +163,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/collection',
+    canActivate: [opsRegionGuard(OPS_REGION.collection)],
     title: 'Collection board',
     loadComponent: () =>
       import('./features/collection/collection-dashboard.component').then(
@@ -166,6 +172,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/accounts',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     children: [
       {
         path: '',
@@ -183,12 +190,14 @@ export const routes: Routes = [
   },
   {
     path: 'ops/kyc',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'KYC review',
     loadComponent: () =>
       import('./features/kyc-review/kyc-review.component').then((m) => m.KycReviewComponent),
   },
   {
     path: 'ops/shipments',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Shipment status',
     loadComponent: () =>
       import('./features/shipment-status/shipment-status.component').then(
@@ -197,6 +206,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/platform',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Platform dashboard',
     loadComponent: () =>
       import('./features/platform/platform-dashboard.component').then(
@@ -205,6 +215,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/platform/suites',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Suite platform configuration',
     loadComponent: () =>
       import('./features/platform/suite-platform-settings.component').then(
@@ -220,6 +231,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/platform/plans',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Suite plans',
     loadComponent: () =>
       import('./features/platform/suite-plans.component').then(
@@ -228,6 +240,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/onboarding',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Onboarding funnel',
     loadComponent: () =>
       import('./features/onboarding/onboarding-funnel.component').then(
@@ -236,6 +249,7 @@ export const routes: Routes = [
   },
   {
     path: 'ops/settings',
+    canActivate: [opsRegionGuard(OPS_REGION.platform)],
     title: 'Team & access',
     loadComponent: () =>
       import('./features/settings/ops-team-settings.component').then((m) => m.OpsTeamSettingsComponent),
@@ -249,5 +263,5 @@ export const routes: Routes = [
   // Legacy redirects
   { path: 'receive', redirectTo: 'ops/receiving/new', pathMatch: 'full' },
   { path: 'parcels/:parcelId', redirectTo: 'ops/receiving/parcels/:parcelId' },
-  { path: '**', redirectTo: RECEIVING_BASE },
+  { path: '**', canActivate: [opsHomeRedirectGuard], children: [] },
 ];

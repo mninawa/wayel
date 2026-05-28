@@ -12,6 +12,12 @@ import {
   type StoredOpsUser,
 } from './ops-auth-storage';
 import { OpsAuthService, type OpsAuthSessionDto } from './ops-auth.service';
+import {
+  defaultHomePath,
+  normalizeOpsRegions,
+  regionsForRole,
+  type OpsRegion,
+} from './ops-regions';
 import { ReceivingApiService, type OpsAccessDto } from './receiving-api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +35,17 @@ export class OpsSessionService {
   });
   readonly role = computed(() => this.access()?.role ?? this.user()?.role ?? '');
   readonly capabilities = computed(() => this.access()?.capabilities ?? []);
+  readonly regions = computed<OpsRegion[]>(() => {
+    const fromAccess = this.access()?.regions;
+    if (fromAccess?.length) {
+      return normalizeOpsRegions(fromAccess);
+    }
+    const fromUser = this.user()?.regions;
+    if (fromUser?.length) {
+      return normalizeOpsRegions(fromUser);
+    }
+    return regionsForRole(this.role());
+  });
   readonly actorName = computed(
     () => this.access()?.actor ?? this.user()?.displayName ?? 'Ops User',
   );
@@ -48,11 +65,13 @@ export class OpsSessionService {
   }
 
   applySession(session: OpsAuthSessionDto): void {
+    const regions = normalizeOpsRegions(session.regions ?? session.user.regions);
     const user: StoredOpsUser = {
       id: session.user.id,
       email: session.user.email,
       displayName: session.user.displayName,
       role: session.user.role,
+      regions,
     };
     storeOpsAuth(session.accessToken, user, session.expiresAtUtc);
     this.token.set(session.accessToken);
@@ -61,6 +80,7 @@ export class OpsSessionService {
       role: session.user.role,
       actor: session.user.displayName,
       capabilities: session.capabilities,
+      regions,
     });
   }
 
@@ -81,6 +101,14 @@ export class OpsSessionService {
 
   can(permission: string): boolean {
     return this.capabilities().includes(permission);
+  }
+
+  hasRegion(region: OpsRegion): boolean {
+    return this.regions().includes(region);
+  }
+
+  homePath(): string {
+    return defaultHomePath(this.regions());
   }
 
   disconnect(): void {

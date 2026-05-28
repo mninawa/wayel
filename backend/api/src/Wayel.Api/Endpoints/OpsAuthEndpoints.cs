@@ -36,7 +36,8 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
             .WithName("ListOpsInvitations");
 
         admin.MapPost("/invitations", async (CreateOpsInvitationRequest body, IMediator mediator, CancellationToken ct) =>
-            (await mediator.Send(new CreateOpsInvitationCommand(body.Email, body.Role), ct)).ToHttpResult())
+            (await mediator.Send(new CreateOpsInvitationCommand(body.Email, body.Role, body.Regions ?? []), ct))
+                .ToHttpResult())
             .WithName("CreateOpsInvitation");
 
         admin.MapDelete("/invitations/{invitationId:guid}", async (Guid invitationId, IMediator mediator, CancellationToken ct) =>
@@ -48,7 +49,7 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
             UpdateOpsUserRoleRequest body,
             IMediator mediator,
             CancellationToken ct) =>
-            (await mediator.Send(new UpdateOpsUserRoleCommand(userId, body.Role), ct)).ToHttpResult())
+            (await mediator.Send(new UpdateOpsUserRoleCommand(userId, body.Role, body.Regions), ct)).ToHttpResult())
             .WithName("UpdateOpsUserRole");
 
         admin.MapPatch("/users/{userId:guid}/disabled", async (
@@ -70,7 +71,7 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
     }
 
     private sealed record OpsGoogleSignInRequest(string IdToken);
-    private sealed record CreateOpsInvitationRequest(string Email, string Role);
-    private sealed record UpdateOpsUserRoleRequest(string Role);
+    private sealed record CreateOpsInvitationRequest(string Email, string Role, IReadOnlyList<string>? Regions);
+    private sealed record UpdateOpsUserRoleRequest(string Role, IReadOnlyList<string>? Regions);
     private sealed record SetOpsUserDisabledRequest(bool IsDisabled);
 }

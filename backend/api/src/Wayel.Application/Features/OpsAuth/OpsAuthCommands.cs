@@ -14,7 +14,8 @@ public sealed record OpsAuthSessionDto(
     string AccessToken,
     DateTime ExpiresAtUtc,
     OpsUserDto User,
-    IReadOnlyList<string> Capabilities);
+    IReadOnlyList<string> Capabilities,
+    IReadOnlyList<string> Regions);
 
 public sealed record OpsUserDto(
     Guid Id,
@@ -23,7 +24,8 @@ public sealed record OpsUserDto(
     string Role,
     bool IsDisabled,
     DateTime CreatedAtUtc,
-    DateTime? LastLoginAtUtc);
+    DateTime? LastLoginAtUtc,
+    IReadOnlyList<string> Regions);
 
 internal sealed class OpsSignInGoogleCommandHandler(
     IGoogleIdTokenValidator googleValidator,
@@ -68,15 +70,18 @@ internal sealed class OpsSignInGoogleCommandHandler(
                         "Warehouse access is by invitation only. Ask a lead to invite you."));
             }
 
+            var role = NormalizeRole(invitation.Role);
+            var regions = OpsRegions.ResolveForRole(role, invitation.Regions);
             user = new OpsUserRecord(
                 Guid.NewGuid(),
                 email,
                 token.Name ?? email,
-                NormalizeRole(invitation.Role),
+                role,
                 token.Subject,
                 false,
                 now,
-                now);
+                now,
+                regions);
 
             await users.AddAsync(user, cancellationToken);
 
@@ -108,21 +113,20 @@ internal sealed class OpsSignInGoogleCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Ops Google sign-in for {Email} ({Role})", user.Email, user.Role);
 
-        var access = jwt.Issue(user.Id, user.Role, user.Email, user.DisplayName);
+        var effectiveRegions = OpsRegions.ResolveForRole(user.Role, user.Regions);
+        var access = jwt.Issue(user.Id, user.Role, user.Email, user.DisplayName, effectiveRegions);
         return new OpsAuthSessionDto(
             access.Token,
             access.ExpiresOnUtc,
-            ToDto(user),
-            OpsPermissions.CapabilitiesFor(user.Role));
+            OpsUserMapper.ToDto(user, effectiveRegions),
+            OpsPermissions.CapabilitiesFor(user.Role, effectiveRegions),
+            effectiveRegions);
     }
-
-    private static OpsUserDto ToDto(OpsUserRecord user) =>
-        new(user.Id, user.Email, user.DisplayName, user.Role, user.IsDisabled, user.CreatedAtUtc, user.LastLoginAtUtc);
 
     internal static string NormalizeRole(string role)
     {
         var r = role.Trim().ToLowerInvariant();
-        return r is "lead" or "finance" or "clerk" ? r : "clerk";
+        return r is "lead" or "finance" or "clerk" or "receiver" or "collector" ? r : "clerk";
     }
 }
 
@@ -145,14 +149,7 @@ internal sealed class ListOpsUsersQueryHandler(IOpsUserRepository users, IOpsCal
         }
 
         var rows = await users.ListAsync(cancellationToken);
-        return rows.Select(u => new OpsUserDto(
-            u.Id,
-            u.Email,
-            u.DisplayName,
-            u.Role,
-            u.IsDisabled,
-            u.CreatedAtUtc,
-            u.LastLoginAtUtc)).ToList();
+        return rows.Select(u => OpsUserMapper.ToDto(u)).ToList();
     }
 }
 
@@ -160,6 +157,7 @@ public sealed record OpsInvitationDto(
     Guid Id,
     string Email,
     string Role,
+    IReadOnlyList<string> Regions,
     string Status,
     DateTime ExpiresAtUtc,
     string InvitedByEmail,
@@ -195,6 +193,7 @@ internal sealed class ListOpsInvitationsQueryHandler(
             row.Id,
             row.Email,
             row.Role,
+            OpsRegions.ResolveForRole(row.Role, row.Regions),
             row.Status,
             row.ExpiresAtUtc,
             row.InvitedByEmail,
@@ -203,7 +202,8 @@ internal sealed class ListOpsInvitationsQueryHandler(
             row.Status == "Pending" ? $"/?invite={row.Token}" : null);
 }
 
-public sealed record CreateOpsInvitationCommand(string Email, string Role) : ICommand<OpsInvitationDto>;
+public sealed record CreateOpsInvitationCommand(string Email, string Role, IReadOnlyList<string> Regions)
+    : ICommand<OpsInvitationDto>;
 
 internal sealed class CreateOpsInvitationCommandHandler(
     IOpsInvitationRepository invitations,
@@ -243,11 +243,19 @@ internal sealed class CreateOpsInvitationCommandHandler(
             return Error.Validation("ops.invite.already_pending", "An invitation is already pending for this email.");
         }
 
+        var role = OpsSignInGoogleCommandHandler.NormalizeRole(request.Role);
+        var regions = OpsRegions.Normalize(request.Regions);
+        if (regions.Count == 0)
+        {
+            regions = OpsRegions.ResolveForRole(role, null);
+        }
+
         var now = clock.UtcNow;
         var record = new OpsInvitationRecord(
             Guid.NewGuid(),
             email,
-            OpsSignInGoogleCommandHandler.NormalizeRole(request.Role),
+            role,
+            regions,
             NewToken(),
             "Pending",
             now.AddDays(14),
@@ -303,7 +311,8 @@ internal sealed class RevokeOpsInvitationCommandHandler(
     }
 }
 
-public sealed record UpdateOpsUserRoleCommand(Guid UserId, string Role) : ICommand<OpsUserDto>;
+public sealed record UpdateOpsUserRoleCommand(Guid UserId, string Role, IReadOnlyList<string>? Regions = null)
+    : ICommand<OpsUserDto>;
 
 internal sealed class UpdateOpsUserRoleCommandHandler(
     IOpsUserRepository users,
@@ -329,18 +338,15 @@ internal sealed class UpdateOpsUserRoleCommandHandler(
             return Error.NotFound("ops.user.not_found", "User not found.");
         }
 
-        var updated = user with { Role = OpsSignInGoogleCommandHandler.NormalizeRole(request.Role) };
+        var role = OpsSignInGoogleCommandHandler.NormalizeRole(request.Role);
+        var regions = request.Regions is { Count: > 0 }
+            ? OpsRegions.Normalize(request.Regions)
+            : OpsRegions.ResolveForRole(role, user.Regions);
+        var updated = user with { Role = role, Regions = regions };
         await users.ReplaceAsync(updated, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new OpsUserDto(
-            updated.Id,
-            updated.Email,
-            updated.DisplayName,
-            updated.Role,
-            updated.IsDisabled,
-            updated.CreatedAtUtc,
-            updated.LastLoginAtUtc);
+        return OpsUserMapper.ToDto(updated);
     }
 }
 
@@ -374,20 +380,18 @@ internal sealed class SetOpsUserDisabledCommandHandler(
         await users.ReplaceAsync(updated, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new OpsUserDto(
-            updated.Id,
-            updated.Email,
-            updated.DisplayName,
-            updated.Role,
-            updated.IsDisabled,
-            updated.CreatedAtUtc,
-            updated.LastLoginAtUtc);
+        return OpsUserMapper.ToDto(updated);
     }
 }
 
 public sealed record PreviewOpsInvitationQuery(string Token) : IQuery<OpsInvitationPreviewDto>;
 
-public sealed record OpsInvitationPreviewDto(string Email, string Role, DateTime ExpiresAtUtc, bool IsValid);
+public sealed record OpsInvitationPreviewDto(
+    string Email,
+    string Role,
+    IReadOnlyList<string> Regions,
+    DateTime ExpiresAtUtc,
+    bool IsValid);
 
 internal sealed class PreviewOpsInvitationQueryHandler(
     IOpsInvitationRepository invitations,
@@ -404,6 +408,25 @@ internal sealed class PreviewOpsInvitationQueryHandler(
         }
 
         var valid = row.Status == "Pending" && row.ExpiresAtUtc >= clock.UtcNow;
-        return new OpsInvitationPreviewDto(row.Email, row.Role, row.ExpiresAtUtc, valid);
+        return new OpsInvitationPreviewDto(
+            row.Email,
+            row.Role,
+            OpsRegions.ResolveForRole(row.Role, row.Regions),
+            row.ExpiresAtUtc,
+            valid);
     }
+}
+
+internal static class OpsUserMapper
+{
+    internal static OpsUserDto ToDto(OpsUserRecord user, IReadOnlyList<string>? regions = null) =>
+        new(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.Role,
+            user.IsDisabled,
+            user.CreatedAtUtc,
+            user.LastLoginAtUtc,
+            regions ?? OpsRegions.ResolveForRole(user.Role, user.Regions));
 }

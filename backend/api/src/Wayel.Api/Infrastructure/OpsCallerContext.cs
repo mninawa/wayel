@@ -12,10 +12,15 @@ internal sealed class OpsCallerContext(IHttpContextAccessor httpContextAccessor)
 
     public string Actor =>
         httpContextAccessor.HttpContext?.Items[OpsHttpContextKeys.Actor] as string ?? "Ops User";
+
+    public IReadOnlyList<string> Regions =>
+        httpContextAccessor.HttpContext?.Items[OpsHttpContextKeys.Regions] as IReadOnlyList<string>
+        ?? [];
 }
 
 internal static class OpsHttpContextKeys
 {
     public const string Role = "OpsRole";
     public const string Actor = "OpsActor";
+    public const string Regions = "OpsRegions";
 }

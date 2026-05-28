@@ -14,6 +14,7 @@ public sealed record OpsInvitationRecord(
     Guid Id,
     string Email,
     string Role,
+    IReadOnlyList<string> Regions,
     string Token,
     string Status,
     DateTime ExpiresAtUtc,

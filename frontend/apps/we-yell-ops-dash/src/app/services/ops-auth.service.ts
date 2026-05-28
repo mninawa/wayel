@@ -14,8 +14,10 @@ export interface OpsAuthSessionDto {
     isDisabled: boolean;
     createdAtUtc: string;
     lastLoginAtUtc: string | null;
+    regions: string[];
   };
   capabilities: string[];
+  regions: string[];
 }
 
 export interface OpsUserDto {
@@ -26,12 +28,14 @@ export interface OpsUserDto {
   isDisabled: boolean;
   createdAtUtc: string;
   lastLoginAtUtc: string | null;
+  regions: string[];
 }
 
 export interface OpsInvitationDto {
   id: string;
   email: string;
   role: string;
+  regions: string[];
   status: string;
   expiresAtUtc: string;
   invitedByEmail: string;
@@ -43,6 +47,7 @@ export interface OpsInvitationDto {
 export interface OpsInvitationPreviewDto {
   email: string;
   role: string;
+  regions: string[];
   expiresAtUtc: string;
   isValid: boolean;
 }
@@ -94,10 +99,11 @@ export class OpsAuthService {
     accessToken: string,
     email: string,
     role: string,
+    regions: string[],
   ): Observable<OpsInvitationDto> {
     return this.http.post<OpsInvitationDto>(
       `${this.base}/admin/invitations`,
-      { email, role },
+      { email, role, regions },
       { headers: this.bearer(accessToken) },
     );
   }
@@ -108,10 +114,15 @@ export class OpsAuthService {
     });
   }
 
-  updateUserRole(accessToken: string, userId: string, role: string): Observable<OpsUserDto> {
+  updateUserRole(
+    accessToken: string,
+    userId: string,
+    role: string,
+    regions: string[],
+  ): Observable<OpsUserDto> {
     return this.http.patch<OpsUserDto>(
       `${this.base}/admin/users/${userId}/role`,
-      { role },
+      { role, regions },
       { headers: this.bearer(accessToken) },
     );
   }
