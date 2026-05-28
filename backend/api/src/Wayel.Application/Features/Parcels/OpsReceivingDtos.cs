@@ -90,7 +90,9 @@ public sealed record SaveOpsInspectionResultDto(
     Guid ParcelId,
     string ConditionStatus,
     string QuoteReadiness,
-    DateTime InspectedAtUtc);
+    DateTime InspectedAtUtc,
+    string InvoiceReminderWhatsAppStatus,
+    string? InvoiceReminderWhatsAppDetail);
 
 public sealed record SendToQuoteQueueResultDto(
     IReadOnlyList<Guid> ParcelIds,

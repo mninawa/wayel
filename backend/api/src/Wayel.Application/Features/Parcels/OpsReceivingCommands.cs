@@ -7,6 +7,7 @@ using Wayel.Domain.Common;
 using Wayel.Application.Abstractions.Storage;
 using Wayel.Domain.ParcelInvoices;
 using Wayel.Domain.Parcels;
+using Wayel.Domain.Users;
 
 namespace Wayel.Application.Features.Parcels;
 
@@ -395,6 +396,7 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork,
+    ICustomerWhatsAppMessageLogRepository whatsAppMessageLog,
     IBorderBoxWhatsAppNotifier whatsApp,
     IBorderBoxInAppNotifier inApp) : ICommandHandler<SaveOpsParcelInspectionCommand, SaveOpsInspectionResultDto>
 {
@@ -446,6 +448,7 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var user = await users.GetByIdAsync(parcel.UserId, cancellationToken);
+        ParcelInvoiceUploadReminder.Result reminder = new("NotSent", null);
         if (user is not null)
         {
             var inspectionPhotos = await photos.ListForParcelAsync(parcelId, "INSPECTION", cancellationToken);
@@ -476,6 +479,15 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
                 parcel.ItemName,
                 metadata.ConditionStatus,
                 cancellationToken);
+
+            reminder = await ParcelInvoiceUploadReminder.SendIfNeededAsync(
+                whatsAppMessageLog,
+                invoices,
+                whatsApp,
+                inApp,
+                user,
+                parcel,
+                cancellationToken);
         }
 
         var invoice = await invoices.GetForParcelAsync(parcelId, cancellationToken);
@@ -484,7 +496,9 @@ internal sealed class SaveOpsParcelInspectionCommandHandler(
             parcel.Id.Value,
             metadata.ConditionStatus,
             readiness.State,
-            now);
+            now,
+            reminder.Status,
+            reminder.Detail);
     }
 }
 
@@ -680,5 +694,68 @@ internal static class OpsReadinessRules
         }
 
         return new("NOT_READY", string.Join(", ", blockers));
+    }
+}
+
+public sealed record SendParcelInvoiceUploadReminderCommand(
+    Guid ParcelId,
+    bool ForceResend = false) : ICommand<SendParcelInvoiceUploadReminderResultDto>;
+
+public sealed record SendParcelInvoiceUploadReminderResultDto(
+    Guid ParcelId,
+    string InvoiceReminderWhatsAppStatus,
+    string? InvoiceReminderWhatsAppDetail,
+    string Message);
+
+internal sealed class SendParcelInvoiceUploadReminderCommandHandler(
+    IParcelRepository parcels,
+    IParcelInvoiceRepository invoices,
+    IUserRepository users,
+    ICustomerWhatsAppMessageLogRepository whatsAppMessageLog,
+    IBorderBoxWhatsAppNotifier whatsApp,
+    IBorderBoxInAppNotifier inApp) : ICommandHandler<SendParcelInvoiceUploadReminderCommand, SendParcelInvoiceUploadReminderResultDto>
+{
+    public async Task<Result<SendParcelInvoiceUploadReminderResultDto>> Handle(
+        SendParcelInvoiceUploadReminderCommand request,
+        CancellationToken cancellationToken)
+    {
+        var parcelId = new ParcelId(request.ParcelId);
+        var parcel = await parcels.GetByIdAsync(parcelId, cancellationToken);
+        if (parcel is null)
+        {
+            return Error.NotFound("parcel.not_found", "Parcel not found.");
+        }
+
+        var user = await users.GetByIdAsync(parcel.UserId, cancellationToken);
+        if (user is null)
+        {
+            return UserErrors.NotFound(parcel.UserId);
+        }
+
+        var reminder = await ParcelInvoiceUploadReminder.SendIfNeededAsync(
+            whatsAppMessageLog,
+            invoices,
+            whatsApp,
+            inApp,
+            user,
+            parcel,
+            cancellationToken,
+            request.ForceResend);
+
+        var message = reminder.Status switch
+        {
+            "Sent" => "WhatsApp invoice upload reminder sent to the customer.",
+            "AlreadySent" => "Invoice upload reminder was already sent for this parcel.",
+            "NotNeeded" => "Invoice is already on file — no reminder needed.",
+            "Skipped" => reminder.Detail ?? "WhatsApp reminder was not sent.",
+            "Failed" => reminder.Detail ?? "WhatsApp reminder failed to send.",
+            _ => "Invoice upload reminder processed.",
+        };
+
+        return new SendParcelInvoiceUploadReminderResultDto(
+            parcel.Id.Value,
+            reminder.Status,
+            reminder.Detail,
+            message);
     }
 }

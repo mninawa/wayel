@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import {
   computeParcelPageMetrics,
   isReadyToQuoteParcel,
@@ -19,13 +19,14 @@ import { canTrackParcel, trackParcelRoute } from '../../utils/tracking-links';
 import type { ParcelListItem } from '../../models/parcel.models';
 import { ParcelsService } from '../../services/parcels.service';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
+import { PendingInvoiceBannerComponent } from '../shared/pending-invoice-banner.component';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
 @Component({
   selector: 'app-received-parcels',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent],
+  imports: [RouterLink, SuiteExpiredBannerComponent, PendingInvoiceBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bb-page-head">
@@ -40,21 +41,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
     <app-suite-expired-banner />
 
-    @if (pendingInvoiceCount() > 0) {
-      <section class="invoice-alert bb-card" role="status" aria-live="polite">
-        <span class="material-icons-outlined alert-icon">upload_file</span>
-        <div class="alert-copy">
-          <strong>
-            {{ pendingInvoiceCount() }} parcel{{ pendingInvoiceCount() === 1 ? '' : 's' }}
-            {{ pendingInvoiceCount() === 1 ? 'needs' : 'need' }} your invoice
-          </strong>
-          <p>Upload the retailer invoice (PDF or image) before you can request a quote or ship out.</p>
-        </div>
-        <button type="button" class="bb-btn bb-btn-primary" (click)="filterInvoicesPending()">
-          Show pending
-        </button>
-      </section>
-    }
+    <app-pending-invoice-banner />
 
     <section class="stats">
       @for (card of statCards(); track card.key) {
@@ -242,11 +229,6 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
     @media (max-width: 1100px) { .stats { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 640px) {
       .stats { grid-template-columns: 1fr; }
-      .invoice-alert {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .invoice-alert .bb-btn { width: 100%; }
       .toolbar { flex-direction: column; align-items: stretch; }
       .toolbar-select,
       .search-wrap { width: 100%; min-width: 0; }
@@ -291,20 +273,6 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
     .stat-title { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bb-muted); }
     .stat-val { margin: 0.15rem 0 0; font-size: 1.45rem; font-weight: 700; line-height: 1.1; color: var(--bb-text); }
     .stat-lbl { margin: 0.2rem 0 0; font-size: 0.75rem; color: var(--bb-muted); }
-
-    .invoice-alert {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      padding: 1rem 1.15rem;
-      margin-bottom: 1rem;
-      border-color: #fcd34d;
-      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    }
-    .invoice-alert .alert-icon { color: #b45309; font-size: 28px; flex-shrink: 0; }
-    .invoice-alert .alert-copy { flex: 1; min-width: 0; }
-    .invoice-alert .alert-copy strong { display: block; font-size: 0.95rem; color: #92400e; margin-bottom: 0.25rem; }
-    .invoice-alert .alert-copy p { margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.45; }
 
     .toolbar {
       display: flex;
@@ -426,6 +394,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 })
 export class ReceivedParcelsComponent implements OnInit {
   readonly parcelsApi = inject(ParcelsService);
+  private readonly route = inject(ActivatedRoute);
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
 
   readonly search = signal('');
@@ -514,8 +483,6 @@ export class ReceivedParcelsComponent implements OnInit {
       || this.search().trim().length > 0,
   );
 
-  readonly pendingInvoiceCount = computed(() => this.metrics().invoicesPending);
-
   constructor() {
     effect(() => {
       this.search();
@@ -535,6 +502,9 @@ export class ReceivedParcelsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('invoice') === 'pending') {
+      this.filterInvoicesPending();
+    }
     this.refresh();
   }
 

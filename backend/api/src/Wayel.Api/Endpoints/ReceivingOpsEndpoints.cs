@@ -146,6 +146,16 @@ public sealed class ReceivingOpsEndpoints : IEndpointGroup
             .DisableAntiforgery()
             .WithName("UploadOpsParcelInvoice");
 
+        group.MapPost("/parcels/{parcelId:guid}/invoice/upload-reminder", async (
+            Guid parcelId,
+            SendParcelInvoiceUploadReminderRequest? body,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(
+                new SendParcelInvoiceUploadReminderCommand(parcelId, body?.ForceResend ?? false),
+                ct)).ToHttpResult())
+            .WithName("SendOpsParcelInvoiceUploadReminder");
+
         group.MapGet("/parcels/{parcelId:guid}/photos", async (
             Guid parcelId,
             IMediator mediator,
@@ -304,6 +314,8 @@ public sealed class ReceivingOpsEndpoints : IEndpointGroup
         decimal? WeightKg);
 
     private sealed record VerifyOpsInvoiceRequest(string Decision, string? Reason);
+
+    private sealed record SendParcelInvoiceUploadReminderRequest(bool ForceResend = false);
 
     private sealed record SaveOpsInspectionRequest(
         string ConditionStatus,

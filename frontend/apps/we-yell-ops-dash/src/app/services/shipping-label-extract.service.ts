@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { createWorker, PSM, type Worker } from 'tesseract.js';
 import { BarcodeScanService } from './barcode-scan.service';
+import { RETAILER_OCR_PATTERNS } from '../types/retailer-options';
 
 /** Fields read from a label image — the image itself is never persisted. */
 export interface ShippingLabelExtraction {
@@ -12,13 +13,6 @@ export interface ShippingLabelExtraction {
   trackingSource: 'barcode' | 'ocr' | null;
   fieldsFound: string[];
 }
-
-const RETAILER_PATTERNS: { id: string; re: RegExp }[] = [
-  { id: 'Amazon US', re: /\bamazon(?:\.com)?\b/i },
-  { id: 'Walmart', re: /\bwalmart\b/i },
-  { id: 'eBay', re: /\bebay\b/i },
-  { id: 'Takealot', re: /\btakealot\b/i },
-];
 
 const COURIER_PATTERNS: { id: string; re: RegExp }[] = [
   { id: 'UPS', re: /\bups\b|\bunited\s+parcel\b/i },
@@ -64,7 +58,7 @@ export class ShippingLabelExtractService {
     const courier =
       (tracking ? this.barcode.guessCourier(tracking) : null) ??
       this.matchFromPatterns(normalizedOcr, COURIER_PATTERNS);
-    const retailer = this.matchFromPatterns(normalizedOcr, RETAILER_PATTERNS);
+    const retailer = this.matchFromPatterns(normalizedOcr, RETAILER_OCR_PATTERNS);
     const suiteNumber = this.extractSuiteNumber(normalizedOcr);
 
     const fieldsFound = [

@@ -25,4 +25,8 @@ public interface ICustomerWhatsAppMessageLogRepository
         Guid parcelId,
         int limit,
         CancellationToken cancellationToken = default);
+
+    Task<CustomerWhatsAppMessageLogEntry?> GetLatestByCorrelationTagAsync(
+        string correlationTag,
+        CancellationToken cancellationToken = default);
 }

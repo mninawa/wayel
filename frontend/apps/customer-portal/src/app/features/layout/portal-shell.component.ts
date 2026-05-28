@@ -31,8 +31,8 @@ interface NavItem {
 function buildNav(): NavItem[] {
   return [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
-    { path: '/received-parcels', label: 'Packages', icon: 'local_shipping' },
     { path: '/my-address', label: 'My Address', icon: 'pin_drop' },
+    { path: '/received-parcels', label: 'Parcels', icon: 'local_shipping' },
     { path: '/quotes/list', label: 'Quotes', icon: 'request_quote' },
     { path: '/suite-access/checkout', label: 'Payments', icon: 'payments' },
     { path: '/tracking-support', label: 'Support', icon: 'support_agent' },
@@ -62,8 +62,10 @@ function buildNav(): NavItem[] {
       >
         <div class="sidebar-head">
           <a routerLink="/dashboard" class="brand-mark" (click)="closeSidebar()" [attr.title]="productName">
-            <span class="material-icons-outlined brand-icon">inventory_2</span>
-            <span class="brand-wordmark">{{ productName }}</span>
+            <span class="brand-logo-wrap">
+              <img src="/weyell-brand-logo.png" alt="" class="brand-logo-compact" aria-hidden="true" />
+              <img src="/weyell-brand-logo.png" [alt]="productName" class="brand-logo-full" />
+            </span>
           </a>
           <button
             type="button"
@@ -89,6 +91,11 @@ function buildNav(): NavItem[] {
             </a>
           }
         </nav>
+
+        <div class="sidebar-promo">
+          <p class="sidebar-promo-title">More destinations coming soon!</p>
+          <span class="sidebar-promo-cta">Stay tuned →</span>
+        </div>
 
         <button
           type="button"
@@ -136,7 +143,7 @@ function buildNav(): NavItem[] {
 
           <label class="search bb-search-pill">
             <span class="material-icons-outlined">search</span>
-            <input type="search" placeholder="Track parcel, quote, or invoice…" />
+            <input type="search" placeholder="Search parcels, shipments, quotes, invoices…" />
           </label>
 
           <div class="topbar-actions">
@@ -245,29 +252,59 @@ function buildNav(): NavItem[] {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0;
       text-decoration: none;
       color: inherit;
+      width: 100%;
     }
 
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      font-size: 24px !important;
-      color: var(--bb-lime);
+    .brand-logo-wrap {
+      display: block;
+      width: 100%;
+      overflow: hidden;
     }
 
-    .brand-wordmark {
+    .brand-logo-full {
       display: none;
-      font-size: 1.1rem;
+      width: 100%;
+      max-width: 168px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .brand-logo-compact {
+      display: block;
+      width: 44px;
+      height: 36px;
+      object-fit: cover;
+      object-position: top center;
+      margin: 0 auto;
+    }
+
+    .sidebar-promo {
+      display: none;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: auto;
+      margin-bottom: 0.5rem;
+      padding: 0.85rem 0.75rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar-promo-title {
+      margin: 0;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 600;
+    }
+
+    .sidebar-promo-cta {
+      font-size: 0.68rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #fff;
+      color: var(--bb-lime);
     }
 
     .nav {
@@ -313,11 +350,12 @@ function buildNav(): NavItem[] {
     .nav a.active {
       background: var(--sidebar-bg-active);
       color: var(--sidebar-text-active);
-      font-weight: 700;
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--sidebar-active-border);
     }
 
     .nav a.active .nav-icon {
-      color: var(--bb-ink);
+      color: var(--sidebar-text-active);
     }
 
     .nav-icon {
@@ -589,8 +627,17 @@ function buildNav(): NavItem[] {
         align-items: center;
       }
 
-      .brand-wordmark {
+      .brand-logo-compact {
+        display: none;
+      }
+
+      .brand-logo-full {
         display: block;
+        max-width: 140px;
+      }
+
+      .sidebar-promo {
+        display: flex;
       }
 
       .nav a,
@@ -751,13 +798,21 @@ function buildNav(): NavItem[] {
       }
 
       .sidebar.sidebar-expanded .brand-mark {
-        flex-direction: row;
-        align-items: center;
-        gap: 0.65rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
       }
 
-      .sidebar.sidebar-expanded .brand-wordmark {
+      .sidebar.sidebar-expanded .brand-logo-compact {
+        display: none;
+      }
+
+      .sidebar.sidebar-expanded .brand-logo-full {
         display: block;
+      }
+
+      .sidebar.sidebar-expanded .sidebar-promo {
+        display: flex;
       }
 
       .sidebar.sidebar-expanded .nav a,

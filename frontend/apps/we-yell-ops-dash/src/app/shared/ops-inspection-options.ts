@@ -1,7 +1,13 @@
 export const PACKAGING_TYPE_OPTIONS = [
   'Corrugated box',
   'Poly mailer',
+  'Bubble mailer',
+  'Plastic bag',
   'Envelope',
+  'Tube / cylinder',
+  'Wooden crate',
+  'Foam box',
+  'Pallet / bulk wrap',
   'Other',
 ] as const;
 

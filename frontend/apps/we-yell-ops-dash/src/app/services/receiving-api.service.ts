@@ -11,6 +11,8 @@ import type {
   OpsReceivingStatsDto,
   ReceiveParcelRequest,
   ReceiveParcelResultDto,
+  SaveInspectionResultDto,
+  SendInvoiceUploadReminderResultDto,
   SuiteReceiveLookupDto,
 } from './parcel-ops-api.service';
 
@@ -225,10 +227,22 @@ export class ReceivingApiService {
     parcelId: string,
     body: SaveInspectionRequest,
     opsKey: string,
-  ): Observable<{ parcelId: string; conditionStatus: string; quoteReadiness: string; inspectedAtUtc: string }> {
-    return this.http.post<{ parcelId: string; conditionStatus: string; quoteReadiness: string; inspectedAtUtc: string }>(
+  ): Observable<SaveInspectionResultDto> {
+    return this.http.post<SaveInspectionResultDto>(
       `${this.base}/parcels/${parcelId}/inspection`,
       body,
+      { headers: this.opsHeaders(opsKey) },
+    );
+  }
+
+  sendInvoiceUploadReminder(
+    parcelId: string,
+    opsKey: string,
+    forceResend = false,
+  ): Observable<SendInvoiceUploadReminderResultDto> {
+    return this.http.post<SendInvoiceUploadReminderResultDto>(
+      `${this.base}/parcels/${parcelId}/invoice/upload-reminder`,
+      { forceResend },
       { headers: this.opsHeaders(opsKey) },
     );
   }

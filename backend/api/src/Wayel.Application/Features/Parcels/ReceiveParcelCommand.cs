@@ -29,17 +29,21 @@ public sealed record ReceiveParcelResultDto(
     string? TrackingNumber,
     string ItemName,
     string Status,
-    DateTime ReceivedAtUtc);
+    DateTime ReceivedAtUtc,
+    string InvoiceReminderWhatsAppStatus,
+    string? InvoiceReminderWhatsAppDetail);
 
 internal sealed class ReceiveParcelCommandHandler(
     IUserRepository users,
     ISuiteSubscriptionRepository subscriptions,
     IParcelRepository parcels,
+    IParcelInvoiceRepository invoices,
     IParcelOpsActivityRepository activities,
     IWarehouseLocationRepository locations,
     IOpsCallerContext ops,
     IClock clock,
     IUnitOfWork unitOfWork,
+    ICustomerWhatsAppMessageLogRepository whatsAppMessageLog,
     IBorderBoxWhatsAppNotifier whatsApp,
     IBorderBoxInAppNotifier inApp) : ICommandHandler<ReceiveParcelCommand, ReceiveParcelResultDto>
 {
@@ -135,20 +139,13 @@ internal sealed class ReceiveParcelCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await whatsApp.NotifyParcelReceivedUploadInvoiceAsync(
+        var reminder = await ParcelInvoiceUploadReminder.SendIfNeededAsync(
+            whatsAppMessageLog,
+            invoices,
+            whatsApp,
+            inApp,
             user,
-            parcel.Id.Value,
-            parcel.SuiteNumber,
-            parcel.ItemName,
-            parcel.TrackingNumber,
-            cancellationToken);
-
-        await inApp.NotifyParcelReceivedUploadInvoiceAsync(
-            user,
-            parcel.Id.Value,
-            parcel.SuiteNumber,
-            parcel.ItemName,
-            parcel.TrackingNumber,
+            parcel,
             cancellationToken);
 
         return new ReceiveParcelResultDto(
@@ -159,6 +156,8 @@ internal sealed class ReceiveParcelCommandHandler(
             parcel.TrackingNumber,
             parcel.ItemName,
             parcel.Status.ToString(),
-            parcel.ReceivedAtUtc);
+            parcel.ReceivedAtUtc,
+            reminder.Status,
+            reminder.Detail);
     }
 }

@@ -37,10 +37,13 @@ import {
 } from '../../types/ecommerce-product-categories';
 import { receivingRoutes } from '../../types/receiving.types';
 import { OpsOverlayService } from '../../shared/ops-overlay.service';
+import {
+  isRetailerOption,
+  RETAILER_OPTIONS,
+  retailerBadgeLetter,
+} from '../../types/retailer-options';
 
 const STEPS = ['Scan', 'Match', 'Capture Details', 'Invoice', 'Confirm'] as const;
-
-const RETAILERS = ['Amazon US', 'Takealot', 'Walmart', 'eBay', 'Other'] as const;
 
 const RECENT_SCANS_KEY = 'weyell-ops-recent-scans';
 const MAX_RECENT = 8;
@@ -373,9 +376,29 @@ interface PendingPhoto {
                         (change)="onInvoiceSelected($event)"
                       />
                     </label>
-                    <p class="hint">Or wait for the customer to upload from the portal — a WhatsApp reminder was sent.</p>
+                    <p class="hint">{{ invoiceReminderHint() }}</p>
+                    @if (canResendInvoiceReminder()) {
+                      <button
+                        type="button"
+                        class="ops-btn ops-btn-outline resend-reminder-btn"
+                        [disabled]="invoiceReminderBusy()"
+                        (click)="resendInvoiceReminder()"
+                      >
+                        {{ invoiceReminderBusy() ? 'Sending…' : 'Resend WhatsApp reminder' }}
+                      </button>
+                    }
                   } @else {
-                    <p class="hint">A WhatsApp message was sent asking them to upload from the customer portal.</p>
+                    <p class="hint">{{ invoiceReminderHint() }}</p>
+                    @if (canResendInvoiceReminder()) {
+                      <button
+                        type="button"
+                        class="ops-btn ops-btn-outline resend-reminder-btn"
+                        [disabled]="invoiceReminderBusy()"
+                        (click)="resendInvoiceReminder()"
+                      >
+                        {{ invoiceReminderBusy() ? 'Sending…' : 'Resend WhatsApp reminder' }}
+                      </button>
+                    }
                   }
                 </div>
               } @else if (previewUrl()) {
@@ -737,6 +760,7 @@ interface PendingPhoto {
     .invoice-upload-zone input { display: none; }
     .invoice-upload-zone .material-icons-outlined { color: var(--ops-link); font-size: 28px; }
     .invoice-upload-zone small { font-size: 0.68rem; color: var(--ops-muted); }
+    .resend-reminder-btn { margin-top: 0.75rem; }
     .success-panel { text-align: center; }
     .success-icon .material-icons-outlined { font-size: 3.5rem; color: #15803d; }
     .success-panel h2 { margin: 0.5rem 0 1rem; font-size: 1.25rem; }
@@ -772,7 +796,7 @@ export class ParcelReceiveComponent implements OnDestroy {
 
   readonly routes = receivingRoutes;
   readonly steps = STEPS;
-  readonly retailers = RETAILERS;
+  readonly retailers = RETAILER_OPTIONS;
   readonly invoiceTone = pillToneForInvoice;
   readonly packagingTypes = PACKAGING_TYPE_OPTIONS;
   readonly conditionOptions = CONDITION_OPTIONS;
@@ -797,11 +821,14 @@ export class ParcelReceiveComponent implements OnDestroy {
   readonly invoiceUploadBusy = signal(false);
   readonly invoiceMsg = signal<string | null>(null);
   readonly invoiceErr = signal<string | null>(null);
+  readonly invoiceReminderStatus = signal<string | null>(null);
+  readonly invoiceReminderDetail = signal<string | null>(null);
+  readonly invoiceReminderBusy = signal(false);
   readonly previewUrl = signal<SafeResourceUrl | null>(null);
   readonly previewError = signal<string | null>(null);
   readonly contentType = signal('');
 
-  retailer = 'Amazon US';
+  retailer = 'Takealot';
   suiteNumber = '';
   trackingNumber = '';
   itemName = '';
@@ -833,9 +860,7 @@ export class ParcelReceiveComponent implements OnDestroy {
   }
 
   retailerBadge(retailer: string): string {
-    if (retailer.startsWith('Amazon')) return 'a';
-    if (retailer === 'Takealot') return 'T';
-    return retailer.slice(0, 1).toUpperCase();
+    return retailerBadgeLetter(retailer);
   }
 
   quoteReady(): boolean {
@@ -851,6 +876,51 @@ export class ParcelReceiveComponent implements OnDestroy {
     return this.session.can(OPS_CAP.invoiceUpload);
   }
 
+  canResendInvoiceReminder(): boolean {
+    return !this.receivedParcel()?.invoiceFileName;
+  }
+
+  invoiceReminderHint(): string {
+    const status = this.invoiceReminderStatus();
+    const detail = this.invoiceReminderDetail();
+    switch (status) {
+      case 'Sent':
+        return 'WhatsApp sent — customer asked to upload their purchase invoice from the portal.';
+      case 'AlreadySent':
+        return 'Customer was already reminded via WhatsApp to upload their invoice.';
+      case 'Skipped':
+        return detail ?? 'WhatsApp reminder was not sent — customer has no phone on profile.';
+      case 'Failed':
+        return detail ?? 'WhatsApp reminder failed. Use resend or ask the customer to upload manually.';
+      case 'NotNeeded':
+        return 'Invoice already on file.';
+      default:
+        return 'Waiting for the customer to upload their purchase invoice from the portal.';
+    }
+  }
+
+  resendInvoiceReminder(): void {
+    const key = this.session.opsKey();
+    const parcelId = this.receivedResult()?.parcelId;
+    if (!key || !parcelId || this.invoiceReminderBusy()) return;
+
+    this.invoiceReminderBusy.set(true);
+    this.api.sendInvoiceUploadReminder(parcelId, key, true).subscribe({
+      next: (result) => {
+        this.invoiceReminderBusy.set(false);
+        this.applyInvoiceReminderFeedback(
+          result.invoiceReminderWhatsAppStatus,
+          result.invoiceReminderWhatsAppDetail,
+        );
+        this.overlay.success(result.message);
+      },
+      error: (err: unknown) => {
+        this.invoiceReminderBusy.set(false);
+        this.overlay.error(this.formatError(err, 'Could not send WhatsApp reminder.'));
+      },
+    });
+  }
+
   isPdf(): boolean {
     return this.contentType().includes('pdf');
   }
@@ -862,7 +932,7 @@ export class ParcelReceiveComponent implements OnDestroy {
 
   onLabelExtracted(ex: ShippingLabelExtraction): void {
     if (ex.trackingNumber) this.trackingNumber = ex.trackingNumber;
-    if (ex.retailer && (RETAILERS as readonly string[]).includes(ex.retailer)) {
+    if (ex.retailer && isRetailerOption(ex.retailer)) {
       this.retailer = ex.retailer;
     }
     if (ex.suiteNumber) {
@@ -1006,7 +1076,11 @@ export class ParcelReceiveComponent implements OnDestroy {
             uploads: uploads$,
           });
         }),
-        switchMap(({ result }) => {
+        switchMap(({ result, inspection }) => {
+          this.applyInvoiceReminderFeedback(
+            inspection.invoiceReminderWhatsAppStatus,
+            inspection.invoiceReminderWhatsAppDetail,
+          );
           const key2 = this.session.opsKey();
           if (!key2) return of(result);
           return this.api.getParcel(result.parcelId, key2).pipe(
@@ -1110,9 +1184,12 @@ export class ParcelReceiveComponent implements OnDestroy {
     this.invoiceVerified.set(false);
     this.invoiceMsg.set(null);
     this.invoiceErr.set(null);
+    this.invoiceReminderStatus.set(null);
+    this.invoiceReminderDetail.set(null);
+    this.invoiceReminderBusy.set(false);
     this.previewUrl.set(null);
     this.previewError.set(null);
-    this.retailer = 'Amazon US';
+    this.retailer = 'Takealot';
   }
 
   private async verifyInvoice(decision: 'APPROVE' | 'REJECT', advance: boolean): Promise<void> {
@@ -1157,6 +1234,20 @@ export class ParcelReceiveComponent implements OnDestroy {
       },
       error: () => this.previewError.set('Could not load invoice file.'),
     });
+  }
+
+  private applyInvoiceReminderFeedback(status: string, detail: string | null): void {
+    this.invoiceReminderStatus.set(status);
+    this.invoiceReminderDetail.set(detail);
+    if (status === 'Sent') {
+      this.overlay.success('WhatsApp sent — customer asked to upload invoice.');
+    } else if (status === 'AlreadySent') {
+      this.overlay.info('Customer was already reminded via WhatsApp.');
+    } else if (status === 'Skipped') {
+      this.overlay.info(detail ?? 'WhatsApp reminder not sent — customer has no phone on profile.');
+    } else if (status === 'Failed') {
+      this.overlay.error(detail ?? 'WhatsApp reminder failed to send.');
+    }
   }
 
   private revokePendingPhotos(): void {

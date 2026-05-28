@@ -35,6 +35,24 @@ export interface ReceiveParcelResultDto {
   itemName: string;
   status: string;
   receivedAtUtc: string;
+  invoiceReminderWhatsAppStatus: string;
+  invoiceReminderWhatsAppDetail: string | null;
+}
+
+export interface SaveInspectionResultDto {
+  parcelId: string;
+  conditionStatus: string;
+  quoteReadiness: string;
+  inspectedAtUtc: string;
+  invoiceReminderWhatsAppStatus: string;
+  invoiceReminderWhatsAppDetail: string | null;
+}
+
+export interface SendInvoiceUploadReminderResultDto {
+  parcelId: string;
+  invoiceReminderWhatsAppStatus: string;
+  invoiceReminderWhatsAppDetail: string | null;
+  message: string;
 }
 
 export interface OpsReceivingStatsDto {

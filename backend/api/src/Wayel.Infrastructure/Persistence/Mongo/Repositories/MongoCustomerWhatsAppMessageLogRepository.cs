@@ -51,6 +51,25 @@ internal sealed class MongoCustomerWhatsAppMessageLogRepository(MongoContext con
         return docs.Select(Map).ToList();
     }
 
+    public async Task<CustomerWhatsAppMessageLogEntry?> GetLatestByCorrelationTagAsync(
+        string correlationTag,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(correlationTag))
+        {
+            return null;
+        }
+
+        var doc = await context.CustomerWhatsAppMessages
+            .Find(x => x.CorrelationTag == correlationTag.Trim())
+            .SortByDescending(x => x.SentAtUtc)
+            .Limit(1)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return doc is null ? null : Map(doc);
+    }
+
     private static CustomerWhatsAppMessageLogEntry Map(CustomerWhatsAppMessageDocument doc) =>
         new(
             doc.Id,

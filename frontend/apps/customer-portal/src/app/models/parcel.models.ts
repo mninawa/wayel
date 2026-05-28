@@ -169,3 +169,21 @@ export function computeParcelPageMetrics(items: ParcelListItem[]): ParcelPageMet
     uploaded,
   };
 }
+
+export function parcelsNeedingInvoiceUpload(items: ParcelListItem[]): ParcelListItem[] {
+  return items.filter((p) => p.invoiceStatus === 'Pending');
+}
+
+/** Most recently received parcel that still needs an invoice upload. */
+export function primaryInvoiceUploadParcel(items: ParcelListItem[]): ParcelListItem | null {
+  const pending = parcelsNeedingInvoiceUpload(items);
+  if (pending.length === 0) return null;
+  return [...pending].sort(
+    (a, b) => Date.parse(b.receivedAtUtc) - Date.parse(a.receivedAtUtc),
+  )[0];
+}
+
+export function invoiceUploadRoute(items: ParcelListItem[]): string | null {
+  const parcel = primaryInvoiceUploadParcel(items);
+  return parcel ? `/parcels/${parcel.id}` : null;
+}

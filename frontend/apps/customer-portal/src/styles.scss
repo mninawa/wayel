@@ -5,17 +5,17 @@ body.nk-connectivity-offline {
 }
 
 :root {
-  /* Core palette (Delivery Web App / GlobeTrans reference) */
-  --bb-ink: #292928;
-  --bb-lime: #c3f832;
-  --bb-lime-hover: #b5eb24;
-  --bb-lime-soft: #eef6d8;
-  --bb-lime-muted: rgba(195, 248, 50, 0.22);
+  /* Core palette — WeYell brand (black + yellow) */
+  --bb-ink: #000000;
+  --bb-lime: #ffc107;
+  --bb-lime-hover: #ffb300;
+  --bb-lime-soft: #fff8e1;
+  --bb-lime-muted: rgba(255, 193, 7, 0.22);
 
   --bb-surface-muted: #f2f3f4;
   --bb-bg: #f8f8f8;
   --bb-surface: #ffffff;
-  --bb-text: #292928;
+  --bb-text: #111111;
   --bb-muted: #525252;
   --bb-subtle: #737373;
   --bb-border: #e8eaed;
@@ -56,7 +56,7 @@ body.nk-connectivity-offline {
   --bb-status-delivered-text: #4b5563;
 
   --bb-sidebar-w: 88px;
-  --bb-sidebar-w-expanded: 260px;
+  --bb-sidebar-w-expanded: 248px;
   --bb-topbar-h: 72px;
   --bb-bp-sm: 480px;
   --bb-bp-md: 768px;
@@ -70,12 +70,13 @@ body.nk-connectivity-offline {
   --bb-shadow-md: 0 12px 40px rgba(41, 41, 40, 0.08);
   --bb-shadow-card: 0 4px 24px rgba(41, 41, 40, 0.06);
 
-  --sidebar-bg: var(--bb-ink);
-  --sidebar-text: rgba(255, 255, 255, 0.55);
-  --sidebar-text-active: var(--bb-ink);
-  --sidebar-bg-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-bg-active: var(--bb-lime);
+  --sidebar-bg: #000000;
+  --sidebar-text: rgba(255, 255, 255, 0.62);
+  --sidebar-text-active: var(--bb-lime);
+  --sidebar-bg-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-bg-active: rgba(255, 193, 7, 0.1);
   --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-active-border: var(--bb-lime);
 
   --nk-sky: var(--bb-primary);
   --nk-sky-deep: var(--bb-primary-hover);
