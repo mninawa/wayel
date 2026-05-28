@@ -66,6 +66,96 @@ interface CustomsItem {
       }
 
       <div class="detail-layout">
+        <!-- Invoice — shown first so upload is the primary action -->
+        <section class="bb-card bb-card-pad card-invoice" [class.pending]="p.invoiceStatus === 'Pending'">
+          <h2 class="bb-card-title">{{ p.invoiceStatus === 'Uploaded' ? 'Uploaded invoice' : 'Upload invoice' }}</h2>
+          @if (p.invoiceStatus === 'Uploaded') {
+            <div class="invoice-viewer">
+              @if (invoicePreviewFailed()) {
+                <div class="invoice-frame invoice-frame--fallback">
+                  <span class="material-icons-outlined">description</span>
+                  <p>Preview unavailable. Use download to open the file.</p>
+                  <strong>{{ p.invoiceFileName }}</strong>
+                </div>
+              } @else {
+                <div class="invoice-frame" [class.is-loading]="invoicePreviewLoading() && !invoicePreviewBlobUrl()">
+                  @if (invoicePreviewLoading() && !invoicePreviewBlobUrl()) {
+                    <div class="invoice-frame-overlay">
+                      <span class="material-icons-outlined spin">progress_activity</span>
+                      <span>Loading preview…</span>
+                    </div>
+                  }
+                  @if (invoicePreviewBlobUrl()) {
+                    @if (isInvoicePreviewImage()) {
+                      <img
+                        [src]="invoicePreviewBlobUrl()!"
+                        [alt]="p.invoiceFileName ?? 'Uploaded invoice'"
+                        (load)="onPreviewLoad()"
+                        (error)="onPreviewError()"
+                      />
+                    } @else if (safeInvoicePreviewUrl()) {
+                      <iframe
+                        [src]="safeInvoicePreviewUrl()!"
+                        title="Invoice document preview"
+                        (load)="onPreviewLoad()"
+                      ></iframe>
+                    }
+                  }
+                </div>
+              }
+              <a
+                class="invoice-download-bar"
+                [href]="invoiceDownloadLink()"
+                [attr.download]="p.invoiceFileName ?? 'invoice'"
+                target="_blank"
+                rel="noopener"
+              >
+                <span class="material-icons-outlined">download</span>
+                Download invoice
+              </a>
+              <p class="invoice-meta">Uploaded {{ parcelsApi.displayDate(p.invoiceUploadedAtUtc ?? p.receivedAtUtc) }}</p>
+              @if (p.canUploadInvoice) {
+                <label class="invoice-replace-bar" [class.uploading]="uploading()">
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,application/pdf"
+                    (change)="onFile($event)"
+                    [disabled]="uploading()"
+                  />
+                  @if (uploading()) {
+                    <span class="material-icons-outlined spin">progress_activity</span>
+                    <span>Replacing…</span>
+                  } @else {
+                    <span class="material-icons-outlined">upload_file</span>
+                    <span>Replace invoice</span>
+                  }
+                </label>
+              }
+              @if (uploadError()) {
+                <p class="err">{{ uploadError() }}</p>
+              }
+            </div>
+          } @else if (p.canUploadInvoice) {
+            <p class="hint invoice-required-hint">Upload your retailer invoice (PDF or image) for customs verification.</p>
+            <label class="upload-zone" [class.uploading]="uploading()">
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf" (change)="onFile($event)" [disabled]="uploading()" />
+              @if (uploading()) {
+                <span class="material-icons-outlined spin">progress_activity</span>
+                <span>Uploading…</span>
+              } @else {
+                <span class="material-icons-outlined">cloud_upload</span>
+                <span>Choose file or drag here</span>
+                <span class="upload-types">PDF, JPEG, PNG, or WebP · max 25 MB</span>
+              }
+            </label>
+            @if (uploadError()) {
+              <p class="err">{{ uploadError() }}</p>
+            }
+          } @else {
+            <p class="hint">Invoice upload is not available for your current suite status.</p>
+          }
+        </section>
+
         <div class="top-band" [class.has-photos]="hasPhotos()">
           <section class="bb-card bb-card-pad card-id">
             <div class="id-head">
@@ -236,96 +326,6 @@ interface CustomsItem {
           </ol>
         </section>
 
-        <!-- Invoice -->
-        <section class="bb-card bb-card-pad card-invoice" [class.pending]="p.invoiceStatus === 'Pending'">
-          <h2 class="bb-card-title">Uploaded invoice</h2>
-          @if (p.invoiceStatus === 'Uploaded') {
-            <div class="invoice-viewer">
-              @if (invoicePreviewFailed()) {
-                <div class="invoice-frame invoice-frame--fallback">
-                  <span class="material-icons-outlined">description</span>
-                  <p>Preview unavailable. Use download to open the file.</p>
-                  <strong>{{ p.invoiceFileName }}</strong>
-                </div>
-              } @else {
-                <div class="invoice-frame" [class.is-loading]="invoicePreviewLoading() && !invoicePreviewBlobUrl()">
-                  @if (invoicePreviewLoading() && !invoicePreviewBlobUrl()) {
-                    <div class="invoice-frame-overlay">
-                      <span class="material-icons-outlined spin">progress_activity</span>
-                      <span>Loading preview…</span>
-                    </div>
-                  }
-                  @if (invoicePreviewBlobUrl()) {
-                    @if (isInvoicePreviewImage()) {
-                      <img
-                        [src]="invoicePreviewBlobUrl()!"
-                        [alt]="p.invoiceFileName ?? 'Uploaded invoice'"
-                        (load)="onPreviewLoad()"
-                        (error)="onPreviewError()"
-                      />
-                    } @else if (safeInvoicePreviewUrl()) {
-                      <iframe
-                        [src]="safeInvoicePreviewUrl()!"
-                        title="Invoice document preview"
-                        (load)="onPreviewLoad()"
-                      ></iframe>
-                    }
-                  }
-                </div>
-              }
-              <a
-                class="invoice-download-bar"
-                [href]="invoiceDownloadLink()"
-                [attr.download]="p.invoiceFileName ?? 'invoice'"
-                target="_blank"
-                rel="noopener"
-              >
-                <span class="material-icons-outlined">download</span>
-                Download invoice
-              </a>
-              <p class="invoice-meta">Uploaded {{ parcelsApi.displayDate(p.invoiceUploadedAtUtc ?? p.receivedAtUtc) }}</p>
-              @if (p.canUploadInvoice) {
-                <label class="invoice-replace-bar" [class.uploading]="uploading()">
-                  <input
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,application/pdf"
-                    (change)="onFile($event)"
-                    [disabled]="uploading()"
-                  />
-                  @if (uploading()) {
-                    <span class="material-icons-outlined spin">progress_activity</span>
-                    <span>Replacing…</span>
-                  } @else {
-                    <span class="material-icons-outlined">upload_file</span>
-                    <span>Replace invoice</span>
-                  }
-                </label>
-              }
-              @if (uploadError()) {
-                <p class="err">{{ uploadError() }}</p>
-              }
-            </div>
-          } @else if (p.canUploadInvoice) {
-            <p class="hint">Upload your retailer invoice (PDF or image) for customs.</p>
-            <label class="upload-zone" [class.uploading]="uploading()">
-              <input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf" (change)="onFile($event)" [disabled]="uploading()" />
-              @if (uploading()) {
-                <span class="material-icons-outlined spin">progress_activity</span>
-                <span>Uploading…</span>
-              } @else {
-                <span class="material-icons-outlined">cloud_upload</span>
-                <span>Choose file or drag here</span>
-                <span class="upload-types">PDF, JPEG, PNG, or WebP · max 25 MB</span>
-              }
-            </label>
-            @if (uploadError()) {
-              <p class="err">{{ uploadError() }}</p>
-            }
-          } @else {
-            <p class="hint">Invoice upload is not available for your current suite status.</p>
-          }
-        </section>
-
         <!-- Customs -->
         <section class="bb-card bb-card-pad card-customs">
           <h2 class="bb-card-title">Customs &amp; documentation</h2>
@@ -386,12 +386,12 @@ interface CustomsItem {
       padding: 1rem 1.15rem;
       margin-bottom: 1rem;
       border-radius: var(--bb-radius-sm);
-      border: 1px solid #fcd34d;
-      background: #fffbeb;
+      border: 1px solid #fca5a5;
+      background: #fef2f2;
     }
-    .invoice-alert .material-icons-outlined { color: #b45309; font-size: 26px; }
-    .invoice-alert strong { display: block; color: #92400e; }
-    .invoice-alert p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #78350f; }
+    .invoice-alert .material-icons-outlined { color: #dc2626; font-size: 26px; }
+    .invoice-alert strong { display: block; color: #b91c1c; }
+    .invoice-alert p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #991b1b; }
     .detail-layout { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
     .top-band {
       display: grid;
@@ -405,7 +405,7 @@ interface CustomsItem {
     }
     .bottom-band {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 1rem;
       align-items: stretch;
     }
@@ -594,7 +594,23 @@ interface CustomsItem {
     }
     .tl-body strong { display: block; font-size: 0.85rem; }
     .tl-body span { font-size: 0.75rem; color: var(--bb-muted); }
-    .card-invoice.pending { border-color: #fcd34d; }
+    .card-invoice.pending {
+      border: 2px solid #ef4444;
+      background: linear-gradient(135deg, #fef2f2 0%, #fff 55%);
+      box-shadow: 0 4px 24px rgba(239, 68, 68, 0.14);
+    }
+    .card-invoice.pending .bb-card-title { color: #b91c1c; }
+    .invoice-required-hint { color: #991b1b; font-weight: 600; margin-bottom: 0.85rem; }
+    .card-invoice.pending .upload-zone {
+      border-color: #f87171;
+      background: #fff;
+      color: #7f1d1d;
+    }
+    .card-invoice.pending .upload-zone:hover {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+    .card-invoice.pending .upload-zone .material-icons-outlined { color: #dc2626; }
     .invoice-viewer { display: flex; flex-direction: column; }
     .invoice-frame {
       position: relative;
