@@ -5,9 +5,10 @@ import {
   BorderboxApiService,
   type SupportTicketSummaryDto,
   type TrackingSupportOverviewDto,
+  type WhatsAppTestSendResultDto,
 } from '../../services/borderbox-api.service';
 import { CustomerAccountService } from '../../services/customer-account.service';
-import { accountFixture } from '../../../testing/fixtures';
+import { accountFixture, profileFixture } from '../../../testing/fixtures';
 import { TrackingSupportComponent } from './tracking-support.component';
 
 function overviewFixture(
@@ -47,6 +48,7 @@ describe('TrackingSupportComponent', () => {
     api = jasmine.createSpyObj<BorderboxApiService>('BorderboxApiService', [
       'getTrackingSupport',
       'createSupportTicket',
+      'sendSupportWhatsAppTest',
     ]);
     accountSvc = jasmine.createSpyObj<CustomerAccountService>(
       'CustomerAccountService',
@@ -199,5 +201,48 @@ describe('TrackingSupportComponent', () => {
     render();
     expect(component.formatTicketStatus('InProgress')).toBe('In Progress');
     expect(component.formatTicketStatus('Open')).toBe('Open');
+  });
+
+  it('shows Send test WhatsApp when profile has a phone number', () => {
+    api.getTrackingSupport.and.returnValue(of(overviewFixture()));
+    render();
+    const btn = fixture.nativeElement.querySelector('.whatsapp-test-btn') as HTMLButtonElement;
+    expect(btn).not.toBeNull();
+    expect(btn.disabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.whatsapp-test-lead')?.textContent).toContain(
+      '+27821234567',
+    );
+  });
+
+  it('disables the test button when profile has no phone', () => {
+    api.getTrackingSupport.and.returnValue(of(overviewFixture()));
+    (accountSvc.account as unknown as () => ReturnType<typeof accountFixture>) = () =>
+      accountFixture({ profile: profileFixture({ phone: '' }) });
+    render();
+    const btn = fixture.nativeElement.querySelector('.whatsapp-test-btn') as HTMLButtonElement;
+    expect(btn.disabled).toBeTrue();
+  });
+
+  it('sendWhatsAppTest calls the API and surfaces success', () => {
+    api.getTrackingSupport.and.returnValue(of(overviewFixture()));
+    const result: WhatsAppTestSendResultDto = { sent: true, providerMessageId: 'msg-1' };
+    api.sendSupportWhatsAppTest.and.returnValue(of(result));
+    render();
+
+    component.sendWhatsAppTest();
+    expect(api.sendSupportWhatsAppTest).toHaveBeenCalled();
+    expect(component.whatsAppTestSuccess()).toContain('Test sent');
+    expect(component.whatsAppTestError()).toBeNull();
+  });
+
+  it('sendWhatsAppTest surfaces provider errors from a 200 response', () => {
+    api.getTrackingSupport.and.returnValue(of(overviewFixture()));
+    api.sendSupportWhatsAppTest.and.returnValue(
+      of({ sent: false, errorMessage: 'Recipient is not on the Wasender allowlist.' }),
+    );
+    render();
+
+    component.sendWhatsAppTest();
+    expect(component.whatsAppTestError()).toContain('allowlist');
   });
 });

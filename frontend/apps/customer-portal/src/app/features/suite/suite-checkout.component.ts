@@ -150,24 +150,24 @@ const PLAN_FEATURES = [
               </thead>
               <tbody>
                 @for (row of visibleHistory(); track row.reference) {
-                  <tr>
-                    <td class="date-cell">
+                  <tr class="history-row">
+                    <td class="date-cell" data-label="Date">
                       <strong>{{ row.createdAtUtc | date:'d MMM y' }}</strong>
                       <span class="muted">{{ row.createdAtUtc | date:'HH:mm' }}</span>
                     </td>
-                    <td>{{ row.planName }}</td>
-                    <td>{{ planShortLabel(row.planDurationMonths) }}</td>
-                    <td class="num">R{{ row.amountZar | number:'1.0-0' }}</td>
-                    <td>
+                    <td data-label="Description">{{ row.planName }}</td>
+                    <td data-label="Plan">{{ planShortLabel(row.planDurationMonths) }}</td>
+                    <td class="num" data-label="Amount">R{{ row.amountZar | number:'1.0-0' }}</td>
+                    <td data-label="Method">
                       <span class="method-pill" aria-hidden="true">
                         <span class="material-icons-outlined">credit_card</span>
                         •••• 4242
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span class="badge" [class]="statusBadgeTone(row.status)">{{ row.status }}</span>
                     </td>
-                    <td>
+                    <td data-label="Invoice">
                       @if (row.status === 'Successful') {
                         <a
                           class="invoice-link"
@@ -180,7 +180,7 @@ const PLAN_FEATURES = [
                         <span class="invoice-link is-muted" [title]="row.status === 'Failed' ? 'Available once payment succeeds' : 'Available once payment completes'">{{ row.invoiceNumber }}</span>
                       }
                     </td>
-                    <td class="num">
+                    <td class="num history-action" data-label="Action">
                       @if (row.status === 'Failed') {
                         <button type="button" class="icon-btn" title="Retry payment" (click)="scrollToRenew()">
                           <span class="material-icons-outlined">refresh</span>
@@ -601,6 +601,15 @@ const PLAN_FEATURES = [
       .payments-grid { grid-template-columns: 1fr; }
     }
 
+    @media (max-width: 640px) {
+      .bb-card {
+        padding: 1rem 1rem 1.1rem;
+      }
+      .page-head h1 {
+        font-size: 1.35rem;
+      }
+    }
+
     .bb-card {
       background: var(--bb-surface);
       border: 1px solid var(--bb-border);
@@ -637,11 +646,34 @@ const PLAN_FEATURES = [
       background: var(--bb-surface);
       font-size: 0.8rem;
       color: var(--bb-text);
+      max-width: 100%;
     }
 
-    .history-scroll { overflow-x: auto; }
+    @media (max-width: 520px) {
+      .history-card .card-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .history-card .filter select {
+        width: 100%;
+      }
+      .cards-card .card-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .cards-card .card-head .bb-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .history-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     .history-table {
       width: 100%;
+      min-width: 720px;
       border-collapse: collapse;
       font-size: 0.85rem;
     }
@@ -667,6 +699,57 @@ const PLAN_FEATURES = [
     .date-cell strong { display: block; }
     .date-cell .muted { color: var(--bb-muted); font-size: 0.74rem; }
     .muted { color: var(--bb-muted); }
+
+    @media (max-width: 768px) {
+      .history-scroll {
+        overflow-x: visible;
+        margin: 0;
+      }
+      .history-table {
+        min-width: 0;
+      }
+      .history-table thead {
+        display: none;
+      }
+      .history-table tbody tr.history-row {
+        display: block;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--bb-border);
+      }
+      .history-table tbody tr.history-row:last-child {
+        border-bottom: none;
+      }
+      .history-table td {
+        display: grid;
+        grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr);
+        gap: 0.25rem 0.75rem;
+        align-items: center;
+        padding: 0.4rem 0;
+        border-bottom: none;
+        text-align: left;
+      }
+      .history-table td::before {
+        content: attr(data-label);
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--bb-muted);
+      }
+      .history-table td.num,
+      .history-table th.num {
+        text-align: left;
+      }
+      .history-table td.history-action {
+        align-items: center;
+      }
+      .history-table td.history-action > :only-child {
+        justify-self: end;
+      }
+      .history-table .date-cell {
+        align-items: start;
+      }
+    }
 
     .method-pill {
       display: inline-flex;
@@ -791,6 +874,39 @@ const PLAN_FEATURES = [
     .card-action.danger {
       color: #b91c1c;
       text-decoration-color: #fecaca;
+    }
+
+    @media (max-width: 600px) {
+      .card-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+          'icon meta'
+          'actions actions';
+        align-items: start;
+        gap: 0.65rem 0.75rem;
+      }
+      .card-icon {
+        grid-area: icon;
+      }
+      .card-meta {
+        grid-area: meta;
+        min-width: 0;
+      }
+      .card-meta strong {
+        word-break: break-word;
+      }
+      .card-actions {
+        grid-area: actions;
+        margin-left: 0;
+        padding-top: 0.55rem;
+        border-top: 1px solid var(--bb-border);
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .card-row.is-default .card-actions {
+        border-top-color: rgba(163, 230, 53, 0.45);
+      }
     }
 
     .add-card-backdrop {

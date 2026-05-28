@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -154,6 +155,33 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
               />
               <span>WhatsApp updates</span>
             </label>
+            <div class="whatsapp-test">
+              <p class="whatsapp-test-lead">
+                @if (profilePhone()) {
+                  Send a one-off test to <strong>{{ profilePhone() }}</strong> (your profile number).
+                } @else {
+                  Add a mobile number on your profile to test WhatsApp delivery.
+                }
+              </p>
+              <button
+                type="button"
+                class="bb-btn bb-btn-outline whatsapp-test-btn"
+                [disabled]="!profilePhone() || whatsAppTestSending()"
+                (click)="sendWhatsAppTest()"
+              >
+                @if (whatsAppTestSending()) {
+                  Sending test…
+                } @else {
+                  Send test WhatsApp
+                }
+              </button>
+              @if (whatsAppTestError()) {
+                <p class="err sm" role="alert">{{ whatsAppTestError() }}</p>
+              }
+              @if (whatsAppTestSuccess()) {
+                <p class="success sm" role="status">{{ whatsAppTestSuccess() }}</p>
+              }
+            </div>
             @if (notifyError()) {
               <p class="err sm" role="alert">{{ notifyError() }}</p>
             }
@@ -285,6 +313,19 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .err { color: var(--bb-danger); font-size: 0.85rem; }
     .err.sm { font-size: 0.78rem; margin-top: 0.35rem; }
     .success { margin-top: 0.65rem; font-size: 0.85rem; color: #15803d; }
+    .success.sm { margin-top: 0.35rem; font-size: 0.78rem; }
+    .whatsapp-test {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--bb-border);
+    }
+    .whatsapp-test-lead {
+      margin: 0 0 0.55rem;
+      font-size: 0.78rem;
+      color: var(--bb-muted);
+      line-height: 1.45;
+    }
+    .whatsapp-test-btn { width: 100%; justify-content: center; }
   `,
 })
 export class TrackingSupportComponent implements OnInit {
@@ -300,6 +341,14 @@ export class TrackingSupportComponent implements OnInit {
   readonly ticketSubmitting = signal(false);
   readonly ticketError = signal<string | null>(null);
   readonly ticketSuccess = signal<string | null>(null);
+  readonly whatsAppTestSending = signal(false);
+  readonly whatsAppTestError = signal<string | null>(null);
+  readonly whatsAppTestSuccess = signal<string | null>(null);
+
+  readonly profilePhone = computed(() => {
+    const phone = this.accountApi.account()?.profile.phone?.trim();
+    return phone || null;
+  });
 
   readonly whatsAppLink = computed(() => this.overview()?.support.whatsAppLink ?? null);
   readonly whatsAppDisplay = computed(() => this.overview()?.support.whatsAppDisplay ?? null);
@@ -364,6 +413,35 @@ export class TrackingSupportComponent implements OnInit {
     });
   }
 
+  sendWhatsAppTest(): void {
+    if (!this.profilePhone()) {
+      this.whatsAppTestError.set('Add a mobile number on your profile first.');
+      return;
+    }
+
+    this.whatsAppTestSending.set(true);
+    this.whatsAppTestError.set(null);
+    this.whatsAppTestSuccess.set(null);
+    this.api.sendSupportWhatsAppTest().subscribe({
+      next: (result) => {
+        this.whatsAppTestSending.set(false);
+        if (result.sent) {
+          this.whatsAppTestSuccess.set(
+            'Test sent — check WhatsApp on your phone. It may take a few seconds.',
+          );
+          return;
+        }
+        this.whatsAppTestError.set(
+          result.errorMessage ?? 'Could not send the test message. Try again in a moment.',
+        );
+      },
+      error: (err: unknown) => {
+        this.whatsAppTestSending.set(false);
+        this.whatsAppTestError.set(this.apiErrorMessage(err, 'Could not send the test message.'));
+      },
+    });
+  }
+
   submitTicket(): void {
     const subject = this.ticketSubject().trim();
     const body = this.ticketBody().trim();
@@ -393,5 +471,17 @@ export class TrackingSupportComponent implements OnInit {
         this.ticketError.set('Could not submit ticket. Try again in a moment.');
       },
     });
+  }
+
+  private apiErrorMessage(err: unknown, fallback: string): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error as { detail?: string; title?: string } | string | null;
+      if (typeof body === 'string' && body.trim()) return body;
+      if (body && typeof body === 'object') {
+        return body.detail ?? body.title ?? fallback;
+      }
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
   }
 }

@@ -591,6 +591,19 @@ export class BorderboxApiService {
       body,
     });
   }
+
+  sendSupportWhatsAppTest(): Observable<WhatsAppTestSendResultDto> {
+    return this.http.post<WhatsAppTestSendResultDto>(
+      `${this.base}/borderbox/tracking-support/whatsapp-test`,
+      {},
+    );
+  }
+}
+
+export interface WhatsAppTestSendResultDto {
+  sent: boolean;
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
 }
 
 export interface TrackingTimelineStepDto {

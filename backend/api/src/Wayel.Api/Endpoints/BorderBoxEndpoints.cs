@@ -439,6 +439,10 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new GetTrackingSupportOverviewQuery(), ct)).ToHttpResult())
             .WithName("GetTrackingSupportOverview");
 
+        group.MapPost("/tracking-support/whatsapp-test", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new SendSupportWhatsAppTestCommand(), ct)).ToHttpResult())
+            .WithName("SendSupportWhatsAppTest");
+
         group.MapGet("/shipments/{shipmentId:guid}/tracking", async (Guid shipmentId, IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new GetShipmentTrackingDetailQuery(shipmentId), ct)).ToHttpResult())
             .WithName("GetShipmentTrackingDetail");
