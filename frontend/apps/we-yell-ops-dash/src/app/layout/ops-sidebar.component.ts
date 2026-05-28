@@ -5,8 +5,13 @@ import {
   input,
   inject,
   output,
+  signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  readSidebarNavExpanded,
+  writeSidebarNavExpanded,
+} from '@wayel/shared/utils/sidebar-nav-preference';
 import { PRODUCT_NAME } from '../brand';
 import { OPS_CAP } from '../services/ops-permissions';
 import { OPS_REGION, type OpsRegion } from '../services/ops-regions';
@@ -40,7 +45,11 @@ export interface OpsNavSection {
   imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="sidebar" [class.sidebar-open]="drawerOpen()">
+    <aside
+      class="sidebar"
+      [class.sidebar-open]="drawerOpen()"
+      [class.sidebar-expanded]="desktopExpanded()"
+    >
       <div class="sidebar-head">
         <a
           [routerLink]="homeLink()"
@@ -51,6 +60,18 @@ export interface OpsNavSection {
           <span class="material-icons-outlined brand-icon">warehouse</span>
           <span class="brand-wordmark">{{ productName }}</span>
         </a>
+        <button
+          type="button"
+          class="sidebar-expand"
+          [attr.aria-label]="desktopExpanded() ? 'Collapse navigation' : 'Expand navigation'"
+          [attr.aria-expanded]="desktopExpanded()"
+          (click)="toggleDesktopExpanded()"
+        >
+          <span class="material-icons-outlined" aria-hidden="true">
+            {{ desktopExpanded() ? 'chevron_left' : 'chevron_right' }}
+          </span>
+          <span class="sidebar-expand-label">{{ desktopExpanded() ? 'Collapse' : 'Expand' }}</span>
+        </button>
         <button
           type="button"
           class="sidebar-close"
@@ -251,8 +272,92 @@ export interface OpsNavSection {
       color: rgba(255, 255, 255, 0.45);
     }
 
-    .sidebar-close {
+    .sidebar-close,
+    .sidebar-expand {
       display: none;
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar {
+        transition: width 0.22s ease, padding 0.22s ease;
+      }
+
+      .sidebar.sidebar-expanded {
+        width: var(--ops-sidebar-w-expanded);
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      .sidebar-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+      }
+
+      .sidebar-expand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .sidebar-expand:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      .sidebar-expand .material-icons-outlined {
+        font-size: 1.1rem !important;
+      }
+
+      .sidebar:not(.sidebar-expanded) .sidebar-expand-label {
+        display: none;
+      }
+
+      .sidebar.sidebar-expanded .brand-mark {
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .sidebar.sidebar-expanded .brand-wordmark {
+        display: block;
+      }
+
+      .sidebar.sidebar-expanded .nav-section {
+        display: block;
+      }
+
+      .sidebar.sidebar-expanded .nav-divider {
+        display: none;
+      }
+
+      .sidebar.sidebar-expanded .nav-item,
+      .sidebar.sidebar-expanded .nav-logout {
+        justify-content: flex-start;
+        padding: 0.7rem 0.85rem;
+      }
+
+      .sidebar.sidebar-expanded .nav-label {
+        display: inline;
+      }
+
+      .sidebar.sidebar-expanded .nav-badge {
+        position: static;
+        display: inline-flex;
+        margin-left: auto;
+      }
     }
 
     @media (max-width: 1023px) {
@@ -337,6 +442,8 @@ export class OpsSidebarComponent implements OnInit {
   readonly drawerOpen = input(false);
   readonly navClick = output<void>();
   readonly closeDrawer = output<void>();
+
+  readonly desktopExpanded = signal(readSidebarNavExpanded('ops'));
 
   readonly productName = PRODUCT_NAME;
   readonly routes = receivingRoutes;
@@ -498,6 +605,14 @@ export class OpsSidebarComponent implements OnInit {
 
   onNavClick(): void {
     this.navClick.emit();
+  }
+
+  toggleDesktopExpanded(): void {
+    this.desktopExpanded.update((open) => {
+      const next = !open;
+      writeSidebarNavExpanded('ops', next);
+      return next;
+    });
   }
 
   signOut(): void {

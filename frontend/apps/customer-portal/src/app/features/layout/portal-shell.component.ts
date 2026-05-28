@@ -9,6 +9,10 @@ import {
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, interval, startWith, catchError, of } from 'rxjs';
 import { AccountSessionService } from '@wayel/shared/services/account-session.service';
+import {
+  readSidebarNavExpanded,
+  writeSidebarNavExpanded,
+} from '@wayel/shared/utils/sidebar-nav-preference';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../../brand';
 import { CustomerAccountService } from '../../services/customer-account.service';
@@ -50,12 +54,28 @@ function buildNav(): NavItem[] {
         ></button>
       }
 
-      <aside class="sidebar" [class.sidebar-open]="sidebarOpen()">
+      <aside
+        class="sidebar"
+        [class.sidebar-open]="sidebarOpen()"
+        [class.sidebar-expanded]="desktopExpanded()"
+      >
         <div class="sidebar-head">
           <a routerLink="/dashboard" class="brand-mark" (click)="closeSidebar()" [attr.title]="productName">
             <span class="material-icons-outlined brand-icon">inventory_2</span>
             <span class="brand-wordmark">{{ productName }}</span>
           </a>
+          <button
+            type="button"
+            class="sidebar-expand"
+            [attr.aria-label]="desktopExpanded() ? 'Collapse navigation' : 'Expand navigation'"
+            [attr.aria-expanded]="desktopExpanded()"
+            (click)="toggleDesktopExpanded()"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">
+              {{ desktopExpanded() ? 'chevron_left' : 'chevron_right' }}
+            </span>
+            <span class="sidebar-expand-label">{{ desktopExpanded() ? 'Collapse' : 'Expand' }}</span>
+          </button>
           <button
             type="button"
             class="sidebar-close"
@@ -488,7 +508,8 @@ function buildNav(): NavItem[] {
 
     .menu-btn,
     .sidebar-close,
-    .sidebar-backdrop {
+    .sidebar-backdrop,
+    .sidebar-expand {
       display: none;
     }
 
@@ -623,6 +644,72 @@ function buildNav(): NavItem[] {
       .shell-nav-open {
         overflow: visible;
       }
+
+      .sidebar {
+        transition: width 0.22s ease, padding 0.22s ease;
+      }
+
+      .sidebar.sidebar-expanded {
+        width: var(--bb-sidebar-w-expanded);
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      .sidebar-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+      }
+
+      .sidebar-expand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.85);
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .sidebar-expand:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      .sidebar-expand .material-icons-outlined {
+        font-size: 1.1rem !important;
+      }
+
+      .sidebar:not(.sidebar-expanded) .sidebar-expand-label {
+        display: none;
+      }
+
+      .sidebar.sidebar-expanded .brand-mark {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .sidebar.sidebar-expanded .brand-wordmark {
+        display: block;
+      }
+
+      .sidebar.sidebar-expanded .nav a,
+      .sidebar.sidebar-expanded .nav-logout {
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+      }
+
+      .sidebar.sidebar-expanded .nav-label {
+        display: inline;
+      }
     }
   `,
 })
@@ -638,6 +725,7 @@ export class PortalShellComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly sidebarOpen = signal(false);
+  readonly desktopExpanded = signal(readSidebarNavExpanded('customer'));
   readonly notifOpen = signal(false);
   readonly notificationsLoading = signal(false);
   readonly notifications = signal<CustomerInAppNotification[]>([]);
@@ -692,6 +780,14 @@ export class PortalShellComponent implements OnInit {
   closeSidebar(): void {
     this.sidebarOpen.set(false);
     this.syncBodyScrollLock();
+  }
+
+  toggleDesktopExpanded(): void {
+    this.desktopExpanded.update((open) => {
+      const next = !open;
+      writeSidebarNavExpanded('customer', next);
+      return next;
+    });
   }
 
   private syncBodyScrollLock(): void {

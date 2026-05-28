@@ -3,6 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
     "baseUrl": ".",
+    "paths": {
+      "@wayel/shared/*": ["../../packages/shared/src/*"]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
