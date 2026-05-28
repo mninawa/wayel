@@ -175,6 +175,7 @@ type NotifKey = keyof NotificationPreferences;
                 </ul>
               </div>
 
+              <div id="kyc" class="kyc-section">
               @if (kycIsPending(acc.profile.kycStatus)) {
                 <div class="kyc-banner kyc-pending" role="status">
                   <span class="material-icons-outlined kyc-icon">hourglass_top</span>
@@ -209,6 +210,7 @@ type NotifKey = keyof NotificationPreferences;
                   </div>
                 </div>
               }
+              </div>
 
               @if (needsKycUpload(acc.profile.kycStatus)) {
                 @if (isProfileComplete(acc.profile)) {
@@ -570,6 +572,10 @@ type NotifKey = keyof NotificationPreferences;
       font-weight: 600;
       color: var(--bb-text);
       word-break: break-word;
+    }
+
+    .kyc-section {
+      scroll-margin-top: 5.5rem;
     }
 
     .kyc-banner {

@@ -21,6 +21,7 @@ import {
   CustomerInAppNotificationsApiService,
   type CustomerInAppNotification,
 } from '../../services/customer-inapp-notifications-api.service';
+import { KycVerificationTickerComponent } from './kyc-verification-ticker.component';
 interface NavItem {
   path: string;
   label: string;
@@ -41,7 +42,7 @@ function buildNav(): NavItem[] {
 @Component({
   selector: 'app-portal-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell" [class.shell-nav-open]="sidebarOpen()">
@@ -190,6 +191,10 @@ function buildNav(): NavItem[] {
             </button>
           </div>
         </header>
+
+        @if (showKycTicker()) {
+          <app-kyc-verification-ticker />
+        }
 
         <main class="content" [class.content-map]="mapLayout()">
           <router-outlet />
@@ -775,6 +780,11 @@ export class PortalShellComponent implements OnInit {
       url.startsWith('/received-parcels?') ||
       url.includes('/track')
     );
+  });
+
+  readonly showKycTicker = computed(() => {
+    const status = this.accountApi.account()?.profile.kycStatus;
+    return status != null && status !== 'Verified';
   });
 
   ngOnInit(): void {
