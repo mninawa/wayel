@@ -92,6 +92,52 @@ update three pointers and redeploy:
 
 ---
 
+## 3a. Custom domains — `weyell.co.za` (Route 53)
+
+`render.yaml` declares these custom hostnames. After the next blueprint
+sync / deploy, open each service in Render → **Settings → Custom Domains**
+and confirm they show **Verified** (add them manually first if the blueprint
+has not run yet).
+
+| Hostname | Render service | Route 53 record type | Value |
+|----------|----------------|----------------------|-------|
+| `www.weyell.co.za` | `wayel-customer` | **CNAME** | `wayel-customer.onrender.com` |
+| `weyell.co.za` (apex) | `wayel-customer` | **A** | `216.24.57.1` |
+| `ops.weyell.co.za` | `wayel-ops` | **CNAME** | `wayel-ops.onrender.com` |
+| `api.weyell.co.za` | `wayel-api` | **CNAME** | `wayel-api.onrender.com` |
+
+**Route 53 tips**
+
+1. Create records in the **weyell.co.za** hosted zone (not the registrar UI).
+2. Do **not** add AAAA records for these names — Render uses IPv4 only.
+3. For the apex (`weyell.co.za`), use an **A** record to Render's load
+   balancer (`216.24.57.1`). In Render, add **both** `www.weyell.co.za`
+   and `weyell.co.za` on `wayel-customer`, then set **Redirect** so the
+   apex forwards to `www` (keeps one canonical origin for cookies/OAuth).
+4. DNS can take a few minutes; TLS certificates issue automatically once
+   DNS verifies.
+
+**Google Cloud Console** (after DNS is live)
+
+| Client | Authorized JS origin | Redirect URI (customer only) |
+|--------|----------------------|------------------------------|
+| Customer OAuth (BFF) | `https://www.weyell.co.za` | `https://www.weyell.co.za/signin-oidc` |
+| Ops GIS | `https://ops.weyell.co.za` | — |
+
+Keep the old `*.onrender.com` origins during cutover if you still need them.
+
+**Env vars** (already in `render.yaml` for blueprint sync)
+
+* `BorderBox__CustomerPortalBaseUrl` → `https://www.weyell.co.za`
+* `Cors__AllowedOrigins__0/1/2` → `www`, apex, and `ops` hostnames
+* `Billing__MtnMomo__CallbackHost` → `api.weyell.co.za`
+
+`Bff__ApiBaseUri` on `wayel-customer` can stay on
+`https://wayel-api.onrender.com` (server-to-server). `Bff__SpaBaseUri` is
+set at runtime from `RENDER_EXTERNAL_URL` when the custom domain is active.
+
+---
+
 ## 4. Local smoke test of the Render images
 
 Before pushing, you can build the same images locally to catch nginx-

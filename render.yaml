@@ -34,16 +34,14 @@
 #      Services client is fine.
 #
 # ─── After first deploy ─────────────────────────────────────────────────
-#   * For the customer BFF Google OAuth client add:
-#       - Authorized JS origin   https://wayel-customer.onrender.com
-#       - Authorized redirect    https://wayel-customer.onrender.com/signin-oidc
-#   * For the ops dashboard Google Identity Services client add the ops
-#     dashboard origin (https://wayel-ops.onrender.com).
+#   * Route 53 (weyell.co.za) — see deploy/render/README.md § Custom domains.
+#   * Google OAuth (customer BFF):
+#       - Authorized JS origin   https://www.weyell.co.za
+#       - Authorized redirect    https://www.weyell.co.za/signin-oidc
+#   * Google Identity Services (ops):
+#       - Authorized origin      https://ops.weyell.co.za
 #   * Paste both client ids into wayel-api's GoogleAuth__ClientIds__0
-#     and __1 (0=customer, 1=ops). The API accepts ID tokens issued for
-#     either client.
-#   * Update Notifications__AcceptUrlBase / BorderBox__CustomerPortalBaseUrl
-#     to the customer-edge URL.
+#     and __1 (0=customer, 1=ops).
 
 services:
   # ─── Public API ───────────────────────────────────────────────────────
@@ -55,6 +53,8 @@ services:
     dockerfilePath: ./backend/api/Dockerfile
     dockerContext: ./backend/api
     healthCheckPath: /health/live
+    domains:
+      - api.weyell.co.za
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
@@ -98,7 +98,7 @@ services:
       # and to validate notification accept URLs. Keep in lockstep with
       # the Render service URLs below.
       - key: BorderBox__CustomerPortalBaseUrl
-        value: https://wayel-customer.onrender.com
+        value: https://www.weyell.co.za
       # Business short link (preferred) or phone-based wa.me URL.
       - key: BorderBox__SupportWhatsAppLink
         value: https://wa.me/message/NEGKMQLT5LJNE1
@@ -111,9 +111,11 @@ services:
       - key: BorderBox__SupportEmail
         value: support@weyell.com
       - key: Cors__AllowedOrigins__0
-        value: https://wayel-customer.onrender.com
+        value: https://www.weyell.co.za
       - key: Cors__AllowedOrigins__1
-        value: https://wayel-ops.onrender.com
+        value: https://weyell.co.za
+      - key: Cors__AllowedOrigins__2
+        value: https://ops.weyell.co.za
 
       # ─ Outbox + auto-quote ──────────────────────────────────────────
       - key: Outbox__Enabled
@@ -221,7 +223,7 @@ services:
       - key: Billing__MtnMomo__Currency
         value: EUR
       - key: Billing__MtnMomo__CallbackHost
-        value: wayel-api.onrender.com
+        value: api.weyell.co.za
       - key: Billing__MtnMomo__AllowSimulatedPayments
         value: "false"
       - key: Billing__MtnMomo__AutoProvisionSandbox
@@ -254,6 +256,8 @@ services:
     dockerfilePath: ./deploy/render/Dockerfile.customer-edge
     dockerContext: .
     healthCheckPath: /
+    domains:
+      - www.weyell.co.za
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
@@ -310,6 +314,8 @@ services:
     dockerfilePath: ./deploy/render/Dockerfile.ops-edge
     dockerContext: .
     healthCheckPath: /
+    domains:
+      - ops.weyell.co.za
     envVars:
       # Forward /api/ to the wayel-api Render hostname. If your API
       # service is renamed or the suffix differs in your Render account,
