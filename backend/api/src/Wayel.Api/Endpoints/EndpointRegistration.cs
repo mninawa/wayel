@@ -18,7 +18,8 @@ public static class EndpointRegistration
 
     public static IEndpointRouteBuilder MapEndpoints(this WebApplication app)
     {
-        var root = app.MapGroup("/api/v1");
+        var root = app.MapGroup("/api/v1")
+            .RequireRateLimiting("api");
         foreach (var group in app.Services.GetServices<IEndpointGroup>())
         {
             group.Map(root);

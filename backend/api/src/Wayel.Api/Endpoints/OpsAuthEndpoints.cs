@@ -15,6 +15,7 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
         auth.MapPost("/google", async (OpsGoogleSignInRequest body, IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new OpsSignInGoogleCommand(body.IdToken), ct)).ToHttpResult())
             .AllowAnonymous()
+            .RequireRateLimiting("auth")
             .WithName("OpsSignInGoogle");
 
         auth.MapGet("/invitations/preview", async (string token, IMediator mediator, CancellationToken ct) =>

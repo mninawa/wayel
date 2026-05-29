@@ -58,6 +58,10 @@ public sealed class WayelApiFactory : WebApplicationFactory<ApiProgram>, IAsyncL
                 // single per-IP auth bucket and 429 on longer suites.
                 ["Auth:RateLimit:PermitLimit"] = "100000",
                 ["Auth:RateLimit:WindowSeconds"] = "1",
+                ["ApiSecurity:RateLimit:ApiPermitLimit"] = "100000",
+                ["ApiSecurity:RateLimit:ApiWindowSeconds"] = "1",
+                ["ApiSecurity:RateLimit:WebhookPermitLimit"] = "100000",
+                ["ApiSecurity:RateLimit:WebhookWindowSeconds"] = "1",
                 // Make outbox + archive quiet in BFF tests; they aren't the
                 // unit under test here and slow Mongo container teardown.
                 ["Outbox:Enabled"] = "false",

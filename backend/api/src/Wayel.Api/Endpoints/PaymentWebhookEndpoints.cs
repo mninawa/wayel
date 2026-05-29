@@ -16,7 +16,8 @@ public sealed class PaymentWebhookEndpoints : IEndpointGroup
     {
         var group = routes.MapGroup("/webhooks/payments")
             .WithTags("Webhooks")
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .RequireRateLimiting("webhook");
 
         group.MapPost("/momo/{reference}", async (
             string reference,

@@ -116,6 +116,8 @@ identity provider."
 | Bearer token landing in browser JS / `localStorage`             | The SPA never sees the token. JWT is server-relayed by `AccessTokenRelayMiddleware` from the BFF cookie session. |
 | Refresh token landing in JS                                     | Refresh token only lives inside the encrypted BFF cookie payload, never in a header or response body to the SPA |
 | Verbose error details leaking internals                         | All handler errors map to RFC 7807 ProblemDetails; stack traces only surface in `Development` |
+| Missing security headers on API responses                       | `ApiSecurityMiddleware` sets `X-Content-Type-Options`, `X-Frame-Options`, `CSP`, `Cache-Control: no-store`, etc. |
+| HSTS absent on public API host                                  | `UseHsts()` in non-Development environments |
 | Audit log containing PII at rest                                | Email + IP are PII; mitigated by 180-day TTL, role-gated read endpoint (SuperAdmin only), and Atlas at-rest encryption |
 | Logs containing tokens                                          | `Serilog` enrichers redact `Authorization` header; never log refresh tokens (handlers receive them by hash) |
 
@@ -126,6 +128,9 @@ identity provider."
 | Credential-stuffing on password endpoint        | Per-IP rate limiter (`auth` policy, 10/min). Endpoint is also disabled by default — `Auth:EnablePasswordSignIn=false` outside Dev. |
 | Token-validation flood on `/auth/sso/google`    | Same `auth` rate limit policy                                          |
 | Refresh-token grinding                          | Same rate limit policy + reuse detection that revokes the chain        |
+| API abuse / volumetric scans on `/api/v1`       | Per-IP `api` rate limiter (240/min default) on the whole API group; `auth` (10/min) and `webhook` (120/min) policies on sensitive surfaces |
+| Automated scanner probes (`/.env`, `/wp-admin`, …) | `ApiSecurityMiddleware` returns 404 for known exploit paths; dangerous verbs (TRACE/TRACK) return 405 |
+| Oversized request bodies                        | Kestrel `MaxRequestBodySize` capped via `ApiSecurity:MaxRequestBodyBytes` (12 MiB default) |
 | Outbox poisoned by a faulty event handler       | `Outbox:MaxAttempts` (default 5) dead-letters the row; pending poll skips DLQ rows so the dispatcher can't busy-loop |
 | Mongo overwhelmed by audit writes               | Audit writes are best-effort and TTL-pruned; Mongo index for query side keeps reads cheap |
 

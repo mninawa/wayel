@@ -2,12 +2,14 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Wayel.Api.Endpoints;
 using Wayel.Api.Infrastructure;
 using Wayel.Api.Infrastructure.OpenApi;
+using Wayel.Api.Infrastructure.Security;
 using Wayel.Application;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Infrastructure;
@@ -27,6 +29,34 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    var apiSecurity = builder.Configuration
+        .GetSection(ApiSecurityOptions.SectionName)
+        .Get<ApiSecurityOptions>() ?? new ApiSecurityOptions();
+    builder.Services.Configure<ApiSecurityOptions>(
+        builder.Configuration.GetSection(ApiSecurityOptions.SectionName));
+
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.Limits.MaxRequestBodySize = apiSecurity.MaxRequestBodyBytes;
+        if (apiSecurity.SuppressServerHeader)
+        {
+            options.AddServerHeader = false;
+        }
+    });
+
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+
+    builder.Services.AddHsts(options =>
+    {
+        options.MaxAge = TimeSpan.FromSeconds(apiSecurity.HstsMaxAgeSeconds);
+        options.IncludeSubDomains = true;
+    });
 
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
@@ -100,12 +130,27 @@ try
         // same per-IP bucket across the whole class fixture.
         var permitLimit = builder.Configuration.GetValue("Auth:RateLimit:PermitLimit", 10);
         var windowSeconds = builder.Configuration.GetValue("Auth:RateLimit:WindowSeconds", 60);
+        var apiPermitLimit = builder.Configuration.GetValue(
+            $"{ApiSecurityOptions.SectionName}:RateLimit:ApiPermitLimit",
+            apiSecurity.RateLimit.ApiPermitLimit);
+        var apiWindowSeconds = builder.Configuration.GetValue(
+            $"{ApiSecurityOptions.SectionName}:RateLimit:ApiWindowSeconds",
+            apiSecurity.RateLimit.ApiWindowSeconds);
+        var webhookPermitLimit = builder.Configuration.GetValue(
+            $"{ApiSecurityOptions.SectionName}:RateLimit:WebhookPermitLimit",
+            apiSecurity.RateLimit.WebhookPermitLimit);
+        var webhookWindowSeconds = builder.Configuration.GetValue(
+            $"{ApiSecurityOptions.SectionName}:RateLimit:WebhookWindowSeconds",
+            apiSecurity.RateLimit.WebhookWindowSeconds);
+
+        static string ResolveClientPartitionKey(HttpContext httpContext) =>
+            httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+            ?? "unknown";
 
         options.AddPolicy("auth", httpContext =>
         {
-            var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString()
-                ?? httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
-                ?? "unknown";
+            var partitionKey = ResolveClientPartitionKey(httpContext);
 
             return RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey,
@@ -113,6 +158,34 @@ try
                 {
                     PermitLimit = permitLimit,
                     Window = TimeSpan.FromSeconds(windowSeconds),
+                    QueueLimit = 0,
+                });
+        });
+
+        options.AddPolicy("api", httpContext =>
+        {
+            var partitionKey = ResolveClientPartitionKey(httpContext);
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                $"api:{partitionKey}",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = apiPermitLimit,
+                    Window = TimeSpan.FromSeconds(apiWindowSeconds),
+                    QueueLimit = 0,
+                });
+        });
+
+        options.AddPolicy("webhook", httpContext =>
+        {
+            var partitionKey = ResolveClientPartitionKey(httpContext);
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                $"webhook:{partitionKey}",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = webhookPermitLimit,
+                    Window = TimeSpan.FromSeconds(webhookWindowSeconds),
                     QueueLimit = 0,
                 });
         });
@@ -152,8 +225,20 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
+
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+    }
+
     app.UseExceptionHandler();
     app.UseStatusCodePages();
+
+    if (apiSecurity.Enabled)
+    {
+        app.UseMiddleware<ApiSecurityMiddleware>();
+    }
 
     app.UseSerilogRequestLogging();
 
