@@ -14,6 +14,7 @@ import { BffAuthService } from '@wayel/shared/services/bff-auth.service';
 import { ConnectivityService } from '@wayel/shared/services/connectivity.service';
 import { environment } from '../../../environments/environment';
 import { CustomerAccountService } from '../../services/customer-account.service';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../../brand';
 
 @Component({
   selector: 'app-sign-in',
@@ -25,15 +26,9 @@ import { CustomerAccountService } from '../../services/customer-account.service'
     <div class="auth">
       <aside class="brand-panel">
         <a routerLink="/" class="logo">
-          <span class="logo-icon" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="40" height="40">
-              <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)"/>
-              <path d="M10 20h20M10 14h12M10 26h16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <strong>WeYell</strong>
+          <img src="/weyell-brand-logo.png" [alt]="productName" class="logo-img" />
         </a>
-        <p class="tagline">Shop in South Africa. Deliver to Eswatini.</p>
+        <p class="tagline">{{ productTagline }}</p>
         <span class="phase-badge">🇸🇿 Eswatini Phase 1</span>
 
         <div class="hero">
@@ -49,6 +44,9 @@ import { CustomerAccountService } from '../../services/customer-account.service'
       </aside>
 
       <main class="form-panel">
+        <a routerLink="/" class="logo-mobile">
+          <img src="/weyell-brand-logo.png" [alt]="productName" />
+        </a>
         <section class="form-card">
           <h2>Get started</h2>
           <p class="sub">Sign up or sign in with your Google account</p>
@@ -121,7 +119,29 @@ import { CustomerAccountService } from '../../services/customer-account.service'
       display: flex;
       flex-direction: column;
     }
-    .logo { display: flex; align-items: center; gap: 0.65rem; color: #fff; text-decoration: none; font-size: 1.1rem; }
+    .logo { display: inline-flex; text-decoration: none; margin-bottom: 0.15rem; }
+    .logo-img {
+      display: block;
+      height: 52px;
+      width: auto;
+      border-radius: 12px;
+    }
+    .logo-mobile {
+      display: none;
+      margin: 0 auto 1.25rem;
+      text-decoration: none;
+    }
+    .logo-mobile img {
+      display: block;
+      height: 48px;
+      width: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    }
+    @media (max-width: 960px) {
+      .logo-mobile { display: block; }
+      .form-panel { flex-direction: column; justify-content: center; padding-top: 2.5rem; }
+    }
     .tagline { margin: 0.35rem 0 0.75rem; font-size: 0.82rem; opacity: 0.75; }
     .phase-badge {
       display: inline-block;
@@ -254,6 +274,8 @@ import { CustomerAccountService } from '../../services/customer-account.service'
   `,
 })
 export class SignInComponent implements OnInit {
+  readonly productName = PRODUCT_NAME;
+  readonly productTagline = PRODUCT_TAGLINE;
   private readonly accounts = inject(AccountsBridgeService);
   private readonly journey = inject(CustomerAccountService);
   private readonly bffAuth = inject(BffAuthService);

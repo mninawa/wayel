@@ -5,6 +5,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../../brand';
 
 /**
  * Public marketing landing page (`/`).
@@ -25,9 +26,8 @@ import { RouterLink } from '@angular/router';
     <div class="ld-root">
       <!-- ====================== TOP NAVIGATION ====================== -->
       <header class="ld-nav" [class.is-scrolled]="scrolled()">
-        <a class="ld-nav-brand" routerLink="/" aria-label="WeYell home">
-          <img src="/weyell-logo.png" alt="" width="32" height="32" />
-          <span class="ld-nav-brand-text">WeYell</span>
+        <a class="ld-nav-brand" routerLink="/" [attr.aria-label]="productName + ' home'">
+          <img src="/weyell-brand-logo.png" [alt]="productName" class="ld-nav-logo" />
         </a>
         <nav class="ld-nav-links" aria-label="Primary">
           <a href="#how-it-works">How it works</a>
@@ -45,6 +45,10 @@ import { RouterLink } from '@angular/router';
       <section class="ld-hero">
         <div class="ld-hero-inner">
           <div class="ld-hero-copy">
+            <div class="ld-hero-logo">
+              <img src="/weyell-brand-logo.png" [alt]="productName" />
+              <p class="ld-hero-tagline">{{ productTagline }}</p>
+            </div>
             <span class="ld-eyebrow">SA → Eswatini · cross-border shipping</span>
             <h1>
               Shop South Africa's stores.<br />
@@ -338,10 +342,9 @@ import { RouterLink } from '@angular/router';
       <footer class="ld-footer">
         <div class="ld-footer-inner">
           <div class="ld-footer-brand">
-            <img src="/weyell-logo.png" alt="" width="28" height="28" />
-            <span>WeYell</span>
+            <img src="/weyell-brand-logo.png" [alt]="productName" class="ld-footer-logo" />
           </div>
-          <p class="ld-footer-tag">Cross-border shipping for Eswatini.</p>
+          <p class="ld-footer-tag">{{ productTagline }} · Cross-border shipping for Eswatini.</p>
 
           <div class="ld-footer-cols">
             <div>
@@ -450,13 +453,14 @@ import { RouterLink } from '@angular/router';
     .ld-nav-brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
       text-decoration: none;
-      color: var(--bb-text);
-      font-weight: 800;
-      letter-spacing: -0.01em;
     }
-    .ld-nav-brand img { display: block; }
+    .ld-nav-logo {
+      display: block;
+      height: 42px;
+      width: auto;
+      border-radius: 10px;
+    }
     .ld-nav-brand-text { font-size: 1.05rem; }
     .ld-nav-links {
       display: flex;
@@ -502,6 +506,23 @@ import { RouterLink } from '@angular/router';
       grid-template-columns: 1.05fr 0.95fr;
       gap: 3rem;
       align-items: center;
+    }
+    .ld-hero-logo {
+      margin-bottom: 1.25rem;
+    }
+    .ld-hero-logo img {
+      display: block;
+      height: clamp(72px, 12vw, 104px);
+      width: auto;
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+    }
+    .ld-hero-tagline {
+      margin: 0.55rem 0 0;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--bb-muted);
+      letter-spacing: 0.02em;
     }
     .ld-hero h1 {
       margin: 0 0 1.1rem;
@@ -1018,10 +1039,12 @@ import { RouterLink } from '@angular/router';
     .ld-footer-brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
-      font-weight: 800;
-      font-size: 1.15rem;
-      color: #fff;
+    }
+    .ld-footer-logo {
+      display: block;
+      height: 56px;
+      width: auto;
+      border-radius: 12px;
     }
     .ld-footer-tag {
       margin: 0.55rem 0 2rem;
@@ -1065,6 +1088,8 @@ import { RouterLink } from '@angular/router';
   `,
 })
 export class LandingComponent {
+  readonly productName = PRODUCT_NAME;
+  readonly productTagline = PRODUCT_TAGLINE;
   readonly year = new Date().getFullYear();
   readonly scrolled = signal(false);
 
