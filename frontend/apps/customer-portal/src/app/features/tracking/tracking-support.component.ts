@@ -18,24 +18,22 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
   imports: [RouterLink, SuiteExpiredBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bb-page-head">
-      <h1>Support</h1>
-      <p>Reach our team on WhatsApp or email — we will respond as fast as we can.</p>
-    </div>
+    <div class="support-shell">
+      <div class="bb-page-head">
+        <h1>Support</h1>
+        <p>Reach our team on WhatsApp or email — we will respond as fast as we can.</p>
+      </div>
 
-    <app-suite-expired-banner />
+      <app-suite-expired-banner />
 
-    @if (loading()) {
-      <p class="loading" aria-live="polite">Loading support…</p>
-    } @else if (loadError()) {
-      <div class="support-shell">
+      @if (loading()) {
+        <p class="loading" aria-live="polite">Loading support…</p>
+      } @else if (loadError()) {
         <div class="bb-card bb-card-pad err-card">
           <p class="err">{{ loadError() }}</p>
           <button type="button" class="bb-btn bb-btn-outline" (click)="reload()">Try again</button>
         </div>
-      </div>
-    } @else if (overview()) {
-      <div class="support-shell">
+      } @else if (overview()) {
         <p class="section-lead">Pick the channel that works best for you.</p>
 
         <div class="contact-grid">
@@ -95,8 +93,8 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
             </a>
           </section>
         }
-      </div>
-    }
+      }
+    </div>
   `,
   styles: `
     .loading {
@@ -108,7 +106,6 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .support-shell {
       width: 100%;
       max-width: 52rem;
-      margin: 0 auto;
     }
 
     .section-lead {

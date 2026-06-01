@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   ElementRef,
   effect,
   inject,
@@ -67,7 +66,14 @@ import { GoogleMapsLoaderService } from '../services/google-maps-loader.service'
 })
 export class ShipmentRouteMapComponent {
   private readonly mapsLoader = inject(GoogleMapsLoaderService);
-  private readonly destroyRef = inject(DestroyRef);
+
+  private mapsApi: typeof google | null = null;
+  private mapInstance: google.maps.Map | null = null;
+  private travelledLine: google.maps.Polyline | null = null;
+  private remainingLine: google.maps.Polyline | null = null;
+  private originMarker: google.maps.Marker | null = null;
+  private destMarker: google.maps.Marker | null = null;
+  private currentMarker: google.maps.Marker | null = null;
 
   readonly mapHost = viewChild<ElementRef<HTMLElement>>('mapHost');
   readonly apiKey = input<string | null | undefined>(null);
@@ -80,115 +86,182 @@ export class ShipmentRouteMapComponent {
   readonly loadError = signal<string | null>(null);
 
   constructor() {
-    effect(() => {
+    effect((onCleanup) => {
       const host = this.mapHost()?.nativeElement;
       const key = this.apiKey();
-      const origin = this.origin();
-      const destination = this.destination();
-      const progress = this.progress();
       if (!host || !key?.trim()) {
         this.loadError.set(key?.trim() ? null : 'Add a Google Maps API key to see the route map.');
         return;
       }
 
+      if (!host.isConnected) {
+        return;
+      }
+
       this.loadError.set(null);
 
-      let map: google.maps.Map | null = null;
-      let travelledLine: google.maps.Polyline | null = null;
-      let remainingLine: google.maps.Polyline | null = null;
-      let originMarker: google.maps.Marker | null = null;
-      let destMarker: google.maps.Marker | null = null;
-      let currentMarker: google.maps.Marker | null = null;
-
-      this.mapsLoader.load(key, ['maps']).then((g) => {
-        const current = corridorPoint(origin, destination, progress);
-        const bounds = new g.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(destination);
-        bounds.extend(current);
-
-        map = new g.maps.Map(host, {
-          center: current,
-          zoom: 6,
-          disableDefaultUI: true,
-          zoomControl: true,
-          fullscreenControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          styles: [
-            { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#e9e9e9' }] },
-          ],
-        });
-        map.fitBounds(bounds, 48);
-
-        const fullPath = [origin, destination];
-        const travelledPath = [origin, current];
-
-        travelledLine = new g.maps.Polyline({
-          path: travelledPath,
-          geodesic: true,
-          strokeColor: '#292928',
-          strokeOpacity: 0,
-          strokeWeight: 3,
-          icons: [
-            {
-              icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3, strokeColor: '#292928' },
-              offset: '0',
-              repeat: '12px',
-            },
-          ],
-          map,
-        });
-
-        remainingLine = new g.maps.Polyline({
-          path: [current, destination],
-          geodesic: true,
-          strokeColor: '#292928',
-          strokeOpacity: 1,
-          strokeWeight: 3,
-          map,
-        });
-
-        originMarker = new g.maps.Marker({
-          map,
-          position: origin,
-          title: origin.label ?? 'Origin',
-        });
-        destMarker = new g.maps.Marker({
-          map,
-          position: destination,
-          title: destination.label ?? 'Destination',
-        });
-        currentMarker = new g.maps.Marker({
-          map,
-          position: current,
-          title: 'Current location',
-          icon: {
-            path: g.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#292928',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-        });
-
-        void travelledLine;
-      }).catch(() => {
-        this.loadError.set('Could not load Google Maps.');
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+        this.disposeMap();
       });
 
-      this.destroyRef.onDestroy(() => {
-        travelledLine?.setMap(null);
-        remainingLine?.setMap(null);
-        originMarker?.setMap(null);
-        destMarker?.setMap(null);
-        currentMarker?.setMap(null);
-        map = null;
-      });
+      void this.mapsLoader
+        .load(key, ['maps'])
+        .then((g) => {
+          if (cancelled || !host.isConnected || !(host instanceof HTMLElement)) {
+            return;
+          }
+
+          this.mapsApi = g;
+          const origin = this.origin();
+          const destination = this.destination();
+          const progress = this.progress();
+          const current = corridorPoint(origin, destination, progress);
+          const bounds = new g.maps.LatLngBounds();
+          bounds.extend(origin);
+          bounds.extend(destination);
+          bounds.extend(current);
+
+          this.mapInstance = new g.maps.Map(host, {
+            center: current,
+            zoom: 6,
+            disableDefaultUI: true,
+            zoomControl: true,
+            fullscreenControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            styles: [
+              { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+              { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+              { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+              { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#e9e9e9' }] },
+            ],
+          });
+          this.mapInstance.fitBounds(bounds, 48);
+
+          this.syncRoute(origin, destination, progress);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            this.loadError.set('Could not load Google Maps.');
+          }
+        });
     });
+
+    effect(() => {
+      const origin = this.origin();
+      const destination = this.destination();
+      const progress = this.progress();
+      if (!this.mapInstance || !this.mapsApi) {
+        return;
+      }
+
+      this.syncRoute(origin, destination, progress);
+    });
+  }
+
+  private syncRoute(origin: MapLatLng, destination: MapLatLng, progress: number): void {
+    const g = this.mapsApi;
+    const map = this.mapInstance;
+    if (!g || !map) {
+      return;
+    }
+
+    const current = corridorPoint(origin, destination, progress);
+    const bounds = new g.maps.LatLngBounds();
+    bounds.extend(origin);
+    bounds.extend(destination);
+    bounds.extend(current);
+
+    if (!this.travelledLine) {
+      this.travelledLine = new g.maps.Polyline({
+        path: [origin, current],
+        geodesic: true,
+        strokeColor: '#292928',
+        strokeOpacity: 0,
+        strokeWeight: 3,
+        icons: [
+          {
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3, strokeColor: '#292928' },
+            offset: '0',
+            repeat: '12px',
+          },
+        ],
+        map,
+      });
+    } else {
+      this.travelledLine.setPath([origin, current]);
+    }
+
+    if (!this.remainingLine) {
+      this.remainingLine = new g.maps.Polyline({
+        path: [current, destination],
+        geodesic: true,
+        strokeColor: '#292928',
+        strokeOpacity: 1,
+        strokeWeight: 3,
+        map,
+      });
+    } else {
+      this.remainingLine.setPath([current, destination]);
+    }
+
+    if (!this.originMarker) {
+      this.originMarker = new g.maps.Marker({
+        map,
+        position: origin,
+        title: origin.label ?? 'Origin',
+      });
+    } else {
+      this.originMarker.setPosition(origin);
+      this.originMarker.setTitle(origin.label ?? 'Origin');
+    }
+
+    if (!this.destMarker) {
+      this.destMarker = new g.maps.Marker({
+        map,
+        position: destination,
+        title: destination.label ?? 'Destination',
+      });
+    } else {
+      this.destMarker.setPosition(destination);
+      this.destMarker.setTitle(destination.label ?? 'Destination');
+    }
+
+    if (!this.currentMarker) {
+      this.currentMarker = new g.maps.Marker({
+        map,
+        position: current,
+        title: 'Current location',
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#292928',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      });
+    } else {
+      this.currentMarker.setPosition(current);
+    }
+
+    map.fitBounds(bounds, 48);
+  }
+
+  private disposeMap(): void {
+    this.travelledLine?.setMap(null);
+    this.remainingLine?.setMap(null);
+    this.originMarker?.setMap(null);
+    this.destMarker?.setMap(null);
+    this.currentMarker?.setMap(null);
+    this.travelledLine = null;
+    this.remainingLine = null;
+    this.originMarker = null;
+    this.destMarker = null;
+    this.currentMarker = null;
+    this.mapInstance = null;
+    this.mapsApi = null;
   }
 }
