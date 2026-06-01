@@ -22,6 +22,7 @@ import {
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { PaystackCheckoutService } from '../../services/paystack-checkout.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { MomoPendingComponent } from '../payments/momo-pending.component';
 import {
   PaymentMethodPickerComponent,
@@ -39,7 +40,7 @@ const PLAN_FEATURES = [
 @Component({
   selector: 'app-suite-checkout',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, MomoPendingComponent, PaymentMethodPickerComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, MomoPendingComponent, PaymentMethodPickerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="page-head">
@@ -127,7 +128,7 @@ const PLAN_FEATURES = [
         </header>
 
         @if (loading()) {
-          <p class="loading">Loading payment history…</p>
+          <nk-pulse-loader label="Loading payment history…" />
         } @else if (visibleHistory().length === 0) {
           <div class="empty">
             <span class="material-icons-outlined">receipt_long</span>
@@ -1047,13 +1048,6 @@ const PLAN_FEATURES = [
       margin-bottom: 0.75rem;
     }
     .empty.no-card p { margin: 0; line-height: 1.45; }
-    .loading {
-      padding: 1.5rem 0;
-      text-align: center;
-      color: var(--bb-muted);
-      font-size: 0.85rem;
-    }
-
     /* ---- Renew card (existing checkout form, restyled to fit dashboard) ---- */
     .renew-card { margin-bottom: 1rem; }
 

@@ -17,7 +17,7 @@
     </header>
 
     @if (loading()) {
-      <p class="muted pad">Loading shipment details…</p>
+      <nk-pulse-loader label="Loading shipment details…" />
     } @else {
       <div class="drawer-body">
         <div class="status-row">

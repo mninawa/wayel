@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { preferServerAcceptUrl } from '../utils/invitation-accept-url';
@@ -48,7 +49,7 @@ const EMPTY_DRAFT: IssueDraft = {
 @Component({
   selector: 'wayel-invitations-screen',
   standalone: true,
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, PulseLoaderComponent],
   template: `
     <div class="page">
       <header class="hero">
@@ -212,8 +213,7 @@ const EMPTY_DRAFT: IssueDraft = {
 
       @if (loading()) {
         <div class="card empty-card">
-          <span class="dot-pulse" aria-hidden="true"></span>
-          Loading invitations…
+          <nk-pulse-loader label="Loading invitations…" />
         </div>
       } @else if (loadError()) {
         <div class="card empty-card">

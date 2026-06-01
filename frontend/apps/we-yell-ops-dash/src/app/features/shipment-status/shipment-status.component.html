@@ -145,8 +145,7 @@
   <!-- List -->
   @if (busy() && shipments().length === 0) {
     <section class="ops-card ops-card-pad empty">
-      <span class="material-icons-outlined" aria-hidden="true">hourglass_top</span>
-      <p>Loading shipments…</p>
+      <nk-pulse-loader label="Loading shipments…" />
     </section>
   } @else if (filtered().length === 0) {
     <section class="ops-card ops-card-pad empty">
@@ -281,7 +280,7 @@
 
     @if (drawerBusy()) {
       <div class="drawer-body">
-        <p class="hint">Loading shipment detail…</p>
+        <nk-pulse-loader size="sm" [block]="false" label="Loading shipment detail…" />
       </div>
     } @else if (drawerError()) {
       <div class="drawer-body">

@@ -67,7 +67,7 @@
       </div>
 
       @if (busy() && items().length === 0) {
-        <p class="loading">Loading manifests…</p>
+        <nk-pulse-loader label="Loading manifests…" />
       } @else if (filteredItems().length === 0) {
         <div class="empty-state">
           <span class="material-icons-outlined">assignment</span>
@@ -153,7 +153,12 @@
 
     <aside class="detail-panel">
       @if (selectedManifest(); as manifest) {
-        @if (detailPreview(); as detail) {
+        @if (detailLoading()) {
+          <section class="panel detail-empty">
+            <nk-pulse-loader label="Loading manifest details…" />
+          </section>
+        } @else {
+          @if (detailPreview(); as detail) {
           <section class="panel detail-card">
             <header class="detail-head">
               <div>
@@ -249,6 +254,7 @@
               }
             </div>
           </section>
+          }
         }
       } @else {
         <section class="panel detail-empty">

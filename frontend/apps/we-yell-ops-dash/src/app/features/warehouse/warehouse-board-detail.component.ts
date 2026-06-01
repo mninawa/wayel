@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsPillComponent, type OpsPillTone } from '../../shared/ops-pill.component';
 import {
   ReceivingApiService,
@@ -31,7 +32,7 @@ type DetailTab = 'summary' | 'details' | 'location' | 'activity' | 'documents';
 @Component({
   selector: 'ops-warehouse-board-detail',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, OpsPillComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './warehouse-board-detail.component.html',
   styleUrl: './warehouse-board-detail.component.css',

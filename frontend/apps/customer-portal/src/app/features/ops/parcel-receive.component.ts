@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
 import {
@@ -20,7 +21,7 @@ import {
 @Component({
   selector: 'app-parcel-receive',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ops-page">
@@ -87,7 +88,7 @@ import {
             </label>
 
             @if (lookupLoading()) {
-              <p class="hint">Looking up customer…</p>
+              <nk-pulse-loader size="sm" [block]="false" label="Looking up customer…" />
             }
             @if (suiteLookup(); as lookup) {
               <div class="lookup-card" [class.blocked]="!lookup.canReceiveParcels">

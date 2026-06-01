@@ -28,6 +28,7 @@ import {
   manifestStatusLabel,
   manifestStatusTone,
 } from '../../types/manifest.types';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { warehouseRoutes } from '../../types/warehouse.types';
 
 interface ManifestMetric {
@@ -42,7 +43,7 @@ interface ManifestMetric {
 @Component({
   selector: 'ops-warehouse-manifests',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink],
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './warehouse-manifests.component.html',
   styleUrl: './warehouse-manifests.component.css',

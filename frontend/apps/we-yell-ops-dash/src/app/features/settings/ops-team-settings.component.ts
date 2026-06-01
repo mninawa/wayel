@@ -24,6 +24,7 @@ import {
   normalizeOpsRegions,
   type OpsRegion,
 } from '../../services/ops-regions';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsSessionService } from '../../services/ops-session.service';
 
 interface RoleDescription {
@@ -49,7 +50,7 @@ interface AuditActionPresenter {
 @Component({
   selector: 'ops-team-settings',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [FormsModule, DatePipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ops-team-settings.component.html',
   styleUrl: './ops-team-settings.component.css',

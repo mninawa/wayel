@@ -19,6 +19,7 @@ import { canTrackParcel, trackParcelRoute } from '../../utils/tracking-links';
 import type { ParcelListItem } from '../../models/parcel.models';
 import { ParcelsService } from '../../services/parcels.service';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { PendingInvoiceBannerComponent } from '../shared/pending-invoice-banner.component';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
@@ -26,7 +27,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 @Component({
   selector: 'app-received-parcels',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent, PendingInvoiceBannerComponent],
+  imports: [RouterLink, SuiteExpiredBannerComponent, PendingInvoiceBannerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bb-page-head">
@@ -99,6 +100,9 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
     </div>
 
     <section class="bb-card table-card">
+      @if (parcelsApi.loading()) {
+        <nk-pulse-loader label="Loading parcels…" />
+      } @else {
         <div class="table-scroll">
           <table class="bb-table">
             <thead>
@@ -210,6 +214,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
             </div>
           </nav>
         }
+      }
     </section>
   `,
   styles: `

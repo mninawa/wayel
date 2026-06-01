@@ -22,6 +22,7 @@ import {
   type ReceiveParcelResultDto,
   type SuiteReceiveLookupDto,
 } from '../../services/receiving-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsSessionService } from '../../services/ops-session.service';
 import { OpsLabelReaderComponent } from '../../shared/ops-label-reader.component';
 import { OpsPillComponent, pillToneForInvoice } from '../../shared/ops-pill.component';
@@ -63,7 +64,7 @@ interface PendingPhoto {
 @Component({
   selector: 'ops-parcel-receive',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, OpsLabelReaderComponent, OpsPillComponent],
+  imports: [FormsModule, DatePipe, RouterLink, OpsLabelReaderComponent, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -212,7 +213,7 @@ interface PendingPhoto {
               />
             </label>
             @if (lookupLoading()) {
-              <p class="hint">Looking up customer…</p>
+              <nk-pulse-loader size="sm" [block]="false" label="Looking up customer…" />
             }
             @if (suiteLookup(); as lookup) {
               <div class="customer-card">
@@ -410,7 +411,7 @@ interface PendingPhoto {
               } @else if (previewError()) {
                 <p class="err">{{ previewError() }}</p>
               } @else {
-                <p class="hint">Loading invoice…</p>
+                <nk-pulse-loader size="sm" [block]="false" label="Loading invoice…" />
               }
             }
           </article>

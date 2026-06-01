@@ -62,6 +62,11 @@
     </div>
   }
 
+  @if (busy() && !board()) {
+    <div class="kanban-canvas kanban-loading">
+      <nk-pulse-loader label="Loading collection board…" />
+    </div>
+  } @else {
   <div class="kanban-canvas">
     <div class="kanban-scroll">
       @for (col of board()?.columns ?? []; track col.columnId) {
@@ -173,6 +178,7 @@
       }
     </div>
   </div>
+  }
 </div>
 
 @if (selectedCard()) {

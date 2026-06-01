@@ -10,12 +10,13 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import type { TrackingSupportOverviewDto } from '../../services/borderbox-api.service';
 import { BorderboxApiService } from '../../services/borderbox-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
 @Component({
   selector: 'app-tracking-support',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent],
+  imports: [RouterLink, SuiteExpiredBannerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="support-shell">
@@ -27,7 +28,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
       <app-suite-expired-banner />
 
       @if (loading()) {
-        <p class="loading" aria-live="polite">Loading support…</p>
+        <nk-pulse-loader label="Loading support…" />
       } @else if (loadError()) {
         <div class="bb-card bb-card-pad err-card">
           <p class="err">{{ loadError() }}</p>
@@ -97,12 +98,6 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     </div>
   `,
   styles: `
-    .loading {
-      color: var(--bb-muted);
-      font-size: 0.9rem;
-      padding: 1rem 0;
-    }
-
     .support-shell {
       width: 100%;
       max-width: 52rem;

@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import {
   CustomerOpsApiService,
@@ -48,7 +49,7 @@ interface KycMetric {
 @Component({
   selector: 'ops-kyc-review',
   standalone: true,
-  imports: [FormsModule, DatePipe, LowerCasePipe, RouterLink],
+  imports: [FormsModule, DatePipe, LowerCasePipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './kyc-review.component.html',
   styleUrl: './kyc-review.component.css',

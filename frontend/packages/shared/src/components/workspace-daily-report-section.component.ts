@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -79,7 +80,7 @@ interface FilterChip {
   selector: 'app-workspace-daily-report-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MediaStickyNoteViewerComponent],
+  imports: [DatePipe, MediaStickyNoteViewerComponent, PulseLoaderComponent],
   template: `
     <header class="ws-main-head">
       <div>
@@ -108,8 +109,7 @@ interface FilterChip {
             Retry
           </button>
         } @else {
-          <span class="material-icons-outlined spin" aria-hidden="true">autorenew</span>
-          <span>Loading daily reports…</span>
+          <nk-pulse-loader size="sm" [block]="false" label="Loading daily reports…" />
         }
       </div>
     }

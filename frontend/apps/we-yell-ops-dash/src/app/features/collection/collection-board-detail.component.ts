@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsPillComponent } from '../../shared/ops-pill.component';
 import {
   CollectionApiService,
@@ -19,7 +20,7 @@ import {
 @Component({
   selector: 'ops-collection-board-detail',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, OpsPillComponent],
+  imports: [DatePipe, DecimalPipe, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './collection-board-detail.component.html',
   styleUrl: './collection-board-detail.component.css',

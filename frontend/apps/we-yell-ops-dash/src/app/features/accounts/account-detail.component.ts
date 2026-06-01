@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   CustomerOpsApiService,
@@ -102,7 +103,7 @@ function normalisePaymentStatus(raw: string): PaymentStatus {
 @Component({
   selector: 'ops-account-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe],
+  imports: [RouterLink, DatePipe, DecimalPipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './account-detail.component.html',
   styleUrl: './account-detail.component.css',

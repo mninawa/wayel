@@ -47,7 +47,7 @@ describe('TrackingSupportComponent', () => {
   it('shows the loading hint while the API call is in flight', () => {
     api.getTrackingSupport.and.returnValue(new Subject<TrackingSupportOverviewDto>().asObservable());
     render();
-    expect(fixture.nativeElement.querySelector('.loading')?.textContent).toContain('Loading support');
+    expect(fixture.nativeElement.querySelector('nk-pulse-loader')).not.toBeNull();
   });
 
   it('renders WhatsApp and email channels when configured', () => {

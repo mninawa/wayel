@@ -21,6 +21,7 @@ import {
   PaymentMethodPickerComponent,
   type PaymentMethodChoice,
 } from '../payments/payment-method-picker.component';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
@@ -35,6 +36,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     MomoPendingComponent,
     PaymentMethodPickerComponent,
     ConfirmDialogComponent,
+    PulseLoaderComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -238,7 +240,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     } @else if (loadError()) {
       <p class="err">{{ loadError() }}</p>
     } @else {
-      <p class="muted">Loading quote…</p>
+      <nk-pulse-loader label="Loading quote…" />
     }
 
     @if (actionError()) {

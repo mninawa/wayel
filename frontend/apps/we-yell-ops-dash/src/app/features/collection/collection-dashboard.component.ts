@@ -17,6 +17,7 @@ import {
   canDropOnColumn,
   dropBlockedMessage,
 } from './collection-board-transitions';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import {
   CollectionPickupModalComponent,
   type CollectionPickupConfirm,
@@ -26,7 +27,7 @@ import { CollectionBoardDetailComponent } from './collection-board-detail.compon
 @Component({
   selector: 'ops-collection-dashboard',
   standalone: true,
-  imports: [FormsModule, DatePipe, CollectionPickupModalComponent, CollectionBoardDetailComponent],
+  imports: [FormsModule, DatePipe, PulseLoaderComponent, CollectionPickupModalComponent, CollectionBoardDetailComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './collection-dashboard.component.html',
   styleUrl: './collection-dashboard.component.css',

@@ -20,6 +20,7 @@ import {
 } from '../../models/parcel.models';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
 interface TimelineEvent {
@@ -38,7 +39,7 @@ interface CustomsItem {
 @Component({
   selector: 'app-parcel-details',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent, DecimalPipe, FormsModule],
+  imports: [RouterLink, SuiteExpiredBannerComponent, DecimalPipe, FormsModule, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (parcel(); as p) {
@@ -81,8 +82,7 @@ interface CustomsItem {
                 <div class="invoice-frame" [class.is-loading]="invoicePreviewLoading() && !invoicePreviewBlobUrl()">
                   @if (invoicePreviewLoading() && !invoicePreviewBlobUrl()) {
                     <div class="invoice-frame-overlay">
-                      <span class="material-icons-outlined spin">progress_activity</span>
-                      <span>Loading preview…</span>
+                      <nk-pulse-loader size="sm" [block]="false" label="Loading preview…" />
                     </div>
                   }
                   @if (invoicePreviewBlobUrl()) {
@@ -357,7 +357,7 @@ interface CustomsItem {
       <p class="err">{{ loadError() }}</p>
       <a routerLink="/received-parcels" class="bb-link">← Back to parcels</a>
     } @else {
-      <p class="loading">Loading parcel…</p>
+      <nk-pulse-loader label="Loading parcel…" />
     }
   `,
   styles: `
@@ -749,7 +749,6 @@ interface CustomsItem {
     .bb-badge-awaiting { background: var(--bb-warning-soft); color: #b45309; }
     .bb-badge-default { background: #f1f5f9; color: var(--bb-muted); }
     .bb-card-title { margin: 0 0 0.75rem; font-size: 0.95rem; }
-    .loading { color: var(--bb-muted); }
   `,
 })
 export class ParcelDetailsComponent implements OnInit, OnDestroy {

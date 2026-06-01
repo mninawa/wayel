@@ -498,11 +498,6 @@
   margin-bottom: 0.75rem;
 }
 
-.loading {
-  color: var(--ops-muted);
-  padding: 2rem;
-}
-
 code {
   font-size: 0.85rem;
   background: #f1f5f9;

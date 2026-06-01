@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsSessionService } from '../../services/ops-session.service';
 import {
   OnboardingOpsApiService,
@@ -30,7 +31,7 @@ import {
 @Component({
   selector: 'ops-onboarding-funnel',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, PulseLoaderComponent],
   providers: [DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -86,7 +87,7 @@ import {
         </div>
 
         @if (busy()) {
-          <div class="row-info">Loading…</div>
+          <nk-pulse-loader label="Loading…" />
         } @else if (rows().length === 0) {
           <div class="row-info muted">No customers in this bucket yet.</div>
         } @else {

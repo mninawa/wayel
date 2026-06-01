@@ -404,7 +404,7 @@
       </aside>
     </form>
   } @else if (busy()) {
-    <p class="loading">Loading configuration…</p>
+    <nk-pulse-loader label="Loading configuration…" />
   }
   } @else if (activeTab() === 'pricing') {
     <p class="tab-note">

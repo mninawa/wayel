@@ -8,12 +8,13 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { ShipmentTrackingDetailDto } from '../../services/borderbox-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { BorderboxApiService } from '../../services/borderbox-api.service';
 
 @Component({
   selector: 'app-shipment-tracking',
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe],
+  imports: [RouterLink, DatePipe, DecimalPipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="track-page">
@@ -23,7 +24,7 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       </a>
 
       @if (loading()) {
-        <p class="loading" aria-live="polite">Loading shipment tracking…</p>
+        <nk-pulse-loader label="Loading shipment tracking…" />
       } @else if (loadError()) {
         <div class="bb-card bb-card-pad err-card">
           <p class="err">{{ loadError() }}</p>
@@ -240,7 +241,6 @@ import { BorderboxApiService } from '../../services/borderbox-api.service';
       margin-bottom: 1rem;
     }
     .back-link:hover { text-decoration: underline; }
-    .loading { color: var(--bb-muted); padding: 2rem 0; }
     .err-card .err { color: var(--bb-danger); margin: 0 0 1rem; }
 
     .track-header {

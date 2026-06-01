@@ -1041,7 +1041,7 @@
     }
   </div>
 } @else if (busy()) {
-  <p class="loading">Loading account…</p>
+  <nk-pulse-loader label="Loading account…" />
 } @else if (error()) {
   <p class="err-banner">{{ error() }}</p>
   <a [routerLink]="routes.list" class="back-link">← Back to accounts</a>

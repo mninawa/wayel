@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import {
   BorderboxApiService,
   type MomoMsisdnValidationDto,
@@ -46,13 +47,11 @@ export interface PaymentMethodChoice {
 @Component({
   selector: 'app-payment-method-picker',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="pmp-skeleton" aria-busy="true" aria-live="polite">
-        Loading payment options…
-      </div>
+      <nk-pulse-loader label="Loading payment options…" />
     } @else if (providers().length === 0) {
       <p class="pmp-empty">
         No payment providers are configured. Please contact support.
@@ -150,11 +149,6 @@ export interface PaymentMethodChoice {
     }
   `,
   styles: `
-    .pmp-skeleton {
-      padding: 0.75rem 0;
-      color: var(--bb-muted);
-      font-size: 0.85rem;
-    }
     .pmp-empty {
       padding: 0.5rem 0;
       color: var(--bb-danger);

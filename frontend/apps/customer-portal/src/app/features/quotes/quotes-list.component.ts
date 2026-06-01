@@ -9,15 +9,18 @@ import {
 import { RouterLink } from '@angular/router';
 import type { QuoteSummaryDto } from '../../services/borderbox-api.service';
 import { BorderboxApiService } from '../../services/borderbox-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.component';
 
 @Component({
   selector: 'app-quotes-list',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, DatePipe],
+  imports: [RouterLink, DecimalPipe, DatePipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (loadError()) {
+    @if (loading()) {
+      <nk-pulse-loader label="Loading quotes…" />
+    } @else if (loadError()) {
       <p class="err">{{ loadError() }}</p>
     } @else if (quotes().length === 0) {
       <section class="bb-card bb-card-pad empty">
@@ -93,12 +96,20 @@ export class QuotesListComponent implements OnInit {
   }
 
   readonly quotes = signal<QuoteSummaryDto[]>([]);
+  readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.loading.set(true);
     this.api.listQuotes().subscribe({
-      next: (items) => this.quotes.set(items),
-      error: () => this.loadError.set('Could not load quotes.'),
+      next: (items) => {
+        this.quotes.set(items);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loadError.set('Could not load quotes.');
+        this.loading.set(false);
+      },
     });
   }
 

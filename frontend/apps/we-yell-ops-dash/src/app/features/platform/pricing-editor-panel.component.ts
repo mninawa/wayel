@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import {
   PricingOpsApiService,
   type BorderBoxPricingConfigDto,
@@ -28,7 +29,7 @@ import {
 @Component({
   selector: 'ops-pricing-editor-panel',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, PercentPipe],
+  imports: [FormsModule, DatePipe, DecimalPipe, PercentPipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pricing-editor-panel.component.html',
   styleUrl: './pricing-editor-panel.component.css',

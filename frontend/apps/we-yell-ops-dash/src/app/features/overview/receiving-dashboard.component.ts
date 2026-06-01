@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsKpiCardComponent } from '../../shared/ops-kpi-card.component';
 import {
   OpsPillComponent,
@@ -29,7 +30,7 @@ import { receivingRoutes } from '../../types/receiving.types';
 @Component({
   selector: 'ops-receiving-dashboard',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, OpsKpiCardComponent, OpsPillComponent],
+  imports: [DatePipe, FormsModule, RouterLink, OpsKpiCardComponent, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -137,7 +138,7 @@ import { receivingRoutes } from '../../types/receiving.types';
         </div>
 
         @if (busy() && queue().length === 0) {
-          <p class="muted pad">Loading queue…</p>
+          <nk-pulse-loader label="Loading queue…" />
         } @else if (queue().length === 0) {
           <p class="muted pad">No parcels in the receiving queue yet.</p>
         } @else if (filteredQueue().length === 0) {

@@ -112,7 +112,7 @@
 
   <section class="ops-card table-card">
     @if (busy() && items().length === 0) {
-      <p class="loading">Loading accounts…</p>
+      <nk-pulse-loader label="Loading accounts…" />
     } @else if (items().length === 0) {
       <div class="empty">
         <span class="material-icons-outlined">manage_accounts</span>

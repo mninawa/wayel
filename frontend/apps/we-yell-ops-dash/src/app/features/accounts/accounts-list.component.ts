@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import {
   CustomerOpsApiService,
@@ -20,7 +21,7 @@ import {
 @Component({
   selector: 'ops-accounts-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './accounts-list.component.html',
   styleUrl: './accounts-list.component.css',

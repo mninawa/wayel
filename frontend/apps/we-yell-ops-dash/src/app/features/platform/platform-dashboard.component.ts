@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import {
   PlatformDashboardApiService,
@@ -13,7 +14,7 @@ import { platformRoutes } from '../../types/platform.types';
 @Component({
   selector: 'ops-platform-dashboard',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-dashboard.component.html',
   styleUrl: './platform-dashboard.component.css',

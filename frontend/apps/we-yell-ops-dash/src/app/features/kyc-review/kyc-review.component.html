@@ -98,7 +98,7 @@
       </div>
 
       @if (busy() && items().length === 0) {
-        <p class="loading">Loading applicants…</p>
+        <nk-pulse-loader label="Loading applicants…" />
       } @else if (filteredItems().length === 0) {
         <div class="empty-state">
           <span class="material-icons-outlined">inbox</span>
@@ -192,7 +192,7 @@
           </header>
 
           @if (detailBusy()) {
-            <p class="loading inline">Loading details…</p>
+            <nk-pulse-loader size="sm" [block]="false" label="Loading details…" />
           }
 
           <div class="detail-grid">
@@ -332,7 +332,7 @@
           }
         </section>
       } @else if (selectedApplicant()) {
-        <section class="panel detail-empty"><p class="loading">Loading KYC submission…</p></section>
+        <section class="panel detail-empty"><nk-pulse-loader label="Loading KYC submission…" /></section>
       } @else {
         <section class="panel detail-empty">
           <span class="material-icons-outlined">fact_check</span>

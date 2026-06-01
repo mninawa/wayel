@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OpsPillComponent, type OpsPillTone } from '../../shared/ops-pill.component';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsCoverPhotoLoaderService } from '../../services/ops-cover-photo-loader.service';
 import { OpsSessionService } from '../../services/ops-session.service';
 import { OPS_CAP } from '../../services/ops-permissions';
@@ -34,7 +35,7 @@ type BoardView = 'kanban' | 'table';
 @Component({
   selector: 'ops-warehouse-dashboard',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, OpsPillComponent, WarehouseBoardDetailComponent, WarehouseBoardStoreModalComponent],
+  imports: [FormsModule, DatePipe, DecimalPipe, PulseLoaderComponent, OpsPillComponent, WarehouseBoardDetailComponent, WarehouseBoardStoreModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './warehouse-dashboard.component.html',
   styleUrl: './warehouse-dashboard.component.css',

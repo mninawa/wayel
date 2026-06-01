@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { invoiceUploadRoute } from '../../models/parcel.models';
 import { CustomerAccountService } from '../../services/customer-account.service';
 import { ParcelsService } from '../../services/parcels.service';
@@ -9,7 +11,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, SuiteExpiredBannerComponent, PendingInvoiceBannerComponent],
+  imports: [RouterLink, SuiteExpiredBannerComponent, PendingInvoiceBannerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="welcome-head">
@@ -21,6 +23,9 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
 
     <app-pending-invoice-banner />
 
+    @if (pageLoading()) {
+      <nk-pulse-loader label="Loading your dashboard…" />
+    } @else {
     <section class="stats">
       @for (s of statCards(); track s.title) {
         <article class="stat bb-card">
@@ -103,6 +108,7 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
         }
       </section>
     </div>
+    }
   `,
   styles: `
     .welcome-head {
@@ -207,6 +213,8 @@ export class DashboardComponent implements OnInit {
   private readonly accountApi = inject(CustomerAccountService);
   private readonly parcelsApi = inject(ParcelsService);
 
+  readonly pageLoading = signal(true);
+
   readonly firstName = computed(() => {
     const name =
       this.accountApi.account()?.profile.displayName ??
@@ -281,11 +289,14 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    if (!this.accountApi.account()) {
-      this.accountApi.loadAccount().subscribe();
-    }
-    this.parcelsApi.loadDashboard().subscribe();
-    this.parcelsApi.loadParcels().subscribe();
+    forkJoin({
+      account: this.accountApi.account() ? of(null) : this.accountApi.loadAccount(),
+      dashboard: this.parcelsApi.loadDashboard(),
+      parcels: this.parcelsApi.loadParcels(),
+    }).subscribe({
+      next: () => this.pageLoading.set(false),
+      error: () => this.pageLoading.set(false),
+    });
   }
 
   pillClass(status: string): string {

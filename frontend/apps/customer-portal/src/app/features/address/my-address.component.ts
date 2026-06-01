@@ -26,6 +26,7 @@ function cloneNotifications(prefs: NotificationPreferences): NotificationPrefere
   return { ...prefs };
 }
 import { PickupLocationCardComponent } from '@wayel/shared/components/pickup-location-card.component';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { findPickupLocationConfig } from '@wayel/shared/pickup/pickup-regions.config';
 import type { PickupLocationConfig } from '@wayel/shared/pickup/pickup-location.types';
 import { enrichPickupLocation } from '@wayel/shared/pickup/pickup-location.utils';
@@ -51,11 +52,12 @@ type NotifKey = keyof NotificationPreferences;
     DeliveryAddressFormComponent,
     KycDocumentUploadComponent,
     PickupLocationCardComponent,
+    PulseLoaderComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <p class="loading">Loading your account…</p>
+      <nk-pulse-loader label="Loading your account…" />
     } @else {
       @if (account(); as acc) {
       <div class="bb-page-head page-head">
@@ -424,7 +426,6 @@ type NotifKey = keyof NotificationPreferences;
     }
   `,
   styles: `
-    .loading { color: var(--bb-muted); }
 
     .page-head h1 {
       display: flex;

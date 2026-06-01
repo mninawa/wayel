@@ -33,7 +33,7 @@
       </nav>
 
       @if (loading()) {
-        <p class="muted pad">Loading details…</p>
+        <nk-pulse-loader label="Loading details…" />
       } @else {
         @if (parcel(); as p) {
           <div class="drawer-body">

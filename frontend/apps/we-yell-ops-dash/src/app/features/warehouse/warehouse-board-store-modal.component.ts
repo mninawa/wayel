@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import { ReceivingApiService, type OpsParcelDetailDto } from '../../services/receiving-api.service';
 import { OpsSessionService } from '../../services/ops-session.service';
@@ -34,7 +35,7 @@ export interface WarehouseBoardStoreConfirm {
 @Component({
   selector: 'ops-warehouse-board-store-modal',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, RouterLink],
+  imports: [FormsModule, DecimalPipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="backdrop" (click)="cancelled.emit()" aria-hidden="true"></div>
@@ -60,7 +61,7 @@ export interface WarehouseBoardStoreConfirm {
       }
 
       @if (loading()) {
-        <p class="muted pad">Loading parcel details…</p>
+        <nk-pulse-loader label="Loading parcel details…" />
       } @else {
         @if (storage()?.suggestedLocationId; as suiteLocId) {
           <button type="button" class="suite-quick ops-btn ops-btn-primary" (click)="storeInSuitePostbox(suiteLocId)">

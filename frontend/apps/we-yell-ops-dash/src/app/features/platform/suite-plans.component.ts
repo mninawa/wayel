@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import {
   SuitePlansOpsApiService,
   type CreateSuitePlanRequest,
@@ -28,7 +29,7 @@ interface PlanForm {
 @Component({
   selector: 'ops-suite-plans',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, RouterLink],
+  imports: [FormsModule, DecimalPipe, RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suite-plans.component.html',
   styleUrl: './suite-plans.component.css',

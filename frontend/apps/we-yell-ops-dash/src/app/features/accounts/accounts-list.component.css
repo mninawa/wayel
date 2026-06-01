@@ -68,7 +68,7 @@ code { font-size: 0.78rem; background: #f1f5f9; padding: 0.1rem 0.35rem; border-
 .disabled-row { opacity: 0.65; }
 .actions { white-space: nowrap; }
 .table-foot { padding: 0.65rem 0.85rem; font-size: 0.78rem; color: var(--ops-muted); border-top: 1px solid #eef2f6; }
-.empty, .loading { padding: 2rem; text-align: center; color: var(--ops-muted); }
+.empty { padding: 2rem; text-align: center; color: var(--ops-muted); }
 .empty .material-icons-outlined { font-size: 2.5rem; opacity: 0.45; display: block; margin-bottom: 0.5rem; }
 .ops-btn-sm { font-size: 0.78rem; padding: 0.35rem 0.65rem; }
 

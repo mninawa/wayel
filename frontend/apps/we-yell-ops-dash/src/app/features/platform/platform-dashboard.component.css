@@ -523,11 +523,6 @@ code {
   margin-bottom: 0.75rem;
 }
 
-.loading {
-  color: var(--ops-muted);
-  padding: 1rem 0 1.25rem;
-}
-
 .empty-cell {
   text-align: center;
   color: #64748b;

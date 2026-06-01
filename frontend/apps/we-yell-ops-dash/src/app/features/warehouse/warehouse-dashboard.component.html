@@ -79,7 +79,11 @@
     </div>
   }
 
-  @if (view() === 'kanban') {
+  @if (busy() && !board()) {
+    <div class="kanban-canvas kanban-loading">
+      <nk-pulse-loader label="Loading warehouse board…" />
+    </div>
+  } @else if (view() === 'kanban') {
     <div class="kanban-canvas">
       <div class="kanban-scroll">
         @for (col of board()?.columns ?? []; track col.columnId) {

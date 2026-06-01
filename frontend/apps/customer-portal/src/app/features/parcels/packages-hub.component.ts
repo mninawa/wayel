@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { ShipmentRouteMapComponent } from '@wayel/shared/components/shipment-route-map.component';
 import { WEYELL_SA_ORIGIN, WEYELL_SZ_DESTINATION } from '@wayel/shared/pickup/shipment-route.constants';
 import { environment } from '../../../environments/environment';
@@ -35,7 +36,7 @@ interface PackageCardModel {
 @Component({
   selector: 'app-packages-hub',
   standalone: true,
-  imports: [RouterLink, ShipmentRouteMapComponent, DatePipe],
+  imports: [RouterLink, ShipmentRouteMapComponent, DatePipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="hub">
@@ -67,7 +68,7 @@ interface PackageCardModel {
 
         <div class="panel-list">
           @if (loading()) {
-            <p class="panel-empty">Loading packages…</p>
+            <nk-pulse-loader label="Loading packages…" />
           } @else if (visibleCards().length === 0) {
             <p class="panel-empty">
               @if (tab() === 'delivered') {

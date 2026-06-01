@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import { FormsModule } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
@@ -114,7 +115,7 @@ interface FilterChip {
   selector: 'app-workspace-subscription-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, FormsModule, ParentProfileDrawerComponent],
+  imports: [DatePipe, FormsModule, ParentProfileDrawerComponent, PulseLoaderComponent],
   template: `
     <header class="ws-main-head">
       <div>
@@ -141,8 +142,7 @@ interface FilterChip {
             Retry
           </button>
         } @else {
-          <span class="material-icons-outlined spin" aria-hidden="true">autorenew</span>
-          <span>Loading subscriptions…</span>
+          <nk-pulse-loader size="sm" [block]="false" label="Loading subscriptions…" />
         }
       </div>
     }

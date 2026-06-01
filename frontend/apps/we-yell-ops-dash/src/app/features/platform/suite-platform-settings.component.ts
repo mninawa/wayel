@@ -18,6 +18,7 @@ import {
   type UpdateSuitePlatformConfigRequest,
 } from '../../services/suite-platform-api.service';
 import { platformRoutes } from '../../types/platform.types';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { PricingEditorPanelComponent } from './pricing-editor-panel.component';
 
 export type PlatformConfigTab = 'suite' | 'pricing';
@@ -25,7 +26,7 @@ export type PlatformConfigTab = 'suite' | 'pricing';
 @Component({
   selector: 'ops-suite-platform-settings',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, PricingEditorPanelComponent],
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, PricingEditorPanelComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suite-platform-settings.component.html',
   styleUrl: './suite-platform-settings.component.css',

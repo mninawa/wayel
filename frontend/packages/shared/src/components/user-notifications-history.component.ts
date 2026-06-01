@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import { ToastService } from '@wayel/shared/services/toast.service';
 import {
   UserNotificationsApiService,
@@ -40,7 +41,7 @@ type KindGroupId = 'reports' | 'updates' | 'requests' | 'team';
 @Component({
   selector: 'wayel-user-notifications-history',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="nh-page">
@@ -108,7 +109,7 @@ type KindGroupId = 'reports' | 'updates' | 'requests' | 'team';
       </div>
 
       @if (initialLoading()) {
-        <p class="nh-empty">Loading…</p>
+        <nk-pulse-loader label="Loading…" />
       } @else if (errorMessage()) {
         <p class="nh-error">{{ errorMessage() }}</p>
       } @else if (items().length === 0) {

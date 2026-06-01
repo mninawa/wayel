@@ -16,7 +16,7 @@
     <p class="err-banner">{{ error() }}</p>
   }
   @if (busy() && !dashboard()) {
-    <p class="loading">Loading platform metrics…</p>
+    <nk-pulse-loader label="Loading platform metrics…" />
   }
 
   <div class="metric-row">

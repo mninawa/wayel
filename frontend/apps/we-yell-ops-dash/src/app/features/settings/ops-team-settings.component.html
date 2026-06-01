@@ -284,7 +284,7 @@
         </button>
       </header>
       @if (auditBusy() && audit().length === 0) {
-        <p class="hint">Loading recent activity…</p>
+        <nk-pulse-loader label="Loading recent activity…" />
       } @else if (audit().length === 0) {
         <p class="hint">No activity recorded yet.</p>
       } @else {

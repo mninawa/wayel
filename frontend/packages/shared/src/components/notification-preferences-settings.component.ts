@@ -4,6 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import { ToastService } from '@wayel/shared/services/toast.service';
 import {
@@ -46,7 +47,7 @@ interface ChannelHeader {
 @Component({
   selector: 'wayel-notification-preferences-settings',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="np-page">
@@ -63,7 +64,7 @@ interface ChannelHeader {
       </header>
 
       @if (loading()) {
-        <p class="np-empty">Loading…</p>
+        <nk-pulse-loader label="Loading…" />
       } @else if (errorMessage()) {
         <p class="np-error">{{ errorMessage() }}</p>
       } @else {

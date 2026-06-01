@@ -70,7 +70,7 @@ describe('PaymentMethodPickerComponent', () => {
     api.listPaymentProviders.and.returnValue(new Subject<PaymentProviderOptionDto[]>().asObservable());
     fixture = TestBed.createComponent(PaymentMethodPickerComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.pmp-skeleton')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('nk-pulse-loader')).not.toBeNull();
   });
 
   it('renders an empty state when no providers come back', () => {

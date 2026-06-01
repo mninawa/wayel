@@ -110,7 +110,7 @@
   }
 
   @if (busy() && plans().length === 0) {
-    <p class="hint">Loading suite plans…</p>
+    <nk-pulse-loader label="Loading suite plans…" />
   } @else {
     <section class="panel">
       <header class="panel-head">

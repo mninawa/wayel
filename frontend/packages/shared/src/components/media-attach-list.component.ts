@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { PulseLoaderComponent } from './pulse-loader.component';
 import {
   WayelAdminMediaService,
   type WayelMediaAsset,
@@ -59,6 +60,7 @@ import {
 @Component({
   selector: 'nk-media-attach-list',
   standalone: true,
+  imports: [PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mal" aria-labelledby="mal-title">
@@ -87,7 +89,7 @@ import {
       }
 
       @if (loading()) {
-        <p class="mal-muted">Loading attachments…</p>
+        <nk-pulse-loader label="Loading attachments…" />
       } @else if (rows().length === 0) {
         <p class="mal-empty">{{ emptyText() }}</p>
       } @else {

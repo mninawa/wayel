@@ -37,6 +37,7 @@ import {
   type SuiteReceiveLookupDto,
 } from '../../services/receiving-api.service';
 import { OpsReceivingContextService } from '../../services/ops-receiving-context.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsSessionService } from '../../services/ops-session.service';
 import { receivingRoutes } from '../../types/receiving.types';
 
@@ -52,7 +53,7 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
 @Component({
   selector: 'ops-parcel-detail',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, OpsPillComponent],
+  imports: [DatePipe, FormsModule, RouterLink, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -310,7 +311,7 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
                       } @else if (previewError()) {
                         <p class="inline-err">{{ previewError() }}</p>
                       } @else {
-                        <p class="hint">Loading invoice…</p>
+                        <nk-pulse-loader size="sm" [block]="false" label="Loading invoice…" />
                       }
                     </div>
                     <div class="invoice-meta">
@@ -352,7 +353,7 @@ const DETAIL_TABS: ReadonlyArray<{ id: ParcelDetailTab; label: string; icon: str
           </div>
         </div>
       } @else if (!error()) {
-        <p class="hint pad">Loading parcel…</p>
+        <nk-pulse-loader label="Loading parcel…" />
       }
     </div>
   `,

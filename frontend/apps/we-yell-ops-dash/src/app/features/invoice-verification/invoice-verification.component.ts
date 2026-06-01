@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { RouterLink } from '@angular/router';
 import { OpsPillComponent, pillToneForInvoice } from '../../shared/ops-pill.component';
 import { OPS_CAP } from '../../services/ops-permissions';
@@ -20,7 +21,7 @@ import { receivingRoutes } from '../../types/receiving.types';
 @Component({
   selector: 'ops-invoice-verification',
   standalone: true,
-  imports: [RouterLink, OpsPillComponent],
+  imports: [RouterLink, OpsPillComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
@@ -42,7 +43,7 @@ import { receivingRoutes } from '../../types/receiving.types';
             } @else if (previewError()) {
               <p class="err">{{ previewError() }}</p>
             } @else {
-              <p class="hint">Loading invoice…</p>
+              <nk-pulse-loader size="sm" [block]="false" label="Loading invoice…" />
             }
           </section>
           <section class="ops-card ops-card-pad">

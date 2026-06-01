@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import {
   KycOpsApiService,
   type PendingKycReviewDto,
@@ -20,7 +21,7 @@ const LOCAL_OPS_KEY = 'weyell-local-kyc-ops';
 @Component({
   selector: 'app-kyc-ops-review',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ops-page">
@@ -71,7 +72,9 @@ const LOCAL_OPS_KEY = 'weyell-local-kyc-ops';
           <p class="err-banner" role="alert">{{ error() }}</p>
         }
 
-        @if (pending().length === 0 && !busy()) {
+        @if (busy() && pending().length === 0) {
+          <nk-pulse-loader label="Loading KYC queue…" />
+        } @else if (pending().length === 0 && !busy()) {
           <section class="bb-card bb-card-pad empty">
             <span class="material-icons-outlined">inbox</span>
             <p>No customers awaiting KYC review.</p>

@@ -16,6 +16,7 @@ import {
   type OpsShipmentListItemDto,
   type OpsShipmentTrackingDetailDto,
 } from '../../services/shipment-ops-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { OpsSessionService } from '../../services/ops-session.service';
 
 /**
@@ -35,7 +36,7 @@ type SortKey = 'recent' | 'oldest' | 'stale' | 'customer';
 @Component({
   selector: 'ops-shipment-status',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shipment-status.component.html',
   styleUrl: './shipment-status.component.css',

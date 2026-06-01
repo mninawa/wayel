@@ -21,6 +21,7 @@ import {
   CustomerInAppNotificationsApiService,
   type CustomerInAppNotification,
 } from '../../services/customer-inapp-notifications-api.service';
+import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
 import { KycVerificationTickerComponent } from './kyc-verification-ticker.component';
 interface NavItem {
   path: string;
@@ -42,7 +43,7 @@ function buildNav(): NavItem[] {
 @Component({
   selector: 'app-portal-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell" [class.shell-nav-open]="sidebarOpen()">
@@ -171,7 +172,7 @@ function buildNav(): NavItem[] {
                     }
                   </div>
                   @if (notificationsLoading()) {
-                    <p class="notif-empty">Loading…</p>
+                    <nk-pulse-loader size="sm" [block]="false" label="Loading…" />
                   } @else if (notifications().length === 0) {
                     <p class="notif-empty">No notifications yet.</p>
                   } @else {

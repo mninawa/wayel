@@ -820,13 +820,3 @@
   margin-bottom: 0.75rem;
 }
 
-.loading {
-  color: var(--ops-muted);
-  padding: 1.5rem 1rem;
-  text-align: center;
-}
-
-.loading.inline {
-  padding: 0 0 0.75rem;
-  text-align: left;
-}
