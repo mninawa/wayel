@@ -572,7 +572,6 @@ function buildNav(): NavItem[] {
     }
 
     .content.content-map {
-      padding: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;

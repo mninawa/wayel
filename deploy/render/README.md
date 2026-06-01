@@ -126,6 +126,24 @@ has not run yet).
 
 Keep the old `*.onrender.com` origins during cutover if you still need them.
 
+**Google Maps JavaScript API key** (customer portal maps — parcels, addresses)
+
+In Google Cloud Console → **APIs & Services** → **Credentials** → your browser Maps key →
+**Application restrictions** → **HTTP referrers**, add:
+
+| Referrer | Used by |
+|----------|---------|
+| `https://www.weyell.co.za/*` | Production customer portal |
+| `https://weyell.co.za/*` | Apex redirect |
+| `https://wayel-customer.onrender.com/*` | Render default hostname |
+| `http://localhost:*/*` | Local dev |
+
+Enable **Maps JavaScript API** on the project. The same key is set in
+`environment.googleMapsApiKey` / `environment.prod.ts` for the customer portal build.
+
+If the browser console shows `RefererNotAllowedMapError`, the current page origin is
+missing from this list.
+
 **Env vars** (already in `render.yaml` for blueprint sync)
 
 * `BorderBox__CustomerPortalBaseUrl` → `https://www.weyell.co.za`
