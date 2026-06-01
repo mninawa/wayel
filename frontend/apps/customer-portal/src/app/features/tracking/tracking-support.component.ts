@@ -19,25 +19,27 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
   imports: [RouterLink, SuiteExpiredBannerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="support-shell">
-      <div class="bb-page-head">
-        <h1>Support</h1>
-        <p>Reach our team on WhatsApp or email — we will respond as fast as we can.</p>
+    <header class="page-head">
+      <h1>
+        <span class="material-icons-outlined head-icon">support_agent</span>
+        Support
+      </h1>
+      <p class="head-sub">Reach our team on WhatsApp or email — we will respond as fast as we can.</p>
+    </header>
+
+    <app-suite-expired-banner />
+
+    @if (loading()) {
+      <nk-pulse-loader label="Loading support…" />
+    } @else if (loadError()) {
+      <div class="bb-card bb-card-pad err-card">
+        <p class="err">{{ loadError() }}</p>
+        <button type="button" class="bb-btn bb-btn-outline" (click)="reload()">Try again</button>
       </div>
+    } @else if (overview()) {
+      <p class="section-lead">Pick the channel that works best for you.</p>
 
-      <app-suite-expired-banner />
-
-      @if (loading()) {
-        <nk-pulse-loader label="Loading support…" />
-      } @else if (loadError()) {
-        <div class="bb-card bb-card-pad err-card">
-          <p class="err">{{ loadError() }}</p>
-          <button type="button" class="bb-btn bb-btn-outline" (click)="reload()">Try again</button>
-        </div>
-      } @else if (overview()) {
-        <p class="section-lead">Pick the channel that works best for you.</p>
-
-        <div class="contact-grid">
+      <div class="contact-grid">
           @if (whatsAppLink(); as link) {
             <a
               [href]="link"
@@ -95,12 +97,33 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
           </section>
         }
       }
-    </div>
   `,
   styles: `
-    .support-shell {
-      width: 100%;
-      max-width: 52rem;
+    .page-head {
+      margin-bottom: 1.25rem;
+    }
+
+    .page-head h1 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.625rem;
+      font-weight: 700;
+      color: var(--bb-text);
+      letter-spacing: -0.02em;
+    }
+
+    .head-icon {
+      font-size: 1.5rem;
+      color: var(--bb-link);
+    }
+
+    .head-sub {
+      margin: 0.35rem 0 0;
+      font-size: 0.9rem;
+      color: var(--bb-muted);
+      line-height: 1.5;
     }
 
     .section-lead {
