@@ -312,16 +312,17 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .sticky-bar {
       position: fixed;
       bottom: 0;
-      left: var(--bb-sidebar-w);
+      left: var(--portal-sidebar-offset, var(--bb-sidebar-w));
       right: 0;
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      padding-inline: var(--bb-content-pad-x);
       border-radius: 0;
       border-left: none;
       border-right: none;
       border-bottom: none;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
       z-index: 10;
     }
     .sticky-bar span:nth-child(1):not(.material-icons-outlined) { flex: 1; font-size: 0.85rem; color: var(--bb-muted); }
@@ -349,7 +350,11 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
     .linked { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; }
     .linked li { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; padding: 0.35rem 0; border-bottom: 1px solid #f1f5f9; }
     .linked a { color: var(--bb-link); font-weight: 600; text-decoration: none; }
-    @media (max-width: 760px) { .sticky-bar { left: 0; } }
+    @media (max-width: 1023px) {
+      .sticky-bar {
+        left: 0;
+      }
+    }
   `,
 })
 export class ShippingQuoteComponent implements OnInit {

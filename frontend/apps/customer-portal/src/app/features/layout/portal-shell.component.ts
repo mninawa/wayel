@@ -47,7 +47,7 @@ function buildNav(): NavItem[] {
   imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="shell" [class.shell-nav-open]="sidebarOpen()">
+    <div class="shell" [class.shell-nav-open]="sidebarOpen()" [class.shell-sidebar-expanded]="desktopExpanded()">
       @if (sidebarOpen()) {
         <button
           type="button"
@@ -281,6 +281,19 @@ function buildNav(): NavItem[] {
       display: flex;
       min-height: 100vh;
       background: var(--bb-bg);
+      --portal-sidebar-offset: var(--bb-sidebar-w);
+    }
+
+    @media (min-width: 1024px) {
+      .shell.shell-sidebar-expanded {
+        --portal-sidebar-offset: var(--bb-sidebar-w-expanded);
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .shell {
+        --portal-sidebar-offset: 0px;
+      }
     }
 
     .sidebar {
