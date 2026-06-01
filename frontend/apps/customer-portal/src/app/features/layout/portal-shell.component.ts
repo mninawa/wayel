@@ -16,12 +16,13 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../../brand';
 import { CustomerAccountService } from '../../services/customer-account.service';
-import { BorderboxApiService } from '../../services/borderbox-api.service';
 import {
   CustomerInAppNotificationsApiService,
   type CustomerInAppNotification,
 } from '../../services/customer-inapp-notifications-api.service';
 import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.component';
+import { PortalSearchService, type PortalSearchHit } from '../../services/portal-search.service';
+import { ParcelsService } from '../../services/parcels.service';
 import { KycVerificationTickerComponent } from './kyc-verification-ticker.component';
 interface NavItem {
   path: string;
@@ -142,10 +143,66 @@ function buildNav(): NavItem[] {
             <strong class="greeting-name">{{ displayName() }}</strong>
           </div>
 
-          <label class="search bb-search-pill">
-            <span class="material-icons-outlined">search</span>
-            <input type="search" placeholder="Search parcels, shipments, quotes, invoices…" />
-          </label>
+          <div class="search-wrap">
+            @if (searchOpen()) {
+              <button
+                type="button"
+                class="search-backdrop"
+                aria-label="Close search"
+                (click)="closeSearch()"
+              ></button>
+            }
+
+            <label class="search bb-search-pill">
+              <span class="material-icons-outlined">search</span>
+              <input
+                type="search"
+                [value]="searchQuery()"
+                placeholder="Search parcels, shipments, quotes, invoices…"
+                aria-label="Search parcels, shipments, quotes, and invoices"
+                aria-autocomplete="list"
+                [attr.aria-expanded]="searchOpen()"
+                aria-controls="portal-search-results"
+                (input)="onSearchInput($event)"
+                (focus)="openSearch()"
+                (keydown.enter)="submitSearch($event)"
+                (keydown.escape)="closeSearch()"
+              />
+              @if (searchQuery()) {
+                <button type="button" class="search-clear" aria-label="Clear search" (click)="clearSearch()">
+                  <span class="material-icons-outlined">close</span>
+                </button>
+              }
+            </label>
+
+            @if (searchOpen() && searchQuery().trim().length >= 2) {
+              <div id="portal-search-results" class="search-panel" role="listbox" aria-label="Search results">
+                @if (searchLoading()) {
+                  <nk-pulse-loader size="sm" [block]="false" label="Searching…" />
+                } @else if (searchResults().length === 0) {
+                  <p class="search-empty">No matches for “{{ searchQuery().trim() }}”.</p>
+                } @else {
+                  <ul class="search-list">
+                    @for (hit of searchResults(); track hit.key) {
+                      <li>
+                        <button type="button" class="search-hit" role="option" (click)="goToHit(hit)">
+                          <span class="material-icons-outlined search-hit-icon">{{ hit.icon }}</span>
+                          <span class="search-hit-body">
+                            <span class="search-hit-title">{{ hit.title }}</span>
+                            <span class="search-hit-meta">{{ hit.meta }}</span>
+                          </span>
+                          <span class="material-icons-outlined search-hit-arrow">north_east</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                  <button type="button" class="search-foot" (click)="viewAllResults()">
+                    View all matches in parcel table
+                  </button>
+                }
+              </div>
+            }
+          </div>
 
           <div class="topbar-actions">
             <div class="notif-wrap">
@@ -419,6 +476,143 @@ function buildNav(): NavItem[] {
       margin-left: auto;
     }
 
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 420px;
+      margin-left: auto;
+      z-index: 25;
+    }
+
+    .search-wrap .search {
+      margin-left: 0;
+      max-width: none;
+      width: 100%;
+    }
+
+    .search-clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--bb-muted);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .search-clear:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--bb-text);
+    }
+
+    .search-backdrop {
+      display: none;
+    }
+
+    .search-panel {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      left: 0;
+      right: 0;
+      max-height: min(420px, 70vh);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #fff;
+      border: 1px solid var(--bb-border);
+      border-radius: var(--bb-radius);
+      box-shadow: var(--bb-shadow-md);
+      z-index: 120;
+    }
+
+    .search-empty {
+      margin: 0;
+      padding: 1rem 1.1rem;
+      color: var(--bb-muted);
+      font-size: 0.82rem;
+    }
+
+    .search-list {
+      list-style: none;
+      margin: 0;
+      padding: 0.35rem 0;
+    }
+
+    .search-hit {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    .search-hit:hover {
+      background: var(--bb-surface-muted);
+    }
+
+    .search-hit-icon {
+      color: var(--bb-ink);
+      font-size: 1.25rem !important;
+      flex-shrink: 0;
+    }
+
+    .search-hit-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .search-hit-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--bb-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .search-hit-meta {
+      font-size: 0.74rem;
+      color: var(--bb-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .search-hit-arrow {
+      color: var(--bb-subtle);
+      font-size: 1rem !important;
+      flex-shrink: 0;
+    }
+
+    .search-foot {
+      display: block;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-top: 1px solid var(--bb-border);
+      background: var(--bb-surface-muted);
+      color: var(--bb-ink);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .search-foot:hover {
+      background: #eceef0;
+    }
+
     .topbar-actions {
       display: flex;
       align-items: center;
@@ -686,6 +880,13 @@ function buildNav(): NavItem[] {
         padding: 0.65rem 1rem;
       }
 
+      .search-wrap {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        margin-left: 0;
+      }
+
       .search {
         flex: 1;
         min-width: 0;
@@ -710,7 +911,7 @@ function buildNav(): NavItem[] {
     }
 
     @media (max-width: 767px) {
-      .search {
+      .search-wrap {
         display: none;
       }
 
@@ -857,8 +1058,9 @@ export class PortalShellComponent implements OnInit {
 
   private readonly session = inject(AccountSessionService);
   private readonly accountApi = inject(CustomerAccountService);
-  private readonly borderboxApi = inject(BorderboxApiService);
   private readonly notificationsApi = inject(CustomerInAppNotificationsApiService);
+  private readonly portalSearch = inject(PortalSearchService);
+  private readonly parcelsService = inject(ParcelsService);
   private readonly router = inject(Router);
 
   readonly sidebarOpen = signal(false);
@@ -867,6 +1069,12 @@ export class PortalShellComponent implements OnInit {
   readonly notificationsLoading = signal(false);
   readonly notifications = signal<CustomerInAppNotification[]>([]);
   readonly unreadCount = signal(0);
+  readonly searchQuery = signal('');
+  readonly searchOpen = signal(false);
+  readonly searchLoading = computed(() => this.portalSearch.indexLoading());
+  readonly searchResults = computed(() =>
+    this.portalSearch.search(this.searchQuery()),
+  );
 
   private readonly url = toSignal(
     this.router.events.pipe(
@@ -901,6 +1109,10 @@ export class PortalShellComponent implements OnInit {
     if (!this.accountApi.account()) {
       this.accountApi.loadAccount().subscribe();
     }
+    this.portalSearch.ensureIndex().subscribe();
+    if (this.parcelsService.parcels().length === 0) {
+      this.parcelsService.loadParcels().subscribe();
+    }
     this.refreshUnreadCount();
     interval(60_000)
       .pipe(startWith(0))
@@ -908,7 +1120,61 @@ export class PortalShellComponent implements OnInit {
 
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe(() => this.closeSidebar());
+      .subscribe(() => {
+        this.closeSidebar();
+        this.closeSearch();
+      });
+  }
+
+  openSearch(): void {
+    this.searchOpen.set(true);
+    this.closeNotifications();
+    if (!this.portalSearch.indexLoaded()) {
+      this.portalSearch.ensureIndex().subscribe();
+    }
+  }
+
+  closeSearch(): void {
+    this.searchOpen.set(false);
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.openSearch();
+    if (!this.portalSearch.indexLoaded()) {
+      this.portalSearch.ensureIndex().subscribe();
+    }
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.searchOpen.set(false);
+  }
+
+  submitSearch(event: Event): void {
+    event.preventDefault();
+    const hits = this.searchResults();
+    if (hits.length > 0) {
+      this.goToHit(hits[0]);
+      return;
+    }
+    this.viewAllResults();
+  }
+
+  viewAllResults(): void {
+    const q = this.searchQuery().trim();
+    if (!q) {
+      return;
+    }
+    this.closeSearch();
+    void this.router.navigate(['/received-parcels/list'], { queryParams: { q } });
+  }
+
+  goToHit(hit: PortalSearchHit): void {
+    this.closeSearch();
+    this.searchQuery.set('');
+    void this.router.navigate(hit.route);
   }
 
   toggleSidebar(): void {
@@ -953,6 +1219,7 @@ export class PortalShellComponent implements OnInit {
     this.notifOpen.set(open);
     if (open) {
       this.sidebarOpen.set(false);
+      this.closeSearch();
       this.syncBodyScrollLock();
       this.loadNotifications();
     }

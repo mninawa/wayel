@@ -510,6 +510,16 @@ export class ReceivedParcelsComponent implements OnInit {
     if (this.route.snapshot.queryParamMap.get('invoice') === 'pending') {
       this.filterInvoicesPending();
     }
+    const initialQuery = this.route.snapshot.queryParamMap.get('q');
+    if (initialQuery) {
+      this.search.set(initialQuery);
+    }
+    this.route.queryParamMap.subscribe((params) => {
+      const q = params.get('q') ?? '';
+      if (q !== this.search()) {
+        this.search.set(q);
+      }
+    });
     this.refresh();
   }
 
