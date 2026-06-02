@@ -152,8 +152,8 @@ Analytics is gated by two build-time flags in `environment.bff.ts`:
 
 | Flag | Purpose |
 |------|---------|
-| `googleAnalyticsEnabled` | Master on/off switch (`false` by default) |
-| `googleAnalyticsMeasurementId` | GA4 stream id (`G-XXXXXXXX`) — ignored when disabled |
+| `googleAnalyticsEnabled` | Master on/off switch (enabled in `environment.bff.ts` for Render) |
+| `googleAnalyticsMeasurementId` | GA4 stream id (`G-TBGNM7R6F0`) — ignored when disabled |
 
 To turn it on:
 
@@ -170,11 +170,15 @@ To turn it on:
      --build-arg GOOGLE_ANALYTICS_ENABLED=true \
      --build-arg GOOGLE_ANALYTICS_MEASUREMENT_ID=G-XXXXXXXX .
    ```
-3. Redeploy `wayel-customer`.
+3. Redeploy `wayel-customer`. The Docker build injects the gtag snippet into
+   `index.html` so it appears in page source and loads before the Angular bundle.
 
-Leave `googleAnalyticsEnabled: false` to keep analytics off even if a measurement id is
-present (useful for staging). The SPA loads `gtag.js` only when both flags are set and
-sends a page view on each in-app navigation.
+**Verify in the browser:** View source on `https://www.weyell.co.za` — you should
+see `gtag/js?id=G-TBGNM7R6F0`. In GA4 open **Reports → Realtime** (allow ~30s after
+a page visit; disable ad blockers for the test).
+
+**Google Analytics admin:** the Web data stream must use `https://www.weyell.co.za`
+as the site URL (add `https://weyell.co.za` too if you serve the apex without redirect).
 
 **Env vars** (already in `render.yaml` for blueprint sync)
 

@@ -32,7 +32,12 @@ export class GoogleAnalyticsService {
 
     this.bootstrapGtag();
     this.enabled = true;
-    this.trackPageView(this.router.url);
+    const initialPath =
+      this.router.url ||
+      (typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}`
+        : '/');
+    this.trackPageView(initialPath);
 
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -55,15 +60,18 @@ export class GoogleAnalyticsService {
 
   private bootstrapGtag(): void {
     window.dataLayer = window.dataLayer ?? [];
-    window.gtag = (...args: unknown[]) => {
-      window.dataLayer!.push(args);
-    };
-    window.gtag('js', new Date());
-    window.gtag('config', this.measurementId, { send_page_view: false });
+    if (!window.gtag) {
+      window.gtag = (...args: unknown[]) => {
+        window.dataLayer!.push(args);
+      };
+      window.gtag('js', new Date());
 
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(this.measurementId)}`;
-    document.head.appendChild(script);
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(this.measurementId)}`;
+      document.head.appendChild(script);
+    }
+
+    window.gtag('config', this.measurementId, { send_page_view: false });
   }
 }

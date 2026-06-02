@@ -37,19 +37,22 @@ RUN npm ci
 COPY frontend/packages/shared packages/shared
 COPY frontend/apps/customer-portal apps/customer-portal
 
-# Optional build-time GA4 toggle + id for the `bff` environment file.
-ARG GOOGLE_ANALYTICS_ENABLED=false
+# Optional build-time GA4 overrides for the `bff` environment file.
+ARG GOOGLE_ANALYTICS_ENABLED=
 ARG GOOGLE_ANALYTICS_MEASUREMENT_ID=
 RUN if [ "$GOOGLE_ANALYTICS_ENABLED" = "true" ]; then \
       sed -i "s|googleAnalyticsEnabled: false|googleAnalyticsEnabled: true|g" \
         apps/customer-portal/src/environments/environment.bff.ts; \
     fi && \
     if [ -n "$GOOGLE_ANALYTICS_MEASUREMENT_ID" ]; then \
-      sed -i "s|googleAnalyticsMeasurementId: ''|googleAnalyticsMeasurementId: '${GOOGLE_ANALYTICS_MEASUREMENT_ID}'|g" \
+      sed -i "s|googleAnalyticsMeasurementId: '[^']*'|googleAnalyticsMeasurementId: '${GOOGLE_ANALYTICS_MEASUREMENT_ID}'|g" \
         apps/customer-portal/src/environments/environment.bff.ts; \
     fi
 
 RUN npm run build --workspace @weyell/customer-portal -- --configuration bff
+
+COPY deploy/render/inject-ga4-snippet.sh /tmp/inject-ga4-snippet.sh
+RUN chmod +x /tmp/inject-ga4-snippet.sh && /tmp/inject-ga4-snippet.sh
 
 # ──────────────────────────────────────────────────────────────────────────
 # Stage 2: publish the Wayel.Bff.Customer .NET host.
