@@ -2,10 +2,9 @@
 #
 # Boot script for the WeYell customer edge container.
 #
-# 1. Derive Bff__SpaBaseUri from $RENDER_EXTERNAL_URL so the SPA always
-#    talks back to the same origin it was served from (defeats a class of
-#    OIDC redirect_uri mismatch errors when the service is renamed in
-#    Render).
+# 1. Prefer an explicit Bff__SpaBaseUri (set in render.yaml for production).
+#    Fall back to $RENDER_EXTERNAL_URL only when unset (ephemeral Render
+#    hostnames before a custom domain is wired).
 # 2. Start the .NET BFF bound to 127.0.0.1:8080 — only nginx can reach it.
 # 3. Wait for the BFF TCP port to come up before exposing nginx (otherwise
 #    health checks would race and the first few requests would 502).
@@ -15,7 +14,7 @@
 
 set -euo pipefail
 
-if [[ -n "${RENDER_EXTERNAL_URL:-}" ]]; then
+if [[ -z "${Bff__SpaBaseUri:-}" && -n "${RENDER_EXTERNAL_URL:-}" ]]; then
   export Bff__SpaBaseUri="${RENDER_EXTERNAL_URL}"
 fi
 

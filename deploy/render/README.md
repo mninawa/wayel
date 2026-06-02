@@ -185,8 +185,11 @@ sends a page view on each in-app navigation.
 * `Billing__MtnMomo__CallbackHost` → `api.weyell.co.za`
 
 `Bff__ApiBaseUri` on `wayel-customer` can stay on
-`https://wayel-api.onrender.com` (server-to-server). `Bff__SpaBaseUri` is
-set at runtime from `RENDER_EXTERNAL_URL` when the custom domain is active.
+`https://wayel-api.onrender.com` (server-to-server). Set
+`Bff__SpaBaseUri` to your canonical customer hostname
+(`https://www.weyell.co.za`) — **not** `RENDER_EXTERNAL_URL`, which
+stays on `*.onrender.com` even after a custom domain is verified and
+will send users back to `wayel-customer.onrender.com` after Google sign-in.
 
 ---
 

@@ -273,9 +273,12 @@ services:
       # HTTPS — no CORS needed.
       - key: Bff__ApiBaseUri
         value: https://wayel-api.onrender.com
-      # SpaBaseUri is derived from $RENDER_EXTERNAL_URL at boot
-      # (start-customer-edge.sh) so the cookie / OIDC callback URLs
-      # always match the actual public hostname.
+      # Canonical public customer portal origin. Do NOT derive this from
+      # RENDER_EXTERNAL_URL — Render keeps that as *.onrender.com even after
+      # a custom domain is verified, which sends post-OIDC redirects back to
+      # wayel-customer.onrender.com instead of weyell.co.za.
+      - key: Bff__SpaBaseUri
+        value: https://www.weyell.co.za
       - key: Bff__Audience
         value: client
       - key: Bff__SessionLifetimeMinutes
