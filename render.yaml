@@ -184,7 +184,7 @@ services:
       - key: Notifications__WaSender__Enabled
         value: "true"
       - key: Notifications__WaSender__ApiKey
-        sync: true
+        sync: false
       - key: Notifications__WaSender__BaseUrl
         value: https://wasenderapi.com
       - key: Notifications__WaSender__SessionId
