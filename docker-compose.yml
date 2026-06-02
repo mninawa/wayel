@@ -109,6 +109,8 @@ services:
       Kyc__OpsRoleByApiKey__weyell-ops-finance: finance
       BorderBox__Pricing__ChargeVat: ${BORDERBOX_CHARGE_VAT:-true}
       BorderBox__Pricing__ChargeWeightSurcharge: ${BORDERBOX_CHARGE_WEIGHT_SURCHARGE:-false}
+      BorderBox__TrialAccess__Enabled: ${BORDERBOX_TRIAL_ENABLED:-true}
+      BorderBox__TrialAccess__DurationDays: ${BORDERBOX_TRIAL_DURATION_DAYS:-30}
       BorderBox__CustomerPortalBaseUrl: ${PUBLIC_URL:-http://localhost:8080}
     volumes:
       # Persist locally-cached invoice/KYC/photo blobs across container

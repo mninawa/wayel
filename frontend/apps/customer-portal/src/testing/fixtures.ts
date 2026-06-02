@@ -13,6 +13,7 @@ import type {
   DeliveryAddress,
   NotificationPreferences,
   SuiteAddress,
+  SuiteTrial,
 } from '../app/models/customer-account.models';
 
 /** Stable identity for tests that don't care about the user id. */
@@ -89,8 +90,18 @@ export function deliveryAddressFixture(overrides: Partial<DeliveryAddress> = {})
   };
 }
 
+export function suiteTrialFixture(overrides: Partial<SuiteTrial> = {}): SuiteTrial {
+  return {
+    featureEnabled: true,
+    durationDays: 30,
+    eligible: false,
+    isActive: false,
+    expiresAtUtc: null,
+    ...overrides,
+  };
+}
+
 /**
- * Builds a customer-account payload in the same shape the API returns.
  * Defaults are a fully-onboarded customer with an active suite — pass
  * `journey: 'profileIncomplete' | 'suitePending'` to roll back stages.
  */
@@ -109,6 +120,7 @@ export function accountFixture(
     suiteEligible: false,
     hasSuite: true,
     onboardingIntent: null,
+    suiteTrial: suiteTrialFixture(),
   };
 
   if (journey === 'profileIncomplete') {
@@ -118,6 +130,7 @@ export function accountFixture(
     base.profileComplete = false;
     base.suiteEligible = false;
     base.hasSuite = false;
+    base.suiteTrial = suiteTrialFixture({ eligible: false });
   }
 
   if (journey === 'suitePending') {
@@ -126,6 +139,7 @@ export function accountFixture(
     base.profileComplete = true;
     base.suiteEligible = true;
     base.hasSuite = false;
+    base.suiteTrial = suiteTrialFixture({ eligible: true });
   }
 
   // Apply any explicit overrides on top of the journey preset.

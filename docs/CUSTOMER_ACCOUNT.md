@@ -14,6 +14,7 @@ flowchart LR
 2. **Complete profile** — `/onboarding/complete-profile` (phone, ID, delivery preferences)
 3. **Suite eligible** — only after profile is complete
 4. **Choose plan + pay** — `/onboarding/choose-suite-plan` → `/suite-access/checkout`
+   - When `BorderBox:TrialAccess:Enabled` is true, new **early adopters** get their **first 30 days free** (full suite access, no upfront payment).
 5. **Portal** — `/dashboard` and other routes (requires assigned suite)
 
 Route guards enforce this order. Users cannot open the dashboard without a profile and suite.

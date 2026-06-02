@@ -18,6 +18,7 @@ import type {
   KycStatus,
   NotificationPreferences,
   SuiteAddress,
+  SuiteTrial,
   UpdateProfileRequest,
   UpsertDeliveryAddressRequest,
 } from '../models/customer-account.models';
@@ -31,6 +32,15 @@ interface WireCustomerAccount {
   suiteEligible: boolean;
   hasSuite: boolean;
   onboardingIntent: WireOnboardingIntent | null;
+  suiteTrial: WireSuiteTrial | null;
+}
+
+interface WireSuiteTrial {
+  featureEnabled: boolean;
+  durationDays: number;
+  eligible: boolean;
+  isActive: boolean;
+  expiresAtUtc: string | null;
 }
 
 interface WireOnboardingIntent {
@@ -320,6 +330,17 @@ function mapWireAccount(w: WireCustomerAccount): CustomerAccount {
     suiteEligible: w.suiteEligible,
     hasSuite: w.hasSuite,
     onboardingIntent: w.onboardingIntent ? mapWireIntent(w.onboardingIntent) : null,
+    suiteTrial: w.suiteTrial ? mapWireSuiteTrial(w.suiteTrial) : null,
+  };
+}
+
+function mapWireSuiteTrial(w: WireSuiteTrial): SuiteTrial {
+  return {
+    featureEnabled: w.featureEnabled,
+    durationDays: w.durationDays,
+    eligible: w.eligible,
+    isActive: w.isActive,
+    expiresAtUtc: w.expiresAtUtc,
   };
 }
 

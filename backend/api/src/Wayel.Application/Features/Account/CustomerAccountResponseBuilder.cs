@@ -1,4 +1,5 @@
 using Wayel.Application.Abstractions.Persistence;
+using Wayel.Application.BorderBox;
 using Wayel.Application.Features.Onboarding;
 using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Identities;
@@ -11,7 +12,11 @@ internal sealed class CustomerAccountResponseBuilder(
     IExternalIdentityRepository identities,
     IPickupBranchRepository pickupBranches,
     ISuitePlatformConfigRepository suitePlatformConfig,
-    IPayLaterIntentRepository payLaterIntents)
+    ISuiteSubscriptionRepository subscriptions,
+    ISuiteCheckoutPaymentRepository checkoutPayments,
+    IPayLaterIntentRepository payLaterIntents,
+    Microsoft.Extensions.Options.IOptions<Wayel.Application.Configuration.BorderBoxOptions> borderBoxOptions,
+    Wayel.Application.Abstractions.Time.IClock clock)
 {
     public async Task<CustomerAccountResponse> BuildAsync(User user, CancellationToken cancellationToken)
     {
@@ -25,6 +30,14 @@ internal sealed class CustomerAccountResponseBuilder(
             user.DestinationCountry,
             cancellationToken);
         var intent = await payLaterIntents.GetByUserAsync(user.Id, cancellationToken);
+        var subscription = await subscriptions.GetForUserAsync(user.Id, cancellationToken);
+        var suiteTrial = await SuiteTrialAccess.BuildSnapshotAsync(
+            user,
+            subscription,
+            checkoutPayments,
+            borderBoxOptions,
+            clock,
+            cancellationToken);
 
         OnboardingIntentDto? intentDto = intent is { IsActive: true }
             ? new OnboardingIntentDto(
@@ -42,6 +55,7 @@ internal sealed class CustomerAccountResponseBuilder(
             hasGoogle,
             branches,
             platform.WarehouseName,
-            intentDto);
+            intentDto,
+            suiteTrial);
     }
 }

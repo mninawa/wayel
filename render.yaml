@@ -110,6 +110,10 @@ services:
         sync: false
       - key: BorderBox__SupportEmail
         value: support@weyell.com
+      - key: BorderBox__TrialAccess__Enabled
+        value: "true"
+      - key: BorderBox__TrialAccess__DurationDays
+        value: "30"
       - key: Cors__AllowedOrigins__0
         value: https://www.weyell.co.za
       - key: Cors__AllowedOrigins__1

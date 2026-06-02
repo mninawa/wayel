@@ -196,6 +196,10 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new ActivateSuiteSubscriptionCommand(body.PlanId), ct)).ToHttpResult())
             .WithName("ActivateSuiteAccess");
 
+        group.MapPost("/suite-access/trial", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new StartSuiteTrialCommand(), ct)).ToHttpResult())
+            .WithName("StartSuiteTrial");
+
         group.MapGet("/account/suite-payments", async (IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new GetSuitePaymentsOverviewQuery(), ct)).ToHttpResult())
             .WithName("GetSuitePaymentsOverview");

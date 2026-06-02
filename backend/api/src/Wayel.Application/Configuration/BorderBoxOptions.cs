@@ -38,4 +38,21 @@ public sealed class BorderBoxOptions
     /// team. Empty disables the email launcher.
     /// </summary>
     public string SupportEmail { get; init; } = "";
+
+    /// <summary>
+    /// Optional free-trial onboarding for new customers (no upfront payment).
+    /// </summary>
+    public BorderBoxTrialAccessOptions TrialAccess { get; init; } = new();
+}
+
+/// <summary>
+/// Controls whether new customers can activate suite access without paying upfront.
+/// </summary>
+public sealed class BorderBoxTrialAccessOptions
+{
+    /// <summary>Master switch. Off by default — enable per environment.</summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>Length of the complimentary access window.</summary>
+    public int DurationDays { get; init; } = 30;
 }

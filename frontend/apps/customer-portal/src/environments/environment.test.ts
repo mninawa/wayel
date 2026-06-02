@@ -11,6 +11,8 @@ export const environment = {
   enableKycOpsReview: true,
   enableParcelReceive: true,
   googleMapsApiKey: '',
+  googleAnalyticsEnabled: false,
+  googleAnalyticsMeasurementId: '',
   supportWhatsAppLink: '',
   supportWhatsAppLabel: '',
   supportWhatsAppE164: '',

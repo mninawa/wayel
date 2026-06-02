@@ -85,6 +85,91 @@ internal static class SuiteSubscriptionActivator
             subscription.Status.ToString(),
             subscription.SuiteNumber,
             subscription.ExpiresAt,
-            subscription.ShipOutLocked);
+            subscription.ShipOutLocked,
+            subscription.IsTrial);
+    }
+
+    public static async Task<Result<SuiteSubscriptionDto>> ActivateTrialAsync(
+        User user,
+        SuitePlan plan,
+        int durationDays,
+        ISuiteSubscriptionRepository subscriptions,
+        ICustomerAddressRepository addresses,
+        IWarehouseLocationRepository locations,
+        ISuitePlatformConfigRepository platformConfig,
+        ISuiteNumberAllocator suiteNumbers,
+        IUnitOfWork unitOfWork,
+        IClock clock,
+        CancellationToken cancellationToken)
+    {
+        var existing = await subscriptions.GetForUserAsync(user.Id, cancellationToken);
+        if (existing?.StartedAt is not null)
+        {
+            return Error.Validation("suite_trial.already_used", "Trial is not available for this account.");
+        }
+
+        var region = SuitePlatformRegions.Normalize(user.DestinationCountry);
+        var settings = await SuitePlatformConfigLoader.LoadAsync(platformConfig, region, cancellationToken);
+
+        string suiteNumber;
+        try
+        {
+            suiteNumber = await suiteNumbers.ResolveAsync(user, existing, allocateNew: true, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Error.Validation("suite_platform.capacity_exhausted", ex.Message);
+        }
+
+        var expiresAt = clock.UtcNow.AddDays(durationDays);
+        SuiteSubscription subscription;
+        if (existing is null)
+        {
+            subscription = SuiteSubscription.CreatePending(user.Id, plan.Id, suiteNumber);
+            subscription.Activate(clock.UtcNow, expiresAt, isTrial: true);
+            await subscriptions.AddAsync(subscription, cancellationToken);
+
+            var suiteAddress = CustomerAddress.CreateSuite(
+                user.Id,
+                suiteNumber,
+                settings.BuildWarehouseLine(suiteNumber),
+                settings.City,
+                settings.Province,
+                settings.CountryCode,
+                settings.PostalCode);
+            suiteAddress.SyncSuiteRecipient(user.DisplayName, user.Phone);
+            await addresses.AddAsync(suiteAddress, cancellationToken);
+        }
+        else
+        {
+            subscription = existing;
+            subscription.Activate(clock.UtcNow, expiresAt, isTrial: true);
+            await subscriptions.UpdateAsync(subscription, cancellationToken);
+
+            if (await addresses.GetSuiteForUserAsync(user.Id, cancellationToken) is null)
+            {
+                var suiteAddress = CustomerAddress.CreateSuite(
+                    user.Id,
+                    suiteNumber,
+                    settings.BuildWarehouseLine(suiteNumber),
+                    settings.City,
+                    settings.Province,
+                    settings.CountryCode,
+                    settings.PostalCode);
+                suiteAddress.SyncSuiteRecipient(user.DisplayName, user.Phone);
+                await addresses.AddAsync(suiteAddress, cancellationToken);
+            }
+        }
+
+        await SuiteLocationProvisioner.EnsureAsync(suiteNumber, locations, clock, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new SuiteSubscriptionDto(
+            subscription.Id.Value,
+            subscription.Status.ToString(),
+            subscription.SuiteNumber,
+            subscription.ExpiresAt,
+            subscription.ShipOutLocked,
+            subscription.IsTrial);
     }
 }

@@ -21,6 +21,7 @@ import { ExternalBffSessionSink } from './auth/external-bff-session-sink';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { provideCustomerAccountBootstrap } from './providers/account-bootstrap';
+import { provideGoogleAnalytics } from './providers/google-analytics.bootstrap';
 import { WayelTitleStrategy } from './title-strategy';
 
 /**
@@ -118,6 +119,7 @@ export const appConfig: ApplicationConfig = {
     ),
     ...bffProviders(),
     ...provideCustomerAccountBootstrap(),
+    provideGoogleAnalytics(),
     { provide: TitleStrategy, useClass: WayelTitleStrategy },
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
   ],

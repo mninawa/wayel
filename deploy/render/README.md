@@ -144,8 +144,40 @@ Enable **Maps JavaScript API** on the project. The same key is set in
 If the browser console shows `RefererNotAllowedMapError`, the current page origin is
 missing from this list.
 
+**Google Analytics 4** (customer portal page views)
+
+Analytics is gated by two build-time flags in `environment.bff.ts`:
+
+| Flag | Purpose |
+|------|---------|
+| `googleAnalyticsEnabled` | Master on/off switch (`false` by default) |
+| `googleAnalyticsMeasurementId` | GA4 stream id (`G-XXXXXXXX`) — ignored when disabled |
+
+To turn it on:
+
+1. In [Google Analytics](https://analytics.google.com/) create a **Web** data stream for
+   `https://www.weyell.co.za` and copy the **Measurement ID** (`G-XXXXXXXX`).
+2. In `frontend/apps/customer-portal/src/environments/environment.bff.ts` set:
+   ```ts
+   googleAnalyticsEnabled: true,
+   googleAnalyticsMeasurementId: 'G-XXXXXXXX',
+   ```
+   **Or** pass Docker build args when building `wayel-customer`:
+   ```bash
+   docker build -f deploy/render/Dockerfile.customer-edge \
+     --build-arg GOOGLE_ANALYTICS_ENABLED=true \
+     --build-arg GOOGLE_ANALYTICS_MEASUREMENT_ID=G-XXXXXXXX .
+   ```
+3. Redeploy `wayel-customer`.
+
+Leave `googleAnalyticsEnabled: false` to keep analytics off even if a measurement id is
+present (useful for staging). The SPA loads `gtag.js` only when both flags are set and
+sends a page view on each in-app navigation.
+
 **Env vars** (already in `render.yaml` for blueprint sync)
 
+* `BorderBox__TrialAccess__Enabled` → `true` (early adopter offer: first 30 days free)
+* `BorderBox__TrialAccess__DurationDays` → `30`
 * `BorderBox__CustomerPortalBaseUrl` → `https://www.weyell.co.za`
 * `Cors__AllowedOrigins__0/1/2` → `www`, apex, and `ops` hostnames
 * `Billing__MtnMomo__CallbackHost` → `api.weyell.co.za`

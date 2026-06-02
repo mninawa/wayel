@@ -197,6 +197,10 @@ export class CustomerAccountService {
     return this.borderboxApi.activateSuite(planId).pipe(switchMap(() => this.loadAccount()));
   }
 
+  startSuiteTrial(): Observable<CustomerAccount> {
+    return this.borderboxApi.startSuiteTrial().pipe(switchMap(() => this.loadAccount()));
+  }
+
   copySuiteAddress(): Observable<boolean> {
     const formatted = this.account()?.suiteAddress?.formatted ?? '';
     if (!formatted) return of(false);

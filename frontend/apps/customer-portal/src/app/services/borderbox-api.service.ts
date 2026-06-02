@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface SuiteAccessSummary {
@@ -364,6 +365,19 @@ export class BorderboxApiService {
 
   activateSuite(planId: string): Observable<unknown> {
     return this.http.post(`${this.base}/borderbox/suite-access/checkout`, { planId });
+  }
+
+  startSuiteTrial(): Observable<{ suiteNumber: string; expiresAt: string | null }> {
+    return this.http.post<{
+      id: string;
+      status: string;
+      suiteNumber: string;
+      expiresAt: string | null;
+      shipOutLocked: boolean;
+      isTrial: boolean;
+    }>(`${this.base}/borderbox/suite-access/trial`, {}).pipe(
+      map((res) => ({ suiteNumber: res.suiteNumber, expiresAt: res.expiresAt })),
+    );
   }
 
   initiateSuiteCheckout(

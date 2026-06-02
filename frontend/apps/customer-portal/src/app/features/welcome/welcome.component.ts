@@ -135,11 +135,20 @@ type PlanChoice = 'monthly' | 'quarterly';
       @if (!alreadyActive()) {
         <section class="activate-card" id="activate">
           <header class="activate-head">
+          @if (trialEligible()) {
+            <span class="activate-eyebrow early-adopter-eyebrow">Early adopter offer</span>
+          } @else {
             <span class="activate-eyebrow">Step 4 · Activate</span>
-            <h2>Activate your suite address</h2>
+          }
+            <h2>@if (trialEligible()) { Your first {{ trialDurationDays() }} days are free } @else { Activate your suite address }</h2>
             <p class="activate-sub">
-              Pick a plan and pay securely with Paystack. Your suite address is
-              ready to receive parcels the moment we confirm the payment.
+              @if (trialEligible()) {
+                As an early adopter, your first {{ trialDurationDays() }} days are free — full suite access with no payment today.
+                Prefer to pay upfront? Choose a plan below instead.
+              } @else {
+                Pick a plan and pay securely with Paystack. Your suite address is
+                ready to receive parcels the moment we confirm the payment.
+              }
             </p>
           </header>
 
@@ -186,9 +195,27 @@ type PlanChoice = 'monthly' | 'quarterly';
             <div class="err-banner" role="alert">{{ error() }}</div>
           }
 
+          @if (trialEligible()) {
+            <button
+              type="button"
+              class="pay-cta trial-cta"
+              (click)="startTrial()"
+              [disabled]="busy()"
+            >
+              @if (busy()) {
+                <span class="material-icons-outlined spin">sync</span>
+                Starting…
+              } @else {
+                <span class="material-icons-outlined">volunteer_activism</span>
+                Claim your free {{ trialDurationDays() }} days
+              }
+            </button>
+          }
+
           <button
             type="button"
             class="pay-cta"
+            [class.pay-cta-secondary]="trialEligible()"
             (click)="payNow()"
             [disabled]="busy() || !selectedPlanDto()"
           >
@@ -489,6 +516,14 @@ type PlanChoice = 'monthly' | 'quarterly';
     .pay-cta:hover:not(:disabled) { transform: translateY(-1px); }
     .pay-cta:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
     .pay-cta .spin { animation: spin 1s linear infinite; font-size: 1.2rem !important; }
+    .pay-cta-secondary {
+      margin-top: 0.75rem;
+      background: #fff;
+      color: var(--bb-text, #0f172a);
+      border: 1px solid var(--bb-border, #e2e8f0);
+      box-shadow: none;
+    }
+    .trial-cta { margin-bottom: 0.25rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .extra { margin: 0.75rem 0 0; text-align: center; font-size: 0.85rem; color: var(--bb-muted, #475569); }
@@ -544,6 +579,14 @@ export class WelcomeComponent implements OnInit {
   });
 
   readonly payAmount = computed<number>(() => this.selectedPlanDto()?.priceZar ?? 0);
+
+  readonly trialEligible = computed(
+    () => this.accountApi.account()?.suiteTrial?.eligible === true,
+  );
+
+  readonly trialDurationDays = computed(
+    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 30,
+  );
 
   ngOnInit(): void {
     this.accountApi.ensureAccountLoaded().subscribe();
@@ -602,6 +645,21 @@ export class WelcomeComponent implements OnInit {
           this.error.set(this.humanizeError(err));
         },
       });
+  }
+
+  startTrial(): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.accountApi.startSuiteTrial().subscribe({
+      next: () => {
+        this.busy.set(false);
+        void this.router.navigateByUrl('/dashboard');
+      },
+      error: (err: unknown) => {
+        this.busy.set(false);
+        this.error.set(this.humanizeError(err));
+      },
+    });
   }
 
   signOut(): void {

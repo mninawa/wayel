@@ -15,7 +15,8 @@ internal static class CustomerAccountMapper
         bool hasGoogleIdentity,
         IReadOnlyList<PickupBranch> pickupBranches,
         string? suiteWarehouseName = null,
-        OnboardingIntentDto? onboardingIntent = null)
+        OnboardingIntentDto? onboardingIntent = null,
+        SuiteTrialDto? suiteTrial = null)
     {
         var profileComplete = CustomerProfileRules.IsComplete(user);
         var hasSuite = suiteAddress is not null && !string.IsNullOrWhiteSpace(suiteAddress.SuiteNumber);
@@ -39,7 +40,8 @@ internal static class CustomerAccountMapper
             // Suppress the intent once the customer actually has a suite — the
             // payment-completion handler will mark it resolved server-side, but
             // we don't want a brief window where the SPA sees both states.
-            hasSuite ? null : onboardingIntent);
+            hasSuite ? null : onboardingIntent,
+            suiteTrial);
     }
 
     private static CustomerProfileDto MapProfile(User user, bool hasGoogleIdentity) =>

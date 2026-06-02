@@ -10,7 +10,15 @@ public sealed record CustomerAccountResponse(
     bool ProfileComplete,
     bool SuiteEligible,
     bool HasSuite,
-    OnboardingIntentDto? OnboardingIntent = null);
+    OnboardingIntentDto? OnboardingIntent = null,
+    SuiteTrialDto? SuiteTrial = null);
+
+public sealed record SuiteTrialDto(
+    bool FeatureEnabled,
+    int DurationDays,
+    bool Eligible,
+    bool IsActive,
+    string? ExpiresAtUtc);
 
 public sealed record CustomerProfileDto(
     string UserId,

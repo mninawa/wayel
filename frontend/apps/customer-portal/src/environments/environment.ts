@@ -36,6 +36,10 @@ export const environment = {
   enableParcelReceive: true,
   /** Google Maps Embed / JS API key for pickup location maps. */
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  /** GA4 master switch. Off in local dev; flip on with a measurement id in prod. */
+  googleAnalyticsEnabled: false,
+  /** GA4 measurement id (G-XXXXXXXX). Ignored when googleAnalyticsEnabled is false. */
+  googleAnalyticsMeasurementId: '',
   /** Fallback when API BorderBox:SupportWhatsAppLink is unset. */
   supportWhatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
   supportWhatsAppLabel: 'WeYell courier',

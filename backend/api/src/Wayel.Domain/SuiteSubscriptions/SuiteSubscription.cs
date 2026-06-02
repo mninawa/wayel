@@ -13,7 +13,8 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         string suiteNumber,
         SuiteAccessStatus status,
         DateTime? startedAt,
-        DateTime? expiresAt)
+        DateTime? expiresAt,
+        bool isTrial = false)
         : base(id)
     {
         UserId = userId;
@@ -22,6 +23,7 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         Status = status;
         StartedAt = startedAt;
         ExpiresAt = expiresAt;
+        IsTrial = isTrial;
     }
 
     public UserId UserId { get; }
@@ -30,6 +32,7 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
     public SuiteAccessStatus Status { get; private set; }
     public DateTime? StartedAt { get; private set; }
     public DateTime? ExpiresAt { get; private set; }
+    public bool IsTrial { get; private set; }
 
     public bool ShipOutLocked => Status is SuiteAccessStatus.Expired or SuiteAccessStatus.PendingPayment or SuiteAccessStatus.Suspended;
 
@@ -43,20 +46,23 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         string suiteNumber,
         SuiteAccessStatus status,
         DateTime? startedAt,
-        DateTime? expiresAt) =>
-        new(id, userId, planId, suiteNumber, status, startedAt, expiresAt);
+        DateTime? expiresAt,
+        bool isTrial = false) =>
+        new(id, userId, planId, suiteNumber, status, startedAt, expiresAt, isTrial);
 
-    public void Activate(DateTime startedAt, DateTime expiresAt)
+    public void Activate(DateTime startedAt, DateTime expiresAt, bool isTrial = false)
     {
         Status = SuiteAccessStatus.Active;
         StartedAt = startedAt;
         ExpiresAt = expiresAt;
+        IsTrial = isTrial;
     }
 
     public void Renew(DateTime expiresAt)
     {
         Status = SuiteAccessStatus.Active;
         ExpiresAt = expiresAt;
+        IsTrial = false;
         if (StartedAt is null)
         {
             StartedAt = DateTime.UtcNow;

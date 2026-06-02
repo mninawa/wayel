@@ -42,7 +42,11 @@ type PlanChoice = 'monthly' | 'quarterly';
 
         <div class="content">
           <h1>Choose your suite plan</h1>
-          <p class="sub">Your profile is complete — activate suite access to receive your SA address.</p>
+          @if (trialEligible()) {
+            <p class="sub">Your profile is complete — as an early adopter, your first {{ trialDurationDays() }} days are free.</p>
+          } @else {
+            <p class="sub">Your profile is complete — activate suite access to receive your SA address.</p>
+          }
 
           <div class="stepper">
             @for (s of steps; track s.n) {
@@ -55,8 +59,18 @@ type PlanChoice = 'monthly' | 'quarterly';
 
           <div class="body-grid">
             <div class="form-area">
-              <h2>Choose your suite subscription plan</h2>
-              <p class="hint">All plans are paid upfront before activation.</p>
+              <h2>@if (trialEligible()) { Early adopter offer } @else { Choose your suite subscription plan }</h2>
+              @if (trialEligible()) {
+                <div class="early-adopter-banner">
+                  <span class="bb-badge bb-badge-success">Early adopter offer</span>
+                  <p>
+                    Your first {{ trialDurationDays() }} days are <strong>free</strong> — full suite access, no payment today.
+                    One offer per account; subscribe before it ends to keep ship-out unlocked.
+                  </p>
+                </div>
+              } @else {
+                <p class="hint">All plans are paid upfront before activation.</p>
+              }
 
               <label class="plan" [class.selected]="plan() === 'monthly'">
                 <input type="radio" name="plan" (change)="selectPlan('monthly')" [checked]="plan() === 'monthly'" />
@@ -81,16 +95,37 @@ type PlanChoice = 'monthly' | 'quarterly';
 
               <div class="info-banner">
                 <span class="material-icons-outlined">info</span>
-                If your plan lapses, your suite stays reserved but ship-out is paused until renewal.
+                @if (trialEligible()) {
+                  After your free 30 days, your suite stays reserved but ship-out pauses until you choose a paid plan.
+                } @else {
+                  If your plan lapses, your suite stays reserved but ship-out is paused until renewal.
+                }
               </div>
 
-              <p class="lock-note">🔒 All plans are paid upfront and non-refundable.</p>
+              @if (!trialEligible()) {
+                <p class="lock-note">🔒 All plans are paid upfront and non-refundable.</p>
+              }
 
               @if (error()) {
                 <div class="err-banner" role="alert">{{ error() }}</div>
               }
 
               <div class="actions">
+                @if (trialEligible()) {
+                  <button
+                    type="button"
+                    class="bb-btn bb-btn-primary trial-btn"
+                    (click)="startTrial()"
+                    [disabled]="busy()"
+                  >
+                    @if (busy()) {
+                      <span class="material-icons-outlined spin">sync</span>
+                      Starting…
+                    } @else {
+                      Claim your free {{ trialDurationDays() }} days
+                    }
+                  </button>
+                }
                 <button
                   type="button"
                   class="bb-btn bb-btn-ghost pay-later"
@@ -102,7 +137,9 @@ type PlanChoice = 'monthly' | 'quarterly';
                 </button>
                 <button
                   type="button"
-                  class="bb-btn bb-btn-primary"
+                  class="bb-btn"
+                  [class.bb-btn-primary]="!trialEligible()"
+                  [class.bb-btn-outline]="trialEligible()"
                   (click)="continue()"
                   [disabled]="busy() || !selectedPlanDto()"
                 >
@@ -238,14 +275,29 @@ type PlanChoice = 'monthly' | 'quarterly';
       font-size: 0.85rem;
     }
     .lock-note { font-size: 0.78rem; color: var(--bb-muted); }
+    .early-adopter-banner {
+      margin: 0 0 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: var(--bb-radius-sm);
+      background: var(--bb-success-soft, #ecfdf5);
+      border: 1px solid #a7f3d0;
+    }
+    .early-adopter-banner p {
+      margin: 0.55rem 0 0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #14532d;
+    }
+    .early-adopter-banner strong { color: #15803d; }
     .actions {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       gap: 0.75rem;
       margin-top: 1.5rem;
       flex-wrap: wrap;
     }
+    .actions .trial-btn { margin-right: auto; }
     .actions .bb-btn[disabled] { opacity: 0.65; cursor: not-allowed; }
     .bb-btn-ghost.pay-later {
       background: transparent;
@@ -305,6 +357,14 @@ export class OnboardingSuitePlanComponent implements OnInit {
     return list.find((p) => p.durationMonths === months) ?? list[0] ?? null;
   });
 
+  readonly trialEligible = computed(
+    () => this.accountApi.account()?.suiteTrial?.eligible === true,
+  );
+
+  readonly trialDurationDays = computed(
+    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 30,
+  );
+
   ngOnInit(): void {
     // Make sure we have the customer's profile (used for default payer phone)
     // and the active plan catalogue before the user reaches the pay button.
@@ -338,6 +398,21 @@ export class OnboardingSuitePlanComponent implements OnInit {
       next: () => {
         this.busy.set(false);
         void this.router.navigateByUrl('/welcome');
+      },
+      error: (err: unknown) => {
+        this.busy.set(false);
+        this.error.set(this.humanizeError(err));
+      },
+    });
+  }
+
+  startTrial(): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.accountApi.startSuiteTrial().subscribe({
+      next: () => {
+        this.busy.set(false);
+        void this.router.navigateByUrl('/dashboard');
       },
       error: (err: unknown) => {
         this.busy.set(false);

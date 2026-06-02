@@ -165,6 +165,7 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
             sub.Status.ToString(),
             sub.SuiteNumber,
             sub.ExpiresAt,
-            sub.ShipOutLocked);
+            sub.ShipOutLocked,
+            sub.IsTrial);
     }
 }

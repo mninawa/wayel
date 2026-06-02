@@ -24,6 +24,7 @@ import { PulseLoaderComponent } from '@wayel/shared/components/pulse-loader.comp
 import { PortalSearchService, type PortalSearchHit } from '../../services/portal-search.service';
 import { ParcelsService } from '../../services/parcels.service';
 import { KycVerificationTickerComponent } from './kyc-verification-ticker.component';
+import { SuiteTrialBannerComponent } from '../shared/suite-trial-banner.component';
 interface NavItem {
   path: string;
   label: string;
@@ -44,7 +45,7 @@ function buildNav(): NavItem[] {
 @Component({
   selector: 'app-portal-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent, PulseLoaderComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, KycVerificationTickerComponent, SuiteTrialBannerComponent, PulseLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell" [class.shell-nav-open]="sidebarOpen()" [class.shell-sidebar-expanded]="desktopExpanded()">
@@ -271,6 +272,7 @@ function buildNav(): NavItem[] {
         }
 
         <main class="content" [class.content-map]="mapLayout()">
+          <app-suite-trial-banner />
           <router-outlet />
         </main>
       </div>

@@ -26,6 +26,9 @@ export const environment = {
   enableKycOpsReview: true,
   enableParcelReceive: true,
   googleMapsApiKey: 'AIzaSyCjkC0e4WQGbrefPDfkX0hoPfZR3DUAc4c',
+  /** GA4 for weyell.co.za production traffic (loaded via GoogleAnalyticsService). */
+  googleAnalyticsEnabled: true,
+  googleAnalyticsMeasurementId: 'G-TBGNM7R6F0',
   supportWhatsAppLink: 'https://wa.me/message/NEGKMQLT5LJNE1',
   supportWhatsAppLabel: 'WeYell courier',
   supportWhatsAppE164: '',

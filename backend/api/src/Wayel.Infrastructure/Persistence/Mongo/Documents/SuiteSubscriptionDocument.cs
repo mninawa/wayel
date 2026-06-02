@@ -13,7 +13,20 @@ internal sealed class SuiteSubscriptionDocument
     public SuiteAccessStatus Status { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
+    public bool IsTrial { get; set; }
 
-    public static SuiteSubscriptionDocument From(SuiteSubscription s) => new() { Id=s.Id, UserId=s.UserId, PlanId=s.PlanId, SuiteNumber=s.SuiteNumber, Status=s.Status, StartedAt=s.StartedAt, ExpiresAt=s.ExpiresAt };
-    public SuiteSubscription ToDomain() => SuiteSubscription.Rehydrate(Id, UserId, PlanId, SuiteNumber, Status, StartedAt, ExpiresAt);
+    public static SuiteSubscriptionDocument From(SuiteSubscription s) => new()
+    {
+        Id = s.Id,
+        UserId = s.UserId,
+        PlanId = s.PlanId,
+        SuiteNumber = s.SuiteNumber,
+        Status = s.Status,
+        StartedAt = s.StartedAt,
+        ExpiresAt = s.ExpiresAt,
+        IsTrial = s.IsTrial,
+    };
+
+    public SuiteSubscription ToDomain() =>
+        SuiteSubscription.Rehydrate(Id, UserId, PlanId, SuiteNumber, Status, StartedAt, ExpiresAt, IsTrial);
 }

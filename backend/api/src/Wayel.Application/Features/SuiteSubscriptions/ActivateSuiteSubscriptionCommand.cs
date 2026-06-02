@@ -16,7 +16,8 @@ public sealed record SuiteSubscriptionDto(
     string Status,
     string SuiteNumber,
     DateTime? ExpiresAt,
-    bool ShipOutLocked);
+    bool ShipOutLocked,
+    bool IsTrial = false);
 
 internal sealed class ActivateSuiteSubscriptionCommandHandler(
     ICurrentUser current,

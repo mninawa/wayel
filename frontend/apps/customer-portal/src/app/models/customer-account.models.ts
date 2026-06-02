@@ -103,6 +103,14 @@ export interface OnboardingIntent {
   planLabelAtSignal: string | null;
 }
 
+export interface SuiteTrial {
+  featureEnabled: boolean;
+  durationDays: number;
+  eligible: boolean;
+  isActive: boolean;
+  expiresAtUtc: string | null;
+}
+
 export interface CustomerAccount {
   profile: CustomerProfile;
   /** Null until the customer completes suite checkout. */
@@ -120,6 +128,8 @@ export interface CustomerAccount {
    * there is no active intent (the SPA suppresses resolved intents).
    */
   onboardingIntent: OnboardingIntent | null;
+  /** Free-trial onboarding snapshot from the API (toggle + eligibility). */
+  suiteTrial: SuiteTrial | null;
 }
 
 export interface UpdateProfileRequest {
