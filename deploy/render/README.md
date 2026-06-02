@@ -176,8 +176,8 @@ sends a page view on each in-app navigation.
 
 **Env vars** (already in `render.yaml` for blueprint sync)
 
-* `BorderBox__TrialAccess__Enabled` → `true` (early adopter offer: first 30 days free)
-* `BorderBox__TrialAccess__DurationDays` → `30`
+* `BorderBox__TrialAccess__Enabled` → `true` (early adopter offer: first 14 days free)
+* `BorderBox__TrialAccess__DurationDays` → `14`
 * `BorderBox__CustomerPortalBaseUrl` → `https://www.weyell.co.za`
 * `Cors__AllowedOrigins__0/1/2` → `www`, apex, and `ops` hostnames
 * `Billing__MtnMomo__CallbackHost` → `api.weyell.co.za`

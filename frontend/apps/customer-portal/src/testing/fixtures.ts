@@ -93,7 +93,7 @@ export function deliveryAddressFixture(overrides: Partial<DeliveryAddress> = {})
 export function suiteTrialFixture(overrides: Partial<SuiteTrial> = {}): SuiteTrial {
   return {
     featureEnabled: true,
-    durationDays: 30,
+    durationDays: 14,
     eligible: false,
     isActive: false,
     expiresAtUtc: null,

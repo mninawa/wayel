@@ -113,7 +113,7 @@ services:
       - key: BorderBox__TrialAccess__Enabled
         value: "true"
       - key: BorderBox__TrialAccess__DurationDays
-        value: "30"
+        value: "14"
       - key: Cors__AllowedOrigins__0
         value: https://www.weyell.co.za
       - key: Cors__AllowedOrigins__1

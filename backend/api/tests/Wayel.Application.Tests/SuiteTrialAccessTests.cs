@@ -17,7 +17,7 @@ public sealed class SuiteTrialAccessTests
     {
         var options = Options.Create(new BorderBoxOptions
         {
-            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = true, DurationDays = 30 },
+            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = true, DurationDays = 14 },
         });
         var user = BuildCompleteUser();
         var payments = new FakeCheckoutPayments(0);
@@ -38,7 +38,7 @@ public sealed class SuiteTrialAccessTests
     {
         var options = Options.Create(new BorderBoxOptions
         {
-            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = false, DurationDays = 30 },
+            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = false, DurationDays = 14 },
         });
         var user = BuildCompleteUser();
         var payments = new FakeCheckoutPayments(0);
@@ -59,7 +59,7 @@ public sealed class SuiteTrialAccessTests
     {
         var options = Options.Create(new BorderBoxOptions
         {
-            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = true, DurationDays = 30 },
+            TrialAccess = new BorderBoxTrialAccessOptions { Enabled = true, DurationDays = 14 },
         });
         var user = BuildCompleteUser();
         var payments = new FakeCheckoutPayments(0);

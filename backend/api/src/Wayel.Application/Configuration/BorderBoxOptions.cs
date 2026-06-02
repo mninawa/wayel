@@ -54,5 +54,5 @@ public sealed class BorderBoxTrialAccessOptions
     public bool Enabled { get; init; }
 
     /// <summary>Length of the complimentary access window.</summary>
-    public int DurationDays { get; init; } = 30;
+    public int DurationDays { get; init; } = 14;
 }

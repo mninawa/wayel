@@ -127,10 +127,15 @@ export class SuiteTrialBannerComponent {
     return days !== null && days <= 7;
   });
 
+  readonly trialDurationDays = computed(
+    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 14,
+  );
+
   readonly heading = computed(() => {
     const days = this.daysLeft();
+    const offerDays = this.trialDurationDays();
     if (days === null) {
-      return 'Early adopter — first 30 days free';
+      return `Early adopter — first ${offerDays} days free`;
     }
     if (days === 0) {
       return 'Early adopter offer ends today';
@@ -139,15 +144,16 @@ export class SuiteTrialBannerComponent {
       return 'Early adopter offer ends tomorrow';
     }
     if (this.urgent()) {
-      return `Early adopter — ${days} days left on your free 30 days`;
+      return `Early adopter — ${days} days left on your free ${offerDays} days`;
     }
-    return 'Early adopter — first 30 days free';
+    return `Early adopter — first ${offerDays} days free`;
   });
 
   readonly message = computed(() => {
     const end = this.expiresAt();
+    const offerDays = this.trialDurationDays();
     if (!end) {
-      return 'As an early adopter, your first 30 days are on us. Subscribe before the offer ends to keep ship-out unlocked — your suite number stays reserved either way.';
+      return `As an early adopter, your first ${offerDays} days are on us. Subscribe before the offer ends to keep ship-out unlocked — your suite number stays reserved either way.`;
     }
     const formatted = end.toLocaleDateString(undefined, {
       day: 'numeric',
@@ -157,6 +163,6 @@ export class SuiteTrialBannerComponent {
     if (this.urgent()) {
       return `Your complimentary access ends on ${formatted}. Subscribe before then to keep shipping out — you can still receive parcels and upload invoices after that.`;
     }
-    return `Your first 30 days are free until ${formatted}. Full suite access today, no payment required yet. Subscribe anytime before then to avoid interruption.`;
+    return `Your first ${offerDays} days are free until ${formatted}. Full suite access today, no payment required yet. Subscribe anytime before then to avoid interruption.`;
   });
 }

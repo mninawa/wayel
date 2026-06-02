@@ -96,7 +96,7 @@ type PlanChoice = 'monthly' | 'quarterly';
               <div class="info-banner">
                 <span class="material-icons-outlined">info</span>
                 @if (trialEligible()) {
-                  After your free 30 days, your suite stays reserved but ship-out pauses until you choose a paid plan.
+                  After your free {{ trialDurationDays() }} days, your suite stays reserved but ship-out pauses until you choose a paid plan.
                 } @else {
                   If your plan lapses, your suite stays reserved but ship-out is paused until renewal.
                 }
@@ -362,7 +362,7 @@ export class OnboardingSuitePlanComponent implements OnInit {
   );
 
   readonly trialDurationDays = computed(
-    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 30,
+    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 14,
   );
 
   ngOnInit(): void {

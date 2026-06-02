@@ -585,7 +585,7 @@ export class WelcomeComponent implements OnInit {
   );
 
   readonly trialDurationDays = computed(
-    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 30,
+    () => this.accountApi.account()?.suiteTrial?.durationDays ?? 14,
   );
 
   ngOnInit(): void {
