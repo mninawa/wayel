@@ -73,8 +73,11 @@ export class OpsAuthService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiBaseUrl}/borderbox/ops`;
 
-  signInWithGoogle(idToken: string): Observable<OpsAuthSessionDto> {
-    return this.http.post<OpsAuthSessionDto>(`${this.base}/auth/google`, { idToken });
+  signInWithGoogle(idToken: string, inviteToken?: string | null): Observable<OpsAuthSessionDto> {
+    return this.http.post<OpsAuthSessionDto>(`${this.base}/auth/google`, {
+      idToken,
+      inviteToken: inviteToken?.trim() || null,
+    });
   }
 
   previewInvitation(token: string): Observable<OpsInvitationPreviewDto> {

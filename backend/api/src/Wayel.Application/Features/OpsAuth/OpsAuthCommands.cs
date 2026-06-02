@@ -8,7 +8,8 @@ using Wayel.Application.Features.Parcels;
 using Wayel.Domain.Common;
 namespace Wayel.Application.Features.OpsAuth;
 
-public sealed record OpsSignInGoogleCommand(string IdToken) : ICommand<OpsAuthSessionDto>;
+public sealed record OpsSignInGoogleCommand(string IdToken, string? InviteToken = null)
+    : ICommand<OpsAuthSessionDto>;
 
 public sealed record OpsAuthSessionDto(
     string AccessToken,
@@ -61,13 +62,24 @@ internal sealed class OpsSignInGoogleCommandHandler(
 
         if (user is null)
         {
-            var invitation = await invitations.GetPendingByEmailAsync(email, cancellationToken);
-            if (invitation is null || invitation.Status != "Pending" || invitation.ExpiresAtUtc < now)
+            var invitation = await ResolvePendingInvitationAsync(
+                email,
+                request.InviteToken,
+                cancellationToken);
+            if (invitation is null)
             {
                 return Result.Failure<OpsAuthSessionDto>(
                     Error.Forbidden(
                         "ops.invitation_required",
-                        "Warehouse access is by invitation only. Ask a lead to invite you."));
+                        "Warehouse access is by invitation only. Open your invite link and sign in with the invited Google account."));
+            }
+
+            if (invitation.ExpiresAtUtc < now)
+            {
+                return Result.Failure<OpsAuthSessionDto>(
+                    Error.Forbidden(
+                        "ops.invitation_expired",
+                        "This invitation has expired. Ask a lead for a new invite."));
             }
 
             var role = NormalizeRole(invitation.Role);
@@ -127,6 +139,27 @@ internal sealed class OpsSignInGoogleCommandHandler(
     {
         var r = role.Trim().ToLowerInvariant();
         return r is "lead" or "finance" or "clerk" or "receiver" or "collector" ? r : "clerk";
+    }
+
+    private async Task<OpsInvitationRecord?> ResolvePendingInvitationAsync(
+        string email,
+        string? inviteToken,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(inviteToken))
+        {
+            return null;
+        }
+
+        var invitation = await invitations.GetByTokenAsync(inviteToken.Trim(), cancellationToken);
+        if (invitation is null
+            || invitation.Status != "Pending"
+            || !string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return invitation;
     }
 }
 
@@ -256,7 +289,7 @@ internal sealed class CreateOpsInvitationCommandHandler(
             email,
             role,
             regions,
-            NewToken(),
+            OpsInvitationTokens.New(),
             "Pending",
             now.AddDays(14),
             ops.Actor,
@@ -269,7 +302,11 @@ internal sealed class CreateOpsInvitationCommandHandler(
         return ListOpsInvitationsQueryHandler.ToDto(record);
     }
 
-    private static string NewToken() =>
+}
+
+public static class OpsInvitationTokens
+{
+    public static string New() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=')
             .Replace('+', '-')

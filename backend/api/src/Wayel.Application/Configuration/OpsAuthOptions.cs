@@ -5,7 +5,8 @@ public sealed class OpsAuthOptions
     public const string SectionName = "OpsAuth";
 
     /// <summary>
-    /// Emails that are provisioned as <c>lead</c> on startup when no ops user exists yet.
+    /// Emails that receive a bootstrap <c>lead</c> invitation on startup when no ops user exists yet.
+    /// First sign-in still requires the invite link (logged on API startup).
     /// </summary>
     public List<string> BootstrapLeadEmails { get; init; } = [];
 

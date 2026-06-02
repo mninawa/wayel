@@ -13,7 +13,7 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
             .WithTags("WeYell Ops Auth");
 
         auth.MapPost("/google", async (OpsGoogleSignInRequest body, IMediator mediator, CancellationToken ct) =>
-            (await mediator.Send(new OpsSignInGoogleCommand(body.IdToken), ct)).ToHttpResult())
+            (await mediator.Send(new OpsSignInGoogleCommand(body.IdToken, body.InviteToken), ct)).ToHttpResult())
             .AllowAnonymous()
             .RequireRateLimiting("auth")
             .WithName("OpsSignInGoogle");
@@ -71,7 +71,7 @@ public sealed class OpsAuthEndpoints : IEndpointGroup
             .WithName("ListRecentOpsAudit");
     }
 
-    private sealed record OpsGoogleSignInRequest(string IdToken);
+    private sealed record OpsGoogleSignInRequest(string IdToken, string? InviteToken);
     private sealed record CreateOpsInvitationRequest(string Email, string Role, IReadOnlyList<string>? Regions);
     private sealed record UpdateOpsUserRoleRequest(string Role, IReadOnlyList<string>? Regions);
     private sealed record SetOpsUserDisabledRequest(bool IsDisabled);

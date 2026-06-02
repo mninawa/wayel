@@ -19,6 +19,7 @@ export interface OpsCustomerAccountListItemDto {
   memberSinceUtc: string;
   isDisabled: boolean;
   riskLevel: 'Low' | 'Medium' | 'High';
+  isTrial: boolean;
 }
 
 export interface SuitePaymentsOverviewDto {
@@ -168,6 +169,7 @@ export interface OpsSuiteSubscriptionDto {
   startedAtUtc: string | null;
   expiresAtUtc: string | null;
   shipOutLocked: boolean;
+  isTrial: boolean;
 }
 
 export interface OpsCustomerAccountDetailDto {

@@ -70,8 +70,10 @@ admin tooling.
    * `https://wayel-api.onrender.com/health/live` → `200`
    * `https://wayel-customer.onrender.com/` → SPA loads
    * `https://wayel-ops.onrender.com/` → ops shell loads
-7. Sign in via Google on the customer portal. The first ops email on
-   `OpsAuth__BootstrapLeadEmails__0` is auto-promoted to ops `lead`.
+7. Sign in via Google on the customer portal. For ops, the first email on
+   `OpsAuth__BootstrapLeadEmails__0` receives a bootstrap invite — check the
+   `wayel-api` deploy logs for `/?invite=…` and open that link on
+   `https://wayel-ops.onrender.com` before signing in.
 
 ---
 

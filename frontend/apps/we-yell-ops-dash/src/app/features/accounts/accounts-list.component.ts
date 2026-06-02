@@ -150,4 +150,15 @@ export class AccountsListComponent implements OnInit {
     if (s === 'expired' || s === 'suspended') return 'red';
     return 'gray';
   }
+
+  suiteStatusLabel(status: string | null, isTrial: boolean): string {
+    if (isTrial) return 'Trial';
+    return status ?? '—';
+  }
+
+  showOnTrial(): void {
+    this.suiteFilter = 'trial';
+    this.page.set(1);
+    this.refresh();
+  }
 }

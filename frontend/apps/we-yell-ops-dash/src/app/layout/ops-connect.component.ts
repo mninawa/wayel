@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   inject,
   signal,
   viewChild,
@@ -10,7 +11,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { OpsAuthService } from '../services/ops-auth.service';
 import { OpsSessionService } from '../services/ops-session.service';
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../brand';
+import { PRODUCT_NAME } from '../brand';
 import { environment } from '../../environments/environment';
 
 declare const google: {
@@ -105,10 +106,20 @@ declare const google: {
             } @else {
               <p class="err">This invitation is no longer valid. Ask a lead for a new invite.</p>
             }
+          } @else if (!returningMember()) {
+            <p class="card-lead">
+              Warehouse access is by invitation only. Open the invite link your lead sent you to sign in
+              for the first time.
+            </p>
+            <p class="card-lead subtle">
+              Already onboarded?
+              <button type="button" class="text-link" (click)="showReturningSignIn()">
+                Sign in as a returning team member
+              </button>
+            </p>
           } @else {
             <p class="card-lead">
-              Sign in with your work Google account. Access is by invitation only — if you need
-              access, contact your warehouse lead.
+              Sign in with the same work Google account you used when you accepted your invitation.
             </p>
           }
 
@@ -119,7 +130,14 @@ declare const google: {
             <p class="status-hint">Signing in…</p>
           }
 
-          <div #googleButton class="google-btn-host"></div>
+          @if (canSignIn()) {
+            <div #googleButton class="google-btn-host"></div>
+          } @else {
+            <div class="invite-lock" role="status">
+              <span class="material-icons-outlined" aria-hidden="true">mail</span>
+              <p>Waiting for a valid invite link</p>
+            </div>
+          }
 
           <div class="divider" aria-hidden="true"><span>or</span></div>
 
@@ -302,6 +320,32 @@ declare const google: {
       color: var(--ops-muted);
       line-height: 1.55;
     }
+    .card-lead.subtle { margin-top: -0.75rem; font-size: 0.82rem; }
+    .text-link {
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
+      font-weight: 600;
+      color: var(--ops-link);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .invite-lock {
+      display: grid;
+      place-items: center;
+      gap: 0.35rem;
+      min-height: 88px;
+      margin-bottom: 0.25rem;
+      padding: 1rem;
+      border: 1px dashed var(--ops-border);
+      border-radius: var(--ops-radius-sm);
+      color: var(--ops-muted);
+      font-size: 0.82rem;
+    }
+    .invite-lock .material-icons-outlined { font-size: 1.4rem; opacity: 0.65; }
+    .invite-lock p { margin: 0; }
     .invite-hint strong { color: var(--ops-text); }
     .err {
       color: #b91c1c;
@@ -382,16 +426,35 @@ export class OpsConnectComponent implements AfterViewInit {
     role: string;
     isValid: boolean;
   } | null>(null);
+  readonly inviteToken = signal<string | null>(null);
+  readonly returningMember = signal(false);
+  readonly canSignIn = computed(() => {
+    const invite = this.invitePreview();
+    if (invite?.isValid) {
+      return true;
+    }
+    return this.returningMember();
+  });
 
   ngAfterViewInit(): void {
     const token = this.route.snapshot.queryParamMap.get('invite');
     if (token) {
+      this.inviteToken.set(token);
       this.authApi.previewInvitation(token).subscribe({
-        next: (p) => this.invitePreview.set(p),
+        next: (p) => {
+          this.invitePreview.set(p);
+          if (p.isValid) {
+            queueMicrotask(() => this.initGoogleButton());
+          }
+        },
         error: () => this.invitePreview.set(null),
       });
     }
-    this.initGoogleButton();
+  }
+
+  showReturningSignIn(): void {
+    this.returningMember.set(true);
+    queueMicrotask(() => this.initGoogleButton());
   }
 
   private initGoogleButton(): void {
@@ -431,7 +494,7 @@ export class OpsConnectComponent implements AfterViewInit {
   private onGoogleCredential(credential: string): void {
     this.busy.set(true);
     this.error.set(null);
-    this.session.signInWithGoogle(credential).subscribe({
+    this.session.signInWithGoogle(credential, this.inviteToken()).subscribe({
       next: () => this.busy.set(false),
       error: (err) => {
         this.busy.set(false);

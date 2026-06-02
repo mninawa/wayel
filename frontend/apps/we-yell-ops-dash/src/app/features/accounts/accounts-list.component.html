@@ -32,9 +32,26 @@
     <select [(ngModel)]="suiteFilter" name="suite" (change)="applyFilters()">
       <option value="">All suite status</option>
       @for (s of suiteOptions; track s) {
-        <option [value]="s">{{ s === 'none' ? 'No suite' : s }}</option>
+        <option [value]="s">
+          @if (s === 'none') {
+            No suite
+          } @else if (s === 'trial') {
+            On trial (early adopter)
+          } @else {
+            {{ s }}
+          }
+        </option>
       }
     </select>
+    <button
+      type="button"
+      class="ops-btn ops-btn-outline"
+      [class.active-filter]="suiteFilter === 'trial'"
+      (click)="showOnTrial()"
+      [disabled]="busy()"
+    >
+      On trial
+    </button>
     <button type="button" class="ops-btn ops-btn-outline" (click)="applyFilters()" [disabled]="busy()">
       Apply
     </button>
@@ -146,7 +163,9 @@
                 <td>
                   @if (item.suiteNumber) {
                     <code>{{ item.suiteNumber }}</code>
-                    <span class="pill" [class]="suiteClass(item.suiteStatus)">{{ item.suiteStatus }}</span>
+                    <span class="pill" [class]="item.isTrial ? 'blue' : suiteClass(item.suiteStatus)">
+                      {{ suiteStatusLabel(item.suiteStatus, item.isTrial) }}
+                    </span>
                   } @else {
                     <span class="muted">—</span>
                   }
@@ -154,8 +173,11 @@
                 <td>
                   @if (item.planName) {
                     {{ item.planName }}
+                    @if (item.isTrial) {
+                      <span class="sub">Early adopter trial</span>
+                    }
                     @if (item.suiteExpiresAtUtc) {
-                      <span class="sub">until {{ item.suiteExpiresAtUtc | date:'mediumDate' }}</span>
+                      <span class="sub">{{ item.isTrial ? 'Trial ends' : 'until' }} {{ item.suiteExpiresAtUtc | date:'mediumDate' }}</span>
                     }
                   } @else {
                     <span class="muted">No plan</span>

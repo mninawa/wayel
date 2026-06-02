@@ -145,6 +145,7 @@ export class AccountDetailComponent implements OnInit {
   readonly suiteStatusLabel = computed(() => {
     const sub = this.detail()?.subscription;
     if (!sub) return 'No suite';
+    if (sub.isTrial) return 'Trial';
     if (sub.status === 'Expired') return 'Expired';
     if (sub.shipOutLocked) return 'Locked';
     return sub.status;

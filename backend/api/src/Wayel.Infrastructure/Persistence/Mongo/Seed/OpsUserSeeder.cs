@@ -9,12 +9,16 @@ using Wayel.Application.Features.OpsAuth;
 
 namespace Wayel.Infrastructure.Persistence.Mongo.Seed;
 
-/// <summary>Provisions bootstrap warehouse leads on startup.</summary>
+/// <summary>
+/// Provisions bootstrap warehouse lead invitations on startup (invite-only access).
+/// </summary>
 internal sealed class OpsUserSeeder(
     IServiceScopeFactory scopeFactory,
     IOptions<OpsAuthOptions> options,
     ILogger<OpsUserSeeder> logger) : IHostedService
 {
+    private const string BootstrapInvitedByEmail = "bootstrap@weyell.com";
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var emails = options.Value.BootstrapLeadEmails
@@ -30,30 +34,46 @@ internal sealed class OpsUserSeeder(
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var users = scope.ServiceProvider.GetRequiredService<IOpsUserRepository>();
+        var invitations = scope.ServiceProvider.GetRequiredService<IOpsInvitationRepository>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
         var now = clock.UtcNow;
 
         foreach (var email in emails)
         {
-            var existing = await users.GetByEmailAsync(email, cancellationToken);
-            if (existing is not null)
+            var existingUser = await users.GetByEmailAsync(email, cancellationToken);
+            if (existingUser is not null)
             {
                 continue;
             }
 
-            var user = new OpsUserRecord(
+            var pending = await invitations.GetPendingByEmailAsync(email, cancellationToken);
+            if (pending is not null)
+            {
+                logger.LogInformation(
+                    "Bootstrap ops invite already pending for {Email} (/?invite={Token})",
+                    email,
+                    pending.Token);
+                continue;
+            }
+
+            var token = OpsInvitationTokens.New();
+            var record = new OpsInvitationRecord(
                 Guid.NewGuid(),
                 email,
-                email.Split('@')[0],
                 "lead",
-                GoogleSubject: null,
-                IsDisabled: false,
+                OpsRegions.ResolveForRole("lead", null),
+                token,
+                "Pending",
+                now.AddDays(14),
+                BootstrapInvitedByEmail,
                 now,
-                null,
-                Regions: []);
+                null);
 
-            await users.AddAsync(user, cancellationToken);
-            logger.LogInformation("Bootstrap ops lead provisioned for {Email}", email);
+            await invitations.AddAsync(record, cancellationToken);
+            logger.LogWarning(
+                "Bootstrap ops invite created for {Email}. First sign-in requires /?invite={Token}",
+                email,
+                token);
         }
     }
 

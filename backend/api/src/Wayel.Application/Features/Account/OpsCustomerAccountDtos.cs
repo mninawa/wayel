@@ -14,7 +14,8 @@ public sealed record OpsCustomerAccountListItemDto(
     DateTime? SuiteExpiresAtUtc,
     DateTime MemberSinceUtc,
     bool IsDisabled,
-    string RiskLevel);
+    string RiskLevel,
+    bool IsTrial);
 
 public sealed record OpsCustomerAccountPageDto(
     IReadOnlyList<OpsCustomerAccountListItemDto> Items,
@@ -32,7 +33,8 @@ public sealed record OpsSuiteSubscriptionDto(
     string Status,
     DateTime? StartedAtUtc,
     DateTime? ExpiresAtUtc,
-    bool ShipOutLocked);
+    bool ShipOutLocked,
+    bool IsTrial);
 
 public sealed record OpsCustomerAccountDetailDto(
     CustomerAccountResponse Account,

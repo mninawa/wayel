@@ -488,7 +488,13 @@
                 </div>
                 <div>
                   <dt>Status</dt>
-                  <dd><span class="pill" [class]="statusClass(sub.status)">{{ sub.status }}</span></dd>
+                  <dd>
+                    @if (sub.isTrial) {
+                      <span class="pill blue">Trial · ends {{ sub.expiresAtUtc | date:'mediumDate' }}</span>
+                    } @else {
+                      <span class="pill" [class]="statusClass(sub.status)">{{ sub.status }}</span>
+                    }
+                  </dd>
                 </div>
               }
             </dl>

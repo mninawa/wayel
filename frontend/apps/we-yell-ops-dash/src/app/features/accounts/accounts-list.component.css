@@ -28,6 +28,11 @@
   font-size: 0.82rem;
   background: #fff;
 }
+.toolbar .active-filter {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
 .icon-btn {
   border: 1px solid var(--ops-border);
   background: #fff;
@@ -65,6 +70,7 @@ code { font-size: 0.78rem; background: #f1f5f9; padding: 0.1rem 0.35rem; border-
 .pill.amber { background: #fef3c7; color: #b45309; }
 .pill.red { background: #fee2e2; color: #b91c1c; }
 .pill.gray { background: #f1f5f9; color: #64748b; }
+.pill.blue { background: #dbeafe; color: #1d4ed8; }
 .disabled-row { opacity: 0.65; }
 .actions { white-space: nowrap; }
 .table-foot { padding: 0.65rem 0.85rem; font-size: 0.78rem; color: var(--ops-muted); border-top: 1px solid #eef2f6; }

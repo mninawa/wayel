@@ -84,8 +84,8 @@ export class OpsSessionService {
     });
   }
 
-  signInWithGoogle(idToken: string): Observable<OpsAuthSessionDto> {
-    return this.authApi.signInWithGoogle(idToken).pipe(
+  signInWithGoogle(idToken: string, inviteToken?: string | null): Observable<OpsAuthSessionDto> {
+    return this.authApi.signInWithGoogle(idToken, inviteToken).pipe(
       tap((session) => this.applySession(session)),
     );
   }

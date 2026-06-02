@@ -29,6 +29,11 @@ public interface ISuiteSubscriptionRepository
     /// </summary>
     Task<IReadOnlyList<SuiteNumberDuplicateGroup>> ListSuiteNumberDuplicatesAsync(
         CancellationToken cancellationToken = default);
+
+    /// <summary>Active early-adopter trials (<see cref="SuiteSubscription.IsTrial"/> with unexpired access).</summary>
+    Task<IReadOnlyList<SuiteSubscription>> ListActiveTrialsAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>One conflicting suite number plus every subscription currently bound to it.</summary>

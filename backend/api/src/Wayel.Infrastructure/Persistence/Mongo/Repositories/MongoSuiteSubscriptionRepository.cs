@@ -161,4 +161,20 @@ internal sealed class MongoSuiteSubscriptionRepository(MongoContext context, IDo
 
         return activeUserIds;
     }
+
+    public async Task<IReadOnlyList<SuiteSubscription>> ListActiveTrialsAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var docs = await context.SuiteSubscriptions
+            .Find(x =>
+                x.IsTrial
+                && x.StartedAt != null
+                && x.ExpiresAt != null
+                && x.ExpiresAt > nowUtc)
+            .SortBy(x => x.ExpiresAt)
+            .ToListAsync(cancellationToken);
+
+        return docs.ConvertAll(d => d.ToDomain());
+    }
 }

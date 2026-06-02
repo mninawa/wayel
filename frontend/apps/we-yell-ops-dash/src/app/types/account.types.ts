@@ -17,6 +17,7 @@ export const KYC_STATUS_OPTIONS = [
 ] as const;
 
 export const SUITE_STATUS_OPTIONS = [
+  'trial',
   'Active',
   'ExpiringSoon',
   'Expired',

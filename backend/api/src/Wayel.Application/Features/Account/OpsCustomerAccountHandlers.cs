@@ -1,6 +1,7 @@
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Time;
+using Wayel.Application.BorderBox;
 using Wayel.Domain.Common;
 using Wayel.Domain.SuitePlans;
 using Wayel.Domain.Users;
@@ -56,6 +57,17 @@ internal sealed class ListOpsCustomerAccountsQueryHandler(
             ? null
             : request.CountryCode.Trim().ToUpperInvariant();
 
+        if (IsTrialSuiteFilter(request.SuiteStatus))
+        {
+            return await ListActiveTrialAccountsAsync(
+                search,
+                kycFilter,
+                country,
+                page,
+                pageSize,
+                cancellationToken);
+        }
+
         var pageResult = await users.ListCustomersPageAsync(
             search,
             kycFilter,
@@ -79,11 +91,64 @@ internal sealed class ListOpsCustomerAccountsQueryHandler(
         return new OpsCustomerAccountPageDto(items, pageResult.TotalCount, page, pageSize);
     }
 
+    private async Task<Result<OpsCustomerAccountPageDto>> ListActiveTrialAccountsAsync(
+        string? search,
+        KycStatus? kycFilter,
+        string? country,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var nowUtc = clock.UtcNow;
+        var trials = await subscriptions.ListActiveTrialsAsync(nowUtc, cancellationToken);
+        var planLookup = await BuildPlanMapAsync(cancellationToken);
+        var matched = new List<OpsCustomerAccountListItemDto>();
+
+        foreach (var sub in trials)
+        {
+            sub.RefreshStatus(nowUtc);
+            var user = await users.GetByIdAsync(sub.UserId, cancellationToken);
+            if (user is null || user.Role != UserRole.Customer)
+            {
+                continue;
+            }
+
+            if (kycFilter is not null && user.KycStatus != kycFilter.Value)
+            {
+                continue;
+            }
+
+            if (country is not null
+                && !string.Equals(user.DestinationCountry, country, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(search) && !MatchesCustomerSearch(user, sub, search))
+            {
+                continue;
+            }
+
+            matched.Add(MapListItem(user, sub, planLookup, nowUtc));
+        }
+
+        var totalCount = matched.Count;
+        var pageItems = matched
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new OpsCustomerAccountPageDto(pageItems, totalCount, page, pageSize);
+    }
+
     private async Task<IReadOnlyDictionary<Guid, SuitePlan>> BuildPlanMapAsync(CancellationToken cancellationToken)
     {
         var active = await plans.ListActiveAsync(cancellationToken);
         return active.ToDictionary(p => p.Id.Value, p => p);
     }
+
+    private static bool IsTrialSuiteFilter(string? suiteStatus) =>
+        string.Equals(suiteStatus?.Trim(), "trial", StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesSuiteStatus(OpsCustomerAccountListItemDto item, string? suiteStatus)
     {
@@ -93,6 +158,11 @@ internal sealed class ListOpsCustomerAccountsQueryHandler(
         }
 
         var filter = suiteStatus.Trim();
+        if (IsTrialSuiteFilter(filter))
+        {
+            return item.IsTrial;
+        }
+
         if (string.Equals(filter, "none", StringComparison.OrdinalIgnoreCase))
         {
             return string.IsNullOrWhiteSpace(item.SuiteNumber);
@@ -100,6 +170,32 @@ internal sealed class ListOpsCustomerAccountsQueryHandler(
 
         return string.Equals(item.SuiteStatus, filter, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool MatchesCustomerSearch(
+        User user,
+        Domain.SuiteSubscriptions.SuiteSubscription subscription,
+        string search)
+    {
+        var term = search.Trim();
+        if (term.Length == 0)
+        {
+            return true;
+        }
+
+        if (Guid.TryParse(term, out var userId) && user.Id.Value == userId)
+        {
+            return true;
+        }
+
+        return ContainsIgnoreCase(user.Email.Value, term)
+            || ContainsIgnoreCase(user.DisplayName, term)
+            || ContainsIgnoreCase(user.Phone, term)
+            || ContainsIgnoreCase(subscription.SuiteNumber, term);
+    }
+
+    private static bool ContainsIgnoreCase(string? value, string term) =>
+        !string.IsNullOrEmpty(value)
+        && value.Contains(term, StringComparison.OrdinalIgnoreCase);
 
     private static OpsCustomerAccountListItemDto MapListItem(
         User user,
@@ -128,7 +224,9 @@ internal sealed class ListOpsCustomerAccountsQueryHandler(
             subscription?.ExpiresAt,
             user.CreatedOnUtc,
             user.IsDisabled,
-            KycRiskScore.For(user, nowUtc));
+            KycRiskScore.For(user, nowUtc),
+            subscription is { IsTrial: true }
+                && SuiteCheckoutBilling.IsWithinPaidPeriod(subscription, nowUtc));
 
         return item;
     }
@@ -187,7 +285,9 @@ internal sealed class GetOpsCustomerAccountQueryHandler(
                 subscription.Status.ToString(),
                 subscription.StartedAt,
                 subscription.ExpiresAt,
-                subscription.ShipOutLocked);
+                subscription.ShipOutLocked,
+                subscription.IsTrial
+                    && SuiteCheckoutBilling.IsWithinPaidPeriod(subscription, clock.UtcNow));
         }
 
         return new OpsCustomerAccountDetailDto(
