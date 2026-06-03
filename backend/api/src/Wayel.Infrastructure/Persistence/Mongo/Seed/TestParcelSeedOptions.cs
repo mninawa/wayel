@@ -5,7 +5,8 @@ public sealed class TestParcelSeedOptions
     public const string SectionName = "Seed:TestParcels";
 
     /// <summary>
-    /// When true, exposes POST /borderbox/dev/seed-shippable-parcels for the signed-in customer.
+    /// Opt-in for Production. Development hosts enable the dev parcel endpoint
+    /// even when this is false. Set <c>Seed__TestParcels__Enabled=true</c> on staging.
     /// </summary>
     public bool Enabled { get; set; }
 }

@@ -13,6 +13,7 @@ using Wayel.Application.Features.Auth.RefreshAccessToken;
 using Wayel.Application.Features.Auth.Register;
 using Wayel.Application.Features.Auth.SsoSignInGoogle;
 using Wayel.Domain.Common;
+using Wayel.Infrastructure.Persistence.Mongo.Seed;
 
 namespace Wayel.Api.Endpoints;
 
@@ -133,8 +134,12 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Development auto-enable) rather than the raw config.
         group.MapGet("/config", (
                 IOptions<AuthOptions> auth,
+                IOptions<DemoDataOptions> demoSeed,
+                IOptions<TestParcelSeedOptions> testParcels,
                 IHostEnvironment env) => Results.Ok(new AuthConfigResponse(
-                PasswordSignInEnabled: IsPasswordSignInEnabled(env, auth.Value))))
+                PasswordSignInEnabled: IsPasswordSignInEnabled(env, auth.Value),
+                DemoDataEnabled: SeedFeatureFlags.IsDemoDataEnabled(env, demoSeed.Value),
+                TestParcelsEnabled: SeedFeatureFlags.IsTestParcelsEnabled(env, testParcels.Value))))
         .AllowAnonymous()
         .WithName("AuthConfig")
         .WithSummary("Public auth feature flags so SPAs can hide the password form when SSO-only")
@@ -321,5 +326,8 @@ public sealed class AuthEndpoints : IEndpointGroup
     /// More flags (e.g. SSO providers, magic-link policy) can be added
     /// without breaking older clients — they ignore unknown fields.
     /// </summary>
-    public sealed record AuthConfigResponse(bool PasswordSignInEnabled);
+    public sealed record AuthConfigResponse(
+        bool PasswordSignInEnabled,
+        bool DemoDataEnabled,
+        bool TestParcelsEnabled);
 }

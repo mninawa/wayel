@@ -34,7 +34,8 @@ public sealed record SuitePaymentsSubscriptionDto(
     DateTime? StartedAtUtc,
     DateTime? ExpiresAtUtc,
     int? DaysRemaining,
-    bool ShipOutLocked);
+    bool ShipOutLocked,
+    bool AutoRenewEnabled);
 
 public sealed record SuitePaymentsLastPaymentDto(
     string Reference,
@@ -268,7 +269,8 @@ internal static class SuitePaymentsOverviewProjector
             StartedAtUtc: subscription.StartedAt,
             subscription.ExpiresAt,
             daysRemaining,
-            subscription.ShipOutLocked);
+            subscription.ShipOutLocked,
+            subscription.AutoRenewEnabled);
     }
 
     private static SuitePaymentsNextPaymentDto? BuildNextPayment(

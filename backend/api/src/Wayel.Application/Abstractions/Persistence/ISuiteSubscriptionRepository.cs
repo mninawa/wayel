@@ -9,6 +9,10 @@ public interface ISuiteSubscriptionRepository
 
     Task<SuiteSubscription?> GetBySuiteNumberAsync(string suiteNumber, CancellationToken cancellationToken = default);
 
+    Task<SuiteSubscription?> GetByPaystackSubscriptionCodeAsync(
+        string paystackSubscriptionCode,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(SuiteSubscription subscription, CancellationToken cancellationToken = default);
     Task UpdateAsync(SuiteSubscription subscription, CancellationToken cancellationToken = default);
 

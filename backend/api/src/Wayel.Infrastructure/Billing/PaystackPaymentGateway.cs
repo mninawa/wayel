@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Wayel.Application.Abstractions.Payments;
@@ -28,18 +27,29 @@ internal sealed class PaystackPaymentGateway(
     {
         EnsureConfigured();
 
-        var payload = new
-        {
-            email = request.Email,
-            amount = request.AmountMinorUnits,
-            reference = request.Reference,
-            currency = _opts.Currency,
-            callback_url = request.CallbackUrl,
-            metadata = request.Metadata,
-        };
+        object payload = string.IsNullOrWhiteSpace(request.PaystackPlanCode)
+            ? new
+            {
+                email = request.Email,
+                amount = request.AmountMinorUnits,
+                reference = request.Reference,
+                currency = _opts.Currency,
+                callback_url = request.CallbackUrl,
+                metadata = request.Metadata,
+            }
+            : new
+            {
+                email = request.Email,
+                amount = request.AmountMinorUnits,
+                reference = request.Reference,
+                currency = _opts.Currency,
+                callback_url = request.CallbackUrl,
+                metadata = request.Metadata,
+                plan = request.PaystackPlanCode.Trim(),
+            };
 
         using var client = CreateClient();
-        using var response = await client.PostAsJsonAsync("transaction/initialize", payload, cancellationToken);
+        using var response = await client.PostAsJsonAsync("transaction/initialize", payload, PaystackJson.Options, cancellationToken);
         var body = await response.Content.ReadFromJsonAsync<PaystackEnvelope<InitializeData>>(
             PaystackJson.Options,
             cancellationToken);
@@ -81,7 +91,9 @@ internal sealed class PaystackPaymentGateway(
             body.Data.Status ?? "failed",
             body.Data.Amount,
             body.Data.Currency ?? _opts.Currency,
-            MapAuthorization(body.Data.Authorization));
+            MapAuthorization(body.Data.Authorization),
+            body.Data.SubscriptionCode,
+            body.Data.Customer?.CustomerCode);
     }
 
     public async Task RefundChargeAsync(string reference, CancellationToken cancellationToken = default)
@@ -172,6 +184,18 @@ internal sealed class PaystackPaymentGateway(
 
         [JsonPropertyName("authorization")]
         public AuthorizationData? Authorization { get; init; }
+
+        [JsonPropertyName("subscription_code")]
+        public string? SubscriptionCode { get; init; }
+
+        [JsonPropertyName("customer")]
+        public CustomerData? Customer { get; init; }
+    }
+
+    private sealed class CustomerData
+    {
+        [JsonPropertyName("customer_code")]
+        public string? CustomerCode { get; init; }
     }
 
     private sealed class AuthorizationData
@@ -210,12 +234,4 @@ internal sealed class PaystackPaymentGateway(
         public T? Data { get; init; }
     }
 
-    private static class PaystackJson
-    {
-        public static readonly JsonSerializerOptions Options = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
-    }
 }

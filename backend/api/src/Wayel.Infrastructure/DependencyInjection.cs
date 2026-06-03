@@ -136,6 +136,7 @@ public static class DependencyInjection
         services.AddSingleton<IPaymentGateway, PaystackPaymentGateway>();
         services.AddSingleton<IPaymentGateway, MtnMomoPaymentGateway>();
         services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
+        services.AddSingleton<IPaystackSubscriptionBilling, PaystackSubscriptionBilling>();
         services.AddSingleton<IMomoAccountValidator, MtnMomoAccountValidator>();
 
         services.AddScoped<IOpsPhotoUploadSessionStore, MongoOpsPhotoUploadSessionStore>();
@@ -175,6 +176,7 @@ public static class DependencyInjection
         services.AddHostedService<BorderBoxPricingConfigSeeder>();
         services.AddHostedService<SuitePlatformConfigSeeder>();
         services.AddHostedService<SuitePlanSeeder>();
+        services.AddHostedService<PaystackPlanSyncSeeder>();
         services.AddHostedService<PickupBranchSeeder>();
         services.AddHostedService<PickupBranchLocationMigrator>();
         services.AddHostedService<DemoDataSeeder>();

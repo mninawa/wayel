@@ -135,10 +135,10 @@ services:
         value: "false"
 
       # ─ Seed data ────────────────────────────────────────────────────
-      # Demo personas live in the demo / stage environment so test
-      # accounts work out-of-the-box. Turn off for clean prod data.
+      # Demo personas + dev parcel fixtures. Off on production Render;
+      # flip to "true" on a staging service when you need *@weyell.demo users.
       - key: Seed__DemoData__Enabled
-        value: "true"
+        value: "false"
       - key: Seed__TestParcels__Enabled
         value: "false"
 
@@ -205,6 +205,10 @@ services:
         value: https://api.paystack.co
       - key: Billing__Paystack__Currency
         value: ZAR
+      - key: Billing__Paystack__SubscriptionsEnabled
+        value: "true"
+      - key: Billing__Paystack__WebhookSecret
+        sync: false
 
       # ─ Payments — MTN MoMo (Collections) ────────────────────────────
       # Sandbox auto-provisioning ON by default so a fresh deploy is

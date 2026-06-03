@@ -15,7 +15,18 @@ cp .env.example .env   # set Atlas URI + MONGO_DATABASE_NAME=courier_platform
 # open http://localhost:8080
 ```
 
-On first API start, the API seeds **seven demo personas** into `courier_platform` (one per customer-journey stage). Password login is enabled in Docker (`AUTH_ENABLE_PASSWORD_SIGNIN=true`). All password personas use **`demo1234`**.
+### Demo data toggle
+
+Demo personas and dev test-parcel helpers are **on by default in Development** (local `dotnet run` and Docker when the API runs as `Development`). In **Production**, they stay off unless you explicitly opt in via env vars.
+
+| Toggle | Env var (Docker `.env`) | API config key | What it controls |
+|--------|-------------------------|----------------|------------------|
+| Demo personas | `SEED_DEMO_DATA=true\|false` | `Seed__DemoData__Enabled` | Seven `*@weyell.demo` users seeded on startup (password `demo1234`) |
+| Test parcels | `SEED_ALLOW_TEST_PARCELS=true\|false` | `Seed__TestParcels__Enabled` | `POST /api/v1/borderbox/dev/seed-shippable-parcels` for signed-in customers |
+
+Check effective flags at runtime: `GET /api/v1/auth/config` → `{ demoDataEnabled, testParcelsEnabled }`.
+
+When demo personas are enabled, these accounts are inserted on first API boot (skipped if the email already exists):
 
 | Email | Journey stage |
 |-------|----------------|
@@ -27,17 +38,7 @@ On first API start, the API seeds **seven demo personas** into `courier_platform
 | `quote.done@weyell.demo` | Active suite — quote already approved (payment next) |
 | `inbox@weyell.demo` | Active suite — busy parcel list & support history |
 
-To re-seed a persona, delete that user (and related parcels/quotes if needed) in Atlas, then restart the API. To seed all personas from scratch, remove every `*@weyell.demo` user and restart.
-
-### Create Shipment test data (any signed-in customer)
-
-When `SEED_ALLOW_TEST_PARCELS=true` (default in local Docker), the API exposes:
-
-`POST /api/v1/borderbox/dev/seed-shippable-parcels` with body `{ "dataset": "catalog-a" }` or `"catalog-b"` (requires customer session). **Catalog A** — fashion/beauty (Takealot, Zando, etc.). **Catalog B** — electronics/outdoor (Amazon, Garmin, Builders, etc.). Up to 12 shippable parcels if both catalogs are loaded.
-
-This adds **6 ready-to-ship parcels** (~12.4 kg) with invoices for the logged-in user’s suite. On the portal, open **Shipments → Create shipment** and click **Load test parcels** if the list is empty.
-
-Alternatively sign in as `active@weyell.demo` / `demo1234`, which already has parcels.
+To turn demo data **off** locally, set `SEED_DEMO_DATA=false` and `SEED_ALLOW_TEST_PARCELS=false` in `.env`, then restart the API. On Render (`wayel-api`), set `Seed__DemoData__Enabled=false` (already the blueprint default).
 
 Atlas-only compose override (no local `mongo` container):
 

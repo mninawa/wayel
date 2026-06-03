@@ -47,6 +47,7 @@ export interface SuitePaymentsSubscriptionDto {
   expiresAtUtc: string | null;
   daysRemaining: number | null;
   shipOutLocked: boolean;
+  autoRenewEnabled: boolean;
 }
 
 export interface SuitePaymentsLastPaymentDto {

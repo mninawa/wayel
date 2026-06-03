@@ -187,6 +187,8 @@ as the site URL (add `https://weyell.co.za` too if you serve the apex without re
 * `BorderBox__CustomerPortalBaseUrl` → `https://www.weyell.co.za`
 * `Cors__AllowedOrigins__0/1/2` → `www`, apex, and `ops` hostnames
 * `Billing__MtnMomo__CallbackHost` → `api.weyell.co.za`
+* `Seed__DemoData__Enabled` → `false` (production default; set `true` on a staging `wayel-api` for `*@weyell.demo` personas)
+* `Seed__TestParcels__Enabled` → `false` (dev-only parcel fixture endpoint)
 
 `Bff__ApiBaseUri` on `wayel-customer` can stay on
 `https://wayel-api.onrender.com` (server-to-server). Set
@@ -264,6 +266,13 @@ curl -I http://localhost:10000/api/health/live # → 502 until BFF reaches API
 * **Paystack keys** — rotate in the Paystack dashboard, paste new
   values into `Billing__Paystack__SecretKey` / `__PublicKey`. The API
   picks them up at the next deploy.
+* **Paystack webhooks** — in Paystack → Settings → API Keys & Webhooks,
+  set the webhook URL to `https://api.weyell.co.za/webhooks/payments/paystack`
+  and paste the signing secret into `Billing__Paystack__WebhookSecret`.
+  Subscribe to `charge.success` and `subscription.disable` (or
+  `subscription.not_renew`). Suite auto-renewals extend `ExpiresAt` from
+  these events; cancel auto-renew from the customer Payments page calls
+  Paystack's disable-subscription API.
 * **AWS keys** — rotate in IAM, paste into `AWS_ACCESS_KEY_ID` /
   `AWS_SECRET_ACCESS_KEY`. The S3 client reads them at startup.
 * **Postmark token** — rotate in Postmark, paste into

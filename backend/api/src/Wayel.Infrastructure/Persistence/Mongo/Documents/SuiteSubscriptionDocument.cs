@@ -14,6 +14,9 @@ internal sealed class SuiteSubscriptionDocument
     public DateTime? StartedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsTrial { get; set; }
+    public string? PaystackSubscriptionCode { get; set; }
+    public string? PaystackCustomerCode { get; set; }
+    public bool AutoRenewEnabled { get; set; }
 
     public static SuiteSubscriptionDocument From(SuiteSubscription s) => new()
     {
@@ -25,8 +28,22 @@ internal sealed class SuiteSubscriptionDocument
         StartedAt = s.StartedAt,
         ExpiresAt = s.ExpiresAt,
         IsTrial = s.IsTrial,
+        PaystackSubscriptionCode = s.PaystackSubscriptionCode,
+        PaystackCustomerCode = s.PaystackCustomerCode,
+        AutoRenewEnabled = s.AutoRenewEnabled,
     };
 
     public SuiteSubscription ToDomain() =>
-        SuiteSubscription.Rehydrate(Id, UserId, PlanId, SuiteNumber, Status, StartedAt, ExpiresAt, IsTrial);
+        SuiteSubscription.Rehydrate(
+            Id,
+            UserId,
+            PlanId,
+            SuiteNumber,
+            Status,
+            StartedAt,
+            ExpiresAt,
+            IsTrial,
+            PaystackSubscriptionCode,
+            PaystackCustomerCode,
+            AutoRenewEnabled);
 }

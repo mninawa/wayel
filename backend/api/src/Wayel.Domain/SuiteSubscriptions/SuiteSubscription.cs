@@ -14,7 +14,10 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         SuiteAccessStatus status,
         DateTime? startedAt,
         DateTime? expiresAt,
-        bool isTrial = false)
+        bool isTrial = false,
+        string? paystackSubscriptionCode = null,
+        string? paystackCustomerCode = null,
+        bool autoRenewEnabled = false)
         : base(id)
     {
         UserId = userId;
@@ -24,6 +27,9 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         StartedAt = startedAt;
         ExpiresAt = expiresAt;
         IsTrial = isTrial;
+        PaystackSubscriptionCode = paystackSubscriptionCode;
+        PaystackCustomerCode = paystackCustomerCode;
+        AutoRenewEnabled = autoRenewEnabled;
     }
 
     public UserId UserId { get; }
@@ -33,6 +39,13 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
     public DateTime? StartedAt { get; private set; }
     public DateTime? ExpiresAt { get; private set; }
     public bool IsTrial { get; private set; }
+
+    /// <summary>Paystack subscription code (SUB_…) when auto-renew is active.</summary>
+    public string? PaystackSubscriptionCode { get; private set; }
+
+    public string? PaystackCustomerCode { get; private set; }
+
+    public bool AutoRenewEnabled { get; private set; }
 
     public bool ShipOutLocked => Status is SuiteAccessStatus.Expired or SuiteAccessStatus.PendingPayment or SuiteAccessStatus.Suspended;
 
@@ -47,8 +60,22 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         SuiteAccessStatus status,
         DateTime? startedAt,
         DateTime? expiresAt,
-        bool isTrial = false) =>
-        new(id, userId, planId, suiteNumber, status, startedAt, expiresAt, isTrial);
+        bool isTrial = false,
+        string? paystackSubscriptionCode = null,
+        string? paystackCustomerCode = null,
+        bool autoRenewEnabled = false) =>
+        new(
+            id,
+            userId,
+            planId,
+            suiteNumber,
+            status,
+            startedAt,
+            expiresAt,
+            isTrial,
+            paystackSubscriptionCode,
+            paystackCustomerCode,
+            autoRenewEnabled);
 
     public void Activate(DateTime startedAt, DateTime expiresAt, bool isTrial = false)
     {
@@ -67,6 +94,23 @@ public sealed class SuiteSubscription : AggregateRoot<SuiteSubscriptionId>
         {
             StartedAt = DateTime.UtcNow;
         }
+    }
+
+    public void LinkPaystackSubscription(string subscriptionCode, string? customerCode)
+    {
+        if (string.IsNullOrWhiteSpace(subscriptionCode))
+        {
+            throw new ArgumentException("Subscription code is required.", nameof(subscriptionCode));
+        }
+
+        PaystackSubscriptionCode = subscriptionCode.Trim();
+        PaystackCustomerCode = string.IsNullOrWhiteSpace(customerCode) ? null : customerCode.Trim();
+        AutoRenewEnabled = true;
+    }
+
+    public void DisableAutoRenew()
+    {
+        AutoRenewEnabled = false;
     }
 
     /// <summary>

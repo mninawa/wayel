@@ -10,7 +10,26 @@ internal sealed class SuitePlanDocument
     public decimal PriceZar { get; set; }
     public bool IsRecommended { get; set; }
     public bool IsActive { get; set; }
+    public string? PaystackPlanCode { get; set; }
 
-    public static SuitePlanDocument From(SuitePlan p) => new() { Id=p.Id, Name=p.Name, DurationMonths=p.DurationMonths, PriceZar=p.PriceZar, IsRecommended=p.IsRecommended, IsActive=p.IsActive };
-    public SuitePlan ToDomain() => SuitePlan.Rehydrate(Id, Name, DurationMonths, PriceZar, IsRecommended, IsActive);
+    public static SuitePlanDocument From(SuitePlan p) => new()
+    {
+        Id = p.Id,
+        Name = p.Name,
+        DurationMonths = p.DurationMonths,
+        PriceZar = p.PriceZar,
+        IsRecommended = p.IsRecommended,
+        IsActive = p.IsActive,
+        PaystackPlanCode = p.PaystackPlanCode,
+    };
+
+    public SuitePlan ToDomain() =>
+        SuitePlan.Rehydrate(
+            Id,
+            Name,
+            DurationMonths,
+            PriceZar,
+            IsRecommended,
+            IsActive,
+            PaystackPlanCode);
 }

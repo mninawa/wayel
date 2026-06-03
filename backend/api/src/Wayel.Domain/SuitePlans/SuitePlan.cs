@@ -26,6 +26,9 @@ public sealed class SuitePlan : AggregateRoot<SuitePlanId>
     public bool IsRecommended { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>Paystack plan code (PLN_…) when recurring billing is enabled.</summary>
+    public string? PaystackPlanCode { get; private set; }
+
     public static SuitePlan Create(string name, int durationMonths, decimal priceZar, bool isRecommended) =>
         new(SuitePlanId.New(), name.Trim(), durationMonths, priceZar, isRecommended, isActive: true);
 
@@ -41,12 +44,31 @@ public sealed class SuitePlan : AggregateRoot<SuitePlanId>
 
     public void Deactivate() => IsActive = false;
 
+    public void BindPaystackPlan(string planCode)
+    {
+        if (string.IsNullOrWhiteSpace(planCode))
+        {
+            throw new ArgumentException("Paystack plan code is required.", nameof(planCode));
+        }
+
+        PaystackPlanCode = planCode.Trim();
+    }
+
     public static SuitePlan Rehydrate(
         SuitePlanId id,
         string name,
         int durationMonths,
         decimal priceZar,
         bool isRecommended,
-        bool isActive) =>
-        new(id, name, durationMonths, priceZar, isRecommended, isActive);
+        bool isActive,
+        string? paystackPlanCode = null)
+    {
+        var plan = new SuitePlan(id, name, durationMonths, priceZar, isRecommended, isActive);
+        if (!string.IsNullOrWhiteSpace(paystackPlanCode))
+        {
+            plan.PaystackPlanCode = paystackPlanCode.Trim();
+        }
+
+        return plan;
+    }
 }

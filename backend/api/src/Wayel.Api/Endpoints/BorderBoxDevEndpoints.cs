@@ -9,11 +9,13 @@ namespace Wayel.Api.Endpoints;
 /// <summary>
 /// Local/test helpers for customer portal flows. Disabled unless <c>Seed:TestParcels:Enabled</c> is true.
 /// </summary>
-public sealed class BorderBoxDevEndpoints(IOptions<TestParcelSeedOptions> options) : IEndpointGroup
+public sealed class BorderBoxDevEndpoints(
+    IHostEnvironment environment,
+    IOptions<TestParcelSeedOptions> options) : IEndpointGroup
 {
     public void Map(IEndpointRouteBuilder routes)
     {
-        if (!options.Value.Enabled)
+        if (!SeedFeatureFlags.IsTestParcelsEnabled(environment, options.Value))
         {
             return;
         }

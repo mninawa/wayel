@@ -7,6 +7,9 @@ namespace Wayel.Application.BorderBox;
 
 internal static partial class SuiteCheckoutBilling
 {
+    public static int ToMinorUnits(decimal amountZar) =>
+        (int)Math.Round(amountZar * 100m, MidpointRounding.AwayFromZero);
+
     public static string ResolveSuiteNumber(User user, SuiteSubscription? subscription) =>
         subscription?.SuiteNumber ?? $"WY-{user.Id.Value.ToString()[..8].ToUpperInvariant()}";
 

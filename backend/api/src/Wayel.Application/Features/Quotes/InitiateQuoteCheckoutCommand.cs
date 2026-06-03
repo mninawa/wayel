@@ -6,7 +6,6 @@ using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.BorderBox;
-using Wayel.Application.Features.SuiteSubscriptions;
 using Wayel.Domain.Common;
 using Wayel.Domain.Parcels;
 using Wayel.Domain.Quotes;
@@ -119,7 +118,7 @@ internal sealed class InitiateQuoteCheckoutCommandHandler(
             pricingOptions,
             cancellationToken);
         var pricing = QuotePricing.Compute(loaded, quote.DeliveryMethod, config);
-        var amountMinor = InitiateSuiteCheckoutCommandHandler.ToMinorUnits(pricing.TotalLandedCost);
+        var amountMinor = SuiteCheckoutBilling.ToMinorUnits(pricing.TotalLandedCost);
 
         // The reference no longer needs to encode an attempt counter — the
         // random per-attempt salt in BuildPaystackReference (and the fresh

@@ -2,9 +2,6 @@ using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Payments;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
-using Wayel.Application.Abstractions.Time;
-using Wayel.Application.BorderBox;
-using Wayel.Application.Features.PaymentMethods;
 using Wayel.Domain.Common;
 using Wayel.Domain.Users;
 
@@ -15,18 +12,9 @@ public sealed record CompleteSuiteCheckoutCommand(string Reference) : ICommand<S
 internal sealed class CompleteSuiteCheckoutCommandHandler(
     ICurrentUser current,
     IUserRepository users,
-    ISuitePlanRepository plans,
     ISuiteCheckoutPaymentRepository checkoutPayments,
-    ICustomerSavedCardRepository savedCards,
-    ISuiteSubscriptionRepository subscriptions,
-    ICustomerAddressRepository addresses,
-    IWarehouseLocationRepository locations,
-    ISuitePlatformConfigRepository platformConfig,
-    ISuiteNumberAllocator suiteNumbers,
     IPaymentGatewayResolver paymentGatewayResolver,
-    IPayLaterIntentRepository payLaterIntents,
-    IUnitOfWork unitOfWork,
-    IClock clock) : ICommandHandler<CompleteSuiteCheckoutCommand, SuiteSubscriptionDto>
+    SuiteCheckoutCompletionService completionService) : ICommandHandler<CompleteSuiteCheckoutCommand, SuiteSubscriptionDto>
 {
     public async Task<Result<SuiteSubscriptionDto>> Handle(
         CompleteSuiteCheckoutCommand request,
@@ -66,7 +54,7 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
 
         if (string.Equals(payment.Status, "Completed", StringComparison.OrdinalIgnoreCase))
         {
-            return await LoadSubscriptionDtoAsync(payment.UserId, cancellationToken);
+            return await completionService.LoadSubscriptionDtoAsync(payment.UserId, cancellationToken);
         }
 
         PaymentVerifyResult verified;
@@ -79,93 +67,17 @@ internal sealed class CompleteSuiteCheckoutCommandHandler(
             return Error.Validation("checkout.verify_failed", ex.Message);
         }
 
-        if (!string.Equals(verified.Status, "success", StringComparison.OrdinalIgnoreCase))
-        {
-            return Error.Validation(
-                "checkout.payment_declined",
-                "Payment was not successful. Try again or use another card.");
-        }
-
-        if (verified.AmountMinorUnits > 0
-            && verified.AmountMinorUnits != payment.AmountMinorUnits)
-        {
-            return Error.Validation(
-                "checkout.amount_mismatch",
-                "Paid amount does not match the selected plan.");
-        }
-
         var user = await users.GetByIdAsync(payment.UserId, cancellationToken);
         if (user is null)
         {
             return UserErrors.NotFound(payment.UserId);
         }
 
-        var plan = await plans.GetByIdAsync(payment.PlanId, cancellationToken);
-        if (plan is null)
-        {
-            return Error.NotFound("suite_plan.not_found", "Suite plan not found.");
-        }
-
-        var existingSubscription = await subscriptions.GetForUserAsync(payment.UserId, cancellationToken);
-        if (SuiteCheckoutBilling.IsWithinPaidPeriod(existingSubscription, clock.UtcNow))
-        {
-            await checkoutPayments.MarkCompletedAsync(reference, clock.UtcNow, cancellationToken);
-            return await LoadSubscriptionDtoAsync(payment.UserId, cancellationToken);
-        }
-
-        var activated = await SuiteSubscriptionActivator.ActivateOrRenewAsync(
+        return await completionService.CompleteCheckoutPaymentAsync(
+            payment,
+            verified,
             user,
-            plan,
-            subscriptions,
-            addresses,
-            locations,
-            platformConfig,
-            suiteNumbers,
-            unitOfWork,
-            clock,
+            paymentGateway,
             cancellationToken);
-        if (activated.IsFailure)
-        {
-            return activated;
-        }
-
-        await checkoutPayments.MarkCompletedAsync(reference, clock.UtcNow, cancellationToken);
-
-        if (verified.CardAuthorization is not null
-            && string.Equals(paymentGateway.ProviderName, PaymentProviders.Paystack, StringComparison.OrdinalIgnoreCase))
-        {
-            await SavedCardUpsert.TrySaveFromAuthorizationAsync(
-                payment.UserId,
-                verified.CardAuthorization,
-                label: null,
-                savedCards,
-                cancellationToken);
-        }
-
-        // The customer paid, so any "Pay later" intent they had is now resolved.
-        // No-op when there was no intent (most paying customers don't have one),
-        // and idempotent on re-runs because the repo only stamps the field once.
-        await payLaterIntents.MarkResolvedAsync(payment.UserId, clock.UtcNow, cancellationToken);
-
-        return activated;
-    }
-
-    private async Task<Result<SuiteSubscriptionDto>> LoadSubscriptionDtoAsync(
-        UserId userId,
-        CancellationToken cancellationToken)
-    {
-        var sub = await subscriptions.GetForUserAsync(userId, cancellationToken);
-        if (sub is null)
-        {
-            return Error.NotFound("suite_subscription.not_found", "Suite subscription not found.");
-        }
-
-        return new SuiteSubscriptionDto(
-            sub.Id.Value,
-            sub.Status.ToString(),
-            sub.SuiteNumber,
-            sub.ExpiresAt,
-            sub.ShipOutLocked,
-            sub.IsTrial);
     }
 }

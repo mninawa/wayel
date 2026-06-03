@@ -33,6 +33,7 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
     ISuiteCheckoutPaymentRepository checkoutPayments,
     ISuiteNumberAllocator suiteNumbers,
     IPaymentGatewayResolver paymentGatewayResolver,
+    IPaystackSubscriptionBilling paystackBilling,
     IClock clock) : ICommandHandler<InitiateSuiteCheckoutCommand, InitiateSuiteCheckoutResult>
 {
     public async Task<Result<InitiateSuiteCheckoutResult>> Handle(
@@ -111,8 +112,16 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
             ? SuiteCheckoutBilling.BuildMomoReference()
             : SuiteCheckoutBilling.BuildPaystackReference(suiteNumber, completedPayments);
 
-        var amountMinor = ToMinorUnits(plan.PriceZar);
+        var amountMinor = SuiteCheckoutBilling.ToMinorUnits(plan.PriceZar);
         var msisdn = string.IsNullOrWhiteSpace(request.PayerMsisdn) ? user.Phone : request.PayerMsisdn!.Trim();
+
+        string? paystackPlanCode = null;
+        if (providerKey == PaymentProviders.Paystack
+            && paystackBilling.SubscriptionsEnabled
+            && !string.IsNullOrWhiteSpace(plan.PaystackPlanCode))
+        {
+            paystackPlanCode = plan.PaystackPlanCode;
+        }
 
         PaymentInitializeResult init;
         try
@@ -132,7 +141,8 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
                     },
                     PayerMsisdn: msisdn,
                     PayerMessage: $"Wayel Suite {suiteNumber}",
-                    PayeeNote: $"Suite access — {plan.Name}"),
+                    PayeeNote: $"Suite access — {plan.Name}",
+                    PaystackPlanCode: paystackPlanCode),
                 cancellationToken);
         }
         catch (InvalidOperationException ex)
@@ -161,7 +171,4 @@ internal sealed class InitiateSuiteCheckoutCommandHandler(
             paymentGateway.ProviderName,
             paymentGateway.PublicKey);
     }
-
-    internal static int ToMinorUnits(decimal amountZar) =>
-        (int)Math.Round(amountZar * 100m, MidpointRounding.AwayFromZero);
 }

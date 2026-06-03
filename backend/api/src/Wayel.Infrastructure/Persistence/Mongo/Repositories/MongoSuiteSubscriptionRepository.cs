@@ -31,6 +31,22 @@ internal sealed class MongoSuiteSubscriptionRepository(MongoContext context, IDo
         return doc?.ToDomain();
     }
 
+    public async Task<SuiteSubscription?> GetByPaystackSubscriptionCodeAsync(
+        string paystackSubscriptionCode,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = paystackSubscriptionCode.Trim();
+        if (string.IsNullOrEmpty(normalized))
+        {
+            return null;
+        }
+
+        var doc = await context.SuiteSubscriptions
+            .Find(x => x.PaystackSubscriptionCode == normalized)
+            .FirstOrDefaultAsync(cancellationToken);
+        return doc?.ToDomain();
+    }
+
     public async Task AddAsync(SuiteSubscription subscription, CancellationToken cancellationToken = default)
     {
         await context.SuiteSubscriptions.InsertOneAsync(SuiteSubscriptionDocument.From(subscription), cancellationToken: cancellationToken);

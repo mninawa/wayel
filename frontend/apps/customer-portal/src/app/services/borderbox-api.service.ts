@@ -88,6 +88,7 @@ export interface SuitePaymentsSubscriptionDto {
   expiresAtUtc: string | null;
   daysRemaining: number | null;
   shipOutLocked: boolean;
+  autoRenewEnabled: boolean;
 }
 
 export interface SuitePaymentsLastPaymentDto {
@@ -400,6 +401,10 @@ export class BorderboxApiService {
     return this.http.post(`${this.base}/borderbox/suite-access/checkout/complete`, {
       reference,
     });
+  }
+
+  cancelSuiteAutoRenew(): Observable<unknown> {
+    return this.http.post(`${this.base}/borderbox/suite-access/auto-renew/cancel`, {});
   }
 
   listPaymentMethods(): Observable<CustomerSavedCardDto[]> {

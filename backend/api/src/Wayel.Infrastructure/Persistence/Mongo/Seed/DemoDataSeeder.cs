@@ -15,12 +15,13 @@ namespace Wayel.Infrastructure.Persistence.Mongo.Seed;
 internal sealed class DemoDataSeeder(
     MongoContext context,
     IServiceScopeFactory scopeFactory,
+    IHostEnvironment environment,
     IOptions<DemoDataOptions> options,
     ILogger<DemoDataSeeder> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!options.Value.Enabled)
+        if (!SeedFeatureFlags.IsDemoDataEnabled(environment, options.Value))
         {
             return;
         }

@@ -15,7 +15,8 @@ public sealed record PaymentInitializeRequest(
     IReadOnlyDictionary<string, string> Metadata,
     string? PayerMsisdn = null,
     string? PayerMessage = null,
-    string? PayeeNote = null);
+    string? PayeeNote = null,
+    string? PaystackPlanCode = null);
 
 public sealed record PaymentInitializeResult(
     string Reference,
@@ -36,7 +37,9 @@ public sealed record PaymentVerifyResult(
     string Status,
     int AmountMinorUnits,
     string Currency,
-    PaymentCardAuthorization? CardAuthorization = null);
+    PaymentCardAuthorization? CardAuthorization = null,
+    string? PaystackSubscriptionCode = null,
+    string? PaystackCustomerCode = null);
 
 public interface IPaymentGateway
 {

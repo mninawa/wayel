@@ -25,7 +25,7 @@ Route guards enforce this order. Users cannot open the dashboard without a profi
 |--------|--------|
 | **Continue with Google** (or “Simulate new Google sign-up”) | New user, incomplete profile, no suite → step 2 |
 | **Skip to full demo** | Sabelo Dlamini with profile + suite → dashboard |
-| `*@weyell.demo` / `demo1234` | Seven personas seeded in MongoDB (`Seed:DemoData`) — see [DOCKER.md](./DOCKER.md) for the full list |
+| `*@weyell.demo` / `demo1234` | Seven personas when demo seeding is on — see [DOCKER.md](./DOCKER.md) for the toggle and full list |
 
 Auto sign-in on page load is **disabled** so the journey always starts at sign-in.
 

@@ -15,4 +15,10 @@ public sealed class PaystackOptions
 
     /// <summary>When true, verification charges are refunded after the card is saved.</summary>
     public bool RefundVerifyCharge { get; init; } = true;
+
+    /// <summary>When true, suite checkout uses Paystack plans/subscriptions for auto-renewal.</summary>
+    public bool SubscriptionsEnabled { get; init; } = true;
+
+    /// <summary>Paystack webhook signing secret (whsec from dashboard). Empty disables signature checks (dev only).</summary>
+    public string WebhookSecret { get; init; } = string.Empty;
 }

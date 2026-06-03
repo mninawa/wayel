@@ -80,13 +80,7 @@ internal static class SuiteSubscriptionActivator
         await SuiteLocationProvisioner.EnsureAsync(suiteNumber, locations, clock, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new SuiteSubscriptionDto(
-            subscription.Id.Value,
-            subscription.Status.ToString(),
-            subscription.SuiteNumber,
-            subscription.ExpiresAt,
-            subscription.ShipOutLocked,
-            subscription.IsTrial);
+        return SuiteSubscriptionDto.FromDomain(subscription);
     }
 
     public static async Task<Result<SuiteSubscriptionDto>> ActivateTrialAsync(
@@ -164,12 +158,6 @@ internal static class SuiteSubscriptionActivator
         await SuiteLocationProvisioner.EnsureAsync(suiteNumber, locations, clock, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new SuiteSubscriptionDto(
-            subscription.Id.Value,
-            subscription.Status.ToString(),
-            subscription.SuiteNumber,
-            subscription.ExpiresAt,
-            subscription.ShipOutLocked,
-            subscription.IsTrial);
+        return SuiteSubscriptionDto.FromDomain(subscription);
     }
 }

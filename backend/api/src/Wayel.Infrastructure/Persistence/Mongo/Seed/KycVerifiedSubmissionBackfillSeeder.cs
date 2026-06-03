@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Storage;
@@ -15,14 +16,23 @@ namespace Wayel.Infrastructure.Persistence.Mongo.Seed;
 internal sealed class KycVerifiedSubmissionBackfillSeeder(
     MongoContext context,
     IServiceScopeFactory scopeFactory,
+    IHostEnvironment environment,
+    IOptions<DemoDataOptions> demoOptions,
     ILogger<KycVerifiedSubmissionBackfillSeeder> logger) : IHostedService
 {
-    public Task StartAsync(CancellationToken cancellationToken) =>
-        BackgroundMigratorHost.QueueAsync(
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (!SeedFeatureFlags.IsDemoDataEnabled(environment, demoOptions.Value))
+        {
+            return Task.CompletedTask;
+        }
+
+        return BackgroundMigratorHost.QueueAsync(
             logger,
             nameof(KycVerifiedSubmissionBackfillSeeder),
             RunAsync,
             cancellationToken);
+    }
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {

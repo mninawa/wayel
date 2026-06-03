@@ -244,6 +244,12 @@ public sealed class BorderBoxEndpoints : IEndpointGroup
             (await mediator.Send(new CompleteSuiteCheckoutCommand(body.Reference), ct)).ToHttpResult())
             .WithName("CompleteSuiteCheckout");
 
+        group.MapPost("/suite-access/auto-renew/cancel", async (
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new CancelSuiteAutoRenewCommand(), ct)).ToHttpResult())
+            .WithName("CancelSuiteAutoRenew");
+
         group.MapGet("/payment-methods", async (IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new ListPaymentMethodsQuery(), ct)).ToHttpResult())
             .WithName("ListPaymentMethods");

@@ -7,6 +7,7 @@ using Wayel.Application.Behaviors;
 using Wayel.Application.Configuration;
 using Wayel.Application.Features.Account;
 using Wayel.Application.Features.SuitePlatform;
+using Wayel.Application.Features.SuiteSubscriptions;
 using Wayel.Application.Features.Tracking;
 using Wayel.Application.Security;
 
@@ -45,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<ShipmentTrackingDetailLoader>();
         services.AddScoped<ShipmentTrackingEventWriter>();
         services.AddScoped<CustomerSuiteNumberChanger>();
+        services.AddScoped<SuiteCheckoutCompletionService>();
 
         return services;
     }

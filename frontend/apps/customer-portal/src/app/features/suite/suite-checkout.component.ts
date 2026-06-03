@@ -320,6 +320,17 @@ const PLAN_FEATURES = [
             Renewal opens after your current period ends — your subscription will not lapse.
           </p>
         </div>
+        @if (autoRenewEnabled()) {
+          <div class="info-banner auto-renew-banner" role="status">
+            <span class="material-icons-outlined">sync</span>
+            <div>
+              <p><strong>Auto-renew is on.</strong> Your card will be charged when this period ends.</p>
+              <button type="button" class="bb-btn bb-btn-outline" [disabled]="cancelAutoRenewBusy()" (click)="cancelAutoRenew()">
+                Cancel auto-renew
+              </button>
+            </div>
+          </div>
+        }
       } @else {
         <div class="warn-banner" role="alert">
           <span class="material-icons-outlined">priority_high</span>
@@ -1420,6 +1431,7 @@ export class SuiteCheckoutComponent implements OnInit {
     return acc.profile.phone?.trim() || null;
   });
   readonly busy = signal(false);
+  readonly cancelAutoRenewBusy = signal(false);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly suiteAccess = signal<SuiteAccessSummary | null>(null);
@@ -1445,6 +1457,10 @@ export class SuiteCheckoutComponent implements OnInit {
     if (access.shipOutLocked) return false;
     return Date.parse(access.expiresAt) > Date.now();
   });
+
+  readonly autoRenewEnabled = computed(
+    () => this.overview()?.subscription?.autoRenewEnabled === true,
+  );
 
   readonly activeUntilLabel = computed(() => {
     const raw = this.suiteAccess()?.expiresAt;
@@ -1649,6 +1665,27 @@ export class SuiteCheckoutComponent implements OnInit {
     this.borderboxApi.setDefaultPaymentMethod(card.id).subscribe({
       next: () => this.reloadOverview(),
       error: (err: Error) => this.error.set(err?.message ?? 'Could not update default card.'),
+    });
+  }
+
+  cancelAutoRenew(): void {
+    if (!confirm('Turn off auto-renew? Your suite stays active until the current period ends.')) {
+      return;
+    }
+    this.cancelAutoRenewBusy.set(true);
+    this.error.set(null);
+    this.borderboxApi.cancelSuiteAutoRenew().subscribe({
+      next: () => {
+        this.cancelAutoRenewBusy.set(false);
+        this.reloadOverview();
+        this.parcelsApi.loadDashboard().subscribe({
+          next: (d) => this.suiteAccess.set(d.suiteAccess),
+        });
+      },
+      error: (err: Error) => {
+        this.cancelAutoRenewBusy.set(false);
+        this.error.set(err?.message ?? 'Could not cancel auto-renew.');
+      },
     });
   }
 

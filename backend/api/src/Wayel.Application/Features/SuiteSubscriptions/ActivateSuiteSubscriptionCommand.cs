@@ -17,7 +17,19 @@ public sealed record SuiteSubscriptionDto(
     string SuiteNumber,
     DateTime? ExpiresAt,
     bool ShipOutLocked,
-    bool IsTrial = false);
+    bool IsTrial = false,
+    bool AutoRenewEnabled = false)
+{
+    public static SuiteSubscriptionDto FromDomain(Wayel.Domain.SuiteSubscriptions.SuiteSubscription sub) =>
+        new(
+            sub.Id.Value,
+            sub.Status.ToString(),
+            sub.SuiteNumber,
+            sub.ExpiresAt,
+            sub.ShipOutLocked,
+            sub.IsTrial,
+            sub.AutoRenewEnabled);
+}
 
 internal sealed class ActivateSuiteSubscriptionCommandHandler(
     ICurrentUser current,
