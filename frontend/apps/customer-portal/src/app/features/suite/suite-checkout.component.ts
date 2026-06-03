@@ -84,16 +84,6 @@ const PLAN_FEATURES = [
         @if (nextPaymentBadgeLabel(); as badge) {
           <span class="badge" [class]="nextPaymentBadgeTone()">{{ badge }}</span>
         }
-        @if (autoRenewEnabled() && suiteStillActive()) {
-          <button
-            type="button"
-            class="stat-link danger-link"
-            [disabled]="cancelAutoRenewBusy()"
-            (click)="cancelAutoRenew()"
-          >
-            Cancel auto-renew
-          </button>
-        }
       </div>
 
       <div class="stat-card">
@@ -123,6 +113,66 @@ const PLAN_FEATURES = [
         </div>
       </div>
     </section>
+
+    @if (hasSuiteSubscription()) {
+      <section class="bb-card subscription-card">
+        <header class="card-head">
+          <h2>
+            <span class="material-icons-outlined">event_repeat</span>
+            Subscription &amp; auto-renew
+          </h2>
+        </header>
+
+        @if (autoRenewCancelSuccess()) {
+          <div class="success-banner" role="status">
+            <span class="material-icons-outlined">check_circle</span>
+            <p>Auto-renew is turned off. Your suite stays active until <strong>{{ activeUntilLabel() }}</strong>.</p>
+          </div>
+        }
+
+        <div class="subscription-body">
+          <div class="subscription-status">
+            <span class="sub-label">Auto-renew</span>
+            <span class="badge" [class]="autoRenewEnabled() ? 'tone-green' : 'tone-muted'">
+              {{ autoRenewEnabled() ? 'On' : 'Off' }}
+            </span>
+          </div>
+
+          @if (autoRenewEnabled()) {
+            <p class="subscription-copy">
+              Your saved card will be charged automatically before suite access lapses
+              @if (activeUntilLabel()) {
+                (current period ends <strong>{{ activeUntilLabel() }}</strong>).
+              }
+              You can cancel anytime — access continues until that date.
+            </p>
+            <button
+              type="button"
+              class="bb-btn bb-btn-outline cancel-auto-renew-btn"
+              [disabled]="cancelAutoRenewBusy()"
+              (click)="cancelAutoRenew()"
+            >
+              @if (cancelAutoRenewBusy()) {
+                Cancelling…
+              } @else {
+                Cancel auto-renew
+              }
+            </button>
+          } @else if (suiteStillActive()) {
+            <p class="subscription-copy">
+              Auto-renew is off. Renew manually before <strong>{{ activeUntilLabel() }}</strong> to avoid losing ship-out access.
+            </p>
+            <button type="button" class="bb-btn bb-btn-outline" (click)="scrollToRenew()">
+              View renewal options
+            </button>
+          } @else {
+            <p class="subscription-copy">
+              Auto-renew is off. Choose a plan below to renew suite access.
+            </p>
+          }
+        </div>
+      </section>
+    }
 
     <div class="payments-grid">
       <section class="bb-card history-card">
@@ -1070,6 +1120,63 @@ const PLAN_FEATURES = [
     /* ---- Renew card (existing checkout form, restyled to fit dashboard) ---- */
     .renew-card { margin-bottom: 1rem; }
 
+    .subscription-card {
+      margin-bottom: 1rem;
+    }
+
+    .subscription-body {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .subscription-status {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .sub-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .subscription-copy {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .cancel-auto-renew-btn {
+      justify-self: start;
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+
+    .cancel-auto-renew-btn:hover:not(:disabled) {
+      background: #fef2f2;
+    }
+
+    .success-banner {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      padding: 0.85rem 1rem;
+      border-radius: var(--bb-radius-sm);
+      margin-bottom: 0.85rem;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .success-banner p { margin: 0; }
+    .success-banner .material-icons-outlined { color: #059669; }
+
     .info-banner,
     .warn-banner {
       display: flex;
@@ -1097,6 +1204,11 @@ const PLAN_FEATURES = [
     .stat-link.danger-link {
       color: var(--bb-danger);
       margin-top: 0.35rem;
+    }
+
+    .badge.tone-muted {
+      background: #f1f5f9;
+      color: #64748b;
     }
 
     .badge.tone-green {
@@ -1450,6 +1562,7 @@ export class SuiteCheckoutComponent implements OnInit {
   });
   readonly busy = signal(false);
   readonly cancelAutoRenewBusy = signal(false);
+  readonly autoRenewCancelSuccess = signal(false);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly suiteAccess = signal<SuiteAccessSummary | null>(null);
@@ -1481,6 +1594,12 @@ export class SuiteCheckoutComponent implements OnInit {
       this.overview()?.subscription?.autoRenewEnabled === true
       || this.suiteAccess()?.autoRenewEnabled === true,
   );
+
+  readonly hasSuiteSubscription = computed(() => {
+    const sub = this.overview()?.subscription;
+    const access = this.suiteAccess();
+    return !!sub?.suiteNumber || !!access?.suiteNumber;
+  });
 
   readonly activeUntilLabel = computed(() => {
     const raw = this.suiteAccess()?.expiresAt;
@@ -1709,10 +1828,12 @@ export class SuiteCheckoutComponent implements OnInit {
       return;
     }
     this.cancelAutoRenewBusy.set(true);
+    this.autoRenewCancelSuccess.set(false);
     this.error.set(null);
     this.borderboxApi.cancelSuiteAutoRenew().subscribe({
       next: () => {
         this.cancelAutoRenewBusy.set(false);
+        this.autoRenewCancelSuccess.set(true);
         this.reloadOverview();
         this.parcelsApi.loadDashboard().subscribe({
           next: (d) => this.suiteAccess.set(d.suiteAccess),
