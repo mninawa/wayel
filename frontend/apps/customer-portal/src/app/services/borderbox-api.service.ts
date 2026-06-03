@@ -13,6 +13,7 @@ export interface SuiteAccessSummary {
   customerMessage: string;
   suiteNumber: string | null;
   expiresAt: string | null;
+  autoRenewEnabled: boolean;
 }
 
 export interface DashboardDto {
@@ -145,6 +146,16 @@ export interface SuitePaymentsSummaryDto {
   paid: number;
   failed: number;
   totalPaidZar: number;
+}
+
+export interface SuiteSubscriptionDto {
+  id: string;
+  status: string;
+  suiteNumber: string;
+  expiresAt: string | null;
+  shipOutLocked: boolean;
+  isTrial: boolean;
+  autoRenewEnabled: boolean;
 }
 
 export interface ParcelDto {
@@ -397,14 +408,14 @@ export class BorderboxApiService {
     );
   }
 
-  completeSuiteCheckout(reference: string): Observable<unknown> {
-    return this.http.post(`${this.base}/borderbox/suite-access/checkout/complete`, {
+  completeSuiteCheckout(reference: string): Observable<SuiteSubscriptionDto> {
+    return this.http.post<SuiteSubscriptionDto>(`${this.base}/borderbox/suite-access/checkout/complete`, {
       reference,
     });
   }
 
-  cancelSuiteAutoRenew(): Observable<unknown> {
-    return this.http.post(`${this.base}/borderbox/suite-access/auto-renew/cancel`, {});
+  cancelSuiteAutoRenew(): Observable<SuiteSubscriptionDto> {
+    return this.http.post<SuiteSubscriptionDto>(`${this.base}/borderbox/suite-access/auto-renew/cancel`, {});
   }
 
   listPaymentMethods(): Observable<CustomerSavedCardDto[]> {

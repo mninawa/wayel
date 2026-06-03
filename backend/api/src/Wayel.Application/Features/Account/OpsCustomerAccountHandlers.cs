@@ -287,7 +287,8 @@ internal sealed class GetOpsCustomerAccountQueryHandler(
                 subscription.ExpiresAt,
                 subscription.ShipOutLocked,
                 subscription.IsTrial
-                    && SuiteCheckoutBilling.IsWithinPaidPeriod(subscription, clock.UtcNow));
+                    && SuiteCheckoutBilling.IsWithinPaidPeriod(subscription, clock.UtcNow),
+                subscription.AutoRenewEnabled);
         }
 
         return new OpsCustomerAccountDetailDto(

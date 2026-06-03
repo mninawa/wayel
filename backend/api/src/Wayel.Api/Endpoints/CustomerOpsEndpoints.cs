@@ -65,6 +65,14 @@ public sealed class CustomerOpsEndpoints : IEndpointGroup
                 (await mediator.Send(new GetOpsSuitePaymentsOverviewQuery(userId), ct)).ToHttpResult())
             .WithName("GetOpsCustomerSuitePayments");
 
+        group.MapPost("/{userId:guid}/suite-access/auto-renew/cancel", async (
+            Guid userId,
+            IMediator mediator,
+            CancellationToken ct) =>
+            (await mediator.Send(new CancelOpsSuiteAutoRenewCommand(userId), ct)).ToHttpResult())
+            .WithName("CancelOpsCustomerSuiteAutoRenew")
+            .WithSummary("Disable Paystack auto-renew for a customer (ops support action)");
+
         group.MapGet("/{userId:guid}/address-activity", async (
             Guid userId,
             int? limit,

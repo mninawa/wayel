@@ -171,6 +171,7 @@ export interface OpsSuiteSubscriptionDto {
   expiresAtUtc: string | null;
   shipOutLocked: boolean;
   isTrial: boolean;
+  autoRenewEnabled: boolean;
 }
 
 export interface OpsCustomerAccountDetailDto {
@@ -267,6 +268,14 @@ export class CustomerOpsApiService {
   getSuitePayments(userId: string): Observable<SuitePaymentsOverviewDto> {
     return this.http.get<SuitePaymentsOverviewDto>(
       `${this.base}/${userId}/suite-payments`,
+      { headers: buildOpsHeaders() },
+    );
+  }
+
+  cancelSuiteAutoRenew(userId: string): Observable<unknown> {
+    return this.http.post(
+      `${this.base}/${userId}/suite-access/auto-renew/cancel`,
+      {},
       { headers: buildOpsHeaders() },
     );
   }

@@ -34,7 +34,8 @@ public sealed record OpsSuiteSubscriptionDto(
     DateTime? StartedAtUtc,
     DateTime? ExpiresAtUtc,
     bool ShipOutLocked,
-    bool IsTrial);
+    bool IsTrial,
+    bool AutoRenewEnabled);
 
 public sealed record OpsCustomerAccountDetailDto(
     CustomerAccountResponse Account,

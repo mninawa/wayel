@@ -871,6 +871,7 @@ export class MyAddressComponent implements OnInit {
         customerMessage: '',
         suiteNumber: null,
         expiresAt: null,
+        autoRenewEnabled: false,
       },
   );
   readonly suiteExpiresLabel = computed(() => {

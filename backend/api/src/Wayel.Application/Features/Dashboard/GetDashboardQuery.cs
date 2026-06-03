@@ -45,7 +45,8 @@ internal sealed class GetDashboardQueryHandler(
             caps.ShipOutLocked,
             caps.CustomerMessage,
             subscription?.SuiteNumber,
-            subscription?.ExpiresAt);
+            subscription?.ExpiresAt,
+            subscription?.AutoRenewEnabled ?? false);
 
         return new DashboardResponse(summary, parcelList.Count, subscription?.SuiteNumber);
     }

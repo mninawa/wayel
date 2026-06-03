@@ -159,6 +159,12 @@ export class AccountDetailComponent implements OnInit {
 
   readonly lockedActionsVisible = computed(() => this.detail()?.subscription?.shipOutLocked === true);
 
+  readonly autoRenewEnabled = computed(
+    () =>
+      this.payments()?.subscription?.autoRenewEnabled === true
+      || this.detail()?.subscription?.autoRenewEnabled === true,
+  );
+
   readonly outstandingRenewal = computed(() => 'R100 or R200');
 
   readonly tabTitle = computed(() => {
@@ -239,7 +245,7 @@ export class AccountDetailComponent implements OnInit {
   twoFactorEnabled = signal(false);
   notificationsOpen = signal(false);
   billingStatusFilter = signal<'all' | PaymentStatus>('all');
-  autoRenewEnabled = signal(false);
+  cancelAutoRenewBusy = signal(false);
   selectedPlanOption = signal<string | null>(null);
 
   readonly showDeleteModal = signal(false);
@@ -340,17 +346,18 @@ export class AccountDetailComponent implements OnInit {
     }
 
     const next = pay?.nextPayment;
-    if (next) {
-      const reminder = new Date(next.dueAtUtc);
-      reminder.setDate(reminder.getDate() - 14);
+    const autoRenewOn =
+      pay?.subscription?.autoRenewEnabled === true
+      || sub?.autoRenewEnabled === true;
+    if (next && autoRenewOn) {
       rows.push({
-        id: 'auto-renew-reminder',
-        icon: 'notifications',
-        title: 'Renewal reminder scheduled',
-        dateUtc: reminder.toISOString(),
+        id: 'auto-renew-scheduled',
+        icon: 'sync',
+        title: 'Paystack auto-renew scheduled',
+        dateUtc: next.dueAtUtc,
         status: 'Scheduled',
         statusTone: 'blue',
-        amountZar: null,
+        amountZar: next.amountZar,
       });
     }
 
@@ -622,8 +629,29 @@ export class AccountDetailComponent implements OnInit {
     this.selectedPlanOption.set(planId);
   }
 
-  toggleAutoRenew(): void {
-    this.autoRenewEnabled.update((v) => !v);
+  cancelAutoRenew(): void {
+    const userId = this.detail()?.account.profile.userId;
+    if (!userId || !this.autoRenewEnabled()) return;
+    if (
+      !confirm(
+        'Turn off Paystack auto-renew for this customer? Their suite stays active until the current period ends.',
+      )
+    ) {
+      return;
+    }
+
+    this.cancelAutoRenewBusy.set(true);
+    this.error.set(null);
+    this.api.cancelSuiteAutoRenew(userId).subscribe({
+      next: () => {
+        this.cancelAutoRenewBusy.set(false);
+        this.load(userId);
+      },
+      error: (err) => {
+        this.cancelAutoRenewBusy.set(false);
+        this.error.set(this.formatError(err));
+      },
+    });
   }
 
   activityStatusClass(tone: RenewalActivityRow['statusTone']): string {

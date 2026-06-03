@@ -469,12 +469,20 @@
               </div>
               <div class="renewal-row">
                 <dt>Auto-Renew</dt>
-                <dd>
-                  <label class="toggle">
-                    <input type="checkbox" [checked]="autoRenewEnabled()" (change)="toggleAutoRenew()" />
-                    <span class="toggle-track" aria-hidden="true"></span>
-                  </label>
-                  <span class="toggle-label">{{ autoRenewEnabled() ? 'On' : 'Off' }}</span>
+                <dd class="auto-renew-cell">
+                  <span class="pill" [class]="autoRenewEnabled() ? 'green' : 'gray'">
+                    {{ autoRenewEnabled() ? 'On' : 'Off' }}
+                  </span>
+                  @if (autoRenewEnabled()) {
+                    <button
+                      type="button"
+                      class="btn-text danger"
+                      [disabled]="cancelAutoRenewBusy()"
+                      (click)="cancelAutoRenew()"
+                    >
+                      Cancel auto-renew
+                    </button>
+                  }
                 </dd>
               </div>
               <div>

@@ -28,7 +28,8 @@ public sealed record SuiteAccessSummary(
     bool ShipOutLocked,
     string CustomerMessage,
     string? SuiteNumber,
-    DateTime? ExpiresAt);
+    DateTime? ExpiresAt,
+    bool AutoRenewEnabled);
 
 internal sealed class MeQueryHandler(
     ICurrentUser currentUser,
@@ -63,7 +64,8 @@ internal sealed class MeQueryHandler(
                 caps.ShipOutLocked,
                 caps.CustomerMessage,
                 subscription.SuiteNumber,
-                subscription.ExpiresAt);
+                subscription.ExpiresAt,
+                subscription.AutoRenewEnabled);
 
         return new MeResponse(
             user.Id.Value,

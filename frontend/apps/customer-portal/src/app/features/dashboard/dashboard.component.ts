@@ -53,6 +53,9 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
           @if (suiteLastDay()) {
             <div><dt>Valid until</dt><dd>{{ suiteLastDay() }}</dd></div>
           }
+          @if (suiteAccess().autoRenewEnabled) {
+            <div><dt>Auto-renew</dt><dd>On · card charged before expiry</dd></div>
+          }
           <div><dt>Ship-out</dt>
             <dd [class.danger]="suiteAccess().shipOutLocked">
               @if (suiteAccess().shipOutLocked) {
@@ -69,6 +72,8 @@ import { SuiteExpiredBannerComponent } from '../shared/suite-expired-banner.comp
             <a routerLink="/suite-access/checkout" [queryParams]="{ plan: 'monthly' }" class="bb-btn bb-btn-outline">Renew R100 / month</a>
             <a routerLink="/suite-access/checkout" [queryParams]="{ plan: 'quarterly' }" class="bb-btn bb-btn-primary">Renew R200 / quarter</a>
           </div>
+        } @else if (suiteAccess().autoRenewEnabled) {
+          <a routerLink="/suite-access/checkout" class="bb-link">Manage payments &amp; auto-renew →</a>
         }
       </section>
 
@@ -233,6 +238,7 @@ export class DashboardComponent implements OnInit {
         customerMessage: 'Activate suite access to receive parcels.',
         suiteNumber: null,
         expiresAt: null,
+        autoRenewEnabled: false,
       },
   );
 
@@ -244,6 +250,7 @@ export class DashboardComponent implements OnInit {
 
   readonly canRenewSuite = computed(() => {
     const access = this.suiteAccess();
+    if (access.autoRenewEnabled && !access.shipOutLocked) return false;
     if (access.shipOutLocked) return true;
     const raw = access.expiresAt;
     if (!raw) return false;

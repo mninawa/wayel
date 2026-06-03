@@ -1,4 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -65,6 +66,9 @@ const PLAN_FEATURES = [
         </span>
         <strong class="stat-value">{{ currentPlanLabel() }}</strong>
         <span class="stat-sub">{{ currentPlanPriceLabel() }}</span>
+        @if (autoRenewEnabled()) {
+          <span class="badge tone-green">Auto-renew on</span>
+        }
         <button type="button" class="stat-link" (click)="scrollToRenew()">
           View plan details
         </button>
@@ -72,13 +76,23 @@ const PLAN_FEATURES = [
 
       <div class="stat-card">
         <span class="stat-label">
-          <span class="material-icons-outlined">event</span>
-          Next Payment Amount
+          <span class="material-icons-outlined">{{ autoRenewEnabled() ? 'sync' : 'event' }}</span>
+          {{ nextPaymentStatLabel() }}
         </span>
         <strong class="stat-value money">{{ nextPaymentAmountLabel() }}</strong>
         <span class="stat-sub">{{ nextPaymentDueLabel() }}</span>
         @if (nextPaymentBadgeLabel(); as badge) {
           <span class="badge" [class]="nextPaymentBadgeTone()">{{ badge }}</span>
+        }
+        @if (autoRenewEnabled() && suiteStillActive()) {
+          <button
+            type="button"
+            class="stat-link danger-link"
+            [disabled]="cancelAutoRenewBusy()"
+            (click)="cancelAutoRenew()"
+          >
+            Cancel auto-renew
+          </button>
         }
       </div>
 
@@ -316,21 +330,15 @@ const PLAN_FEATURES = [
         <div class="info-banner" role="status">
           <span class="material-icons-outlined">verified_user</span>
           <p>
-            Your suite access is active until <strong>{{ activeUntilLabel() }}</strong>.
-            Renewal opens after your current period ends — your subscription will not lapse.
+            @if (autoRenewEnabled()) {
+              Your suite access is active until <strong>{{ activeUntilLabel() }}</strong>.
+              Paystack will charge your saved card automatically before it lapses.
+            } @else {
+              Your suite access is active until <strong>{{ activeUntilLabel() }}</strong>.
+              Renewal opens after your current period ends — choose a plan below when you're ready.
+            }
           </p>
         </div>
-        @if (autoRenewEnabled()) {
-          <div class="info-banner auto-renew-banner" role="status">
-            <span class="material-icons-outlined">sync</span>
-            <div>
-              <p><strong>Auto-renew is on.</strong> Your card will be charged when this period ends.</p>
-              <button type="button" class="bb-btn bb-btn-outline" [disabled]="cancelAutoRenewBusy()" (click)="cancelAutoRenew()">
-                Cancel auto-renew
-              </button>
-            </div>
-          </div>
-        }
       } @else {
         <div class="warn-banner" role="alert">
           <span class="material-icons-outlined">priority_high</span>
@@ -368,7 +376,7 @@ const PLAN_FEATURES = [
                       R{{ p.priceZar | number:'1.0-0' }}
                       <span class="plan-period">/ {{ p.durationMonths }} month{{ p.durationMonths > 1 ? 's' : '' }}</span>
                     </p>
-                    <p class="plan-paid">Paid upfront</p>
+                    <p class="plan-paid">{{ planPaidLabel() }}</p>
                     <p class="plan-billing">{{ planBillingLabel(p) }}</p>
                   </div>
                 </label>
@@ -1086,6 +1094,16 @@ const PLAN_FEATURES = [
     .info-banner p,
     .warn-banner p { margin: 0; }
 
+    .stat-link.danger-link {
+      color: var(--bb-danger);
+      margin-top: 0.35rem;
+    }
+
+    .badge.tone-green {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
     .checkout-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 320px;
@@ -1459,7 +1477,9 @@ export class SuiteCheckoutComponent implements OnInit {
   });
 
   readonly autoRenewEnabled = computed(
-    () => this.overview()?.subscription?.autoRenewEnabled === true,
+    () =>
+      this.overview()?.subscription?.autoRenewEnabled === true
+      || this.suiteAccess()?.autoRenewEnabled === true,
   );
 
   readonly activeUntilLabel = computed(() => {
@@ -1495,15 +1515,22 @@ export class SuiteCheckoutComponent implements OnInit {
     return next ? `R${Math.round(next.amountZar)}` : '—';
   };
 
+  nextPaymentStatLabel = (): string =>
+    this.autoRenewEnabled() ? 'Auto-Renew Amount' : 'Next Payment Amount';
+
   nextPaymentDueLabel = (): string => {
     const next = this.overview()?.nextPayment;
-    if (!next) return 'No upcoming payment';
-    return `Due on ${this.formatDate(new Date(next.dueAtUtc))}`;
+    if (!next) {
+      return this.autoRenewEnabled() ? 'Scheduled before expiry' : 'No upcoming payment';
+    }
+    const prefix = this.autoRenewEnabled() ? 'Auto-renews on' : 'Due on';
+    return `${prefix} ${this.formatDate(new Date(next.dueAtUtc))}`;
   };
 
   nextPaymentBadgeLabel = (): string | null => {
     const next = this.overview()?.nextPayment;
-    if (!next) return null;
+    if (!next) return this.autoRenewEnabled() ? 'Auto-renew on' : null;
+    if (this.autoRenewEnabled()) return 'Auto-renew on';
     if (next.daysRemaining <= 0) return 'Due now';
     if (next.daysRemaining <= 7) return `${next.daysRemaining} days remaining`;
     return `${next.daysRemaining} days remaining`;
@@ -1583,9 +1610,18 @@ export class SuiteCheckoutComponent implements OnInit {
   }
 
   planBillingLabel(p: SuitePlanDto): string {
+    if (this.paymentChoice()?.provider === 'momo') {
+      return p.durationMonths === 1
+        ? 'One-time payment for 1 month'
+        : `One-time payment for ${p.durationMonths} months`;
+    }
     return p.durationMonths === 1
-      ? 'Billed upfront every month'
-      : `Billed upfront every ${p.durationMonths} months`;
+      ? 'Auto-renews monthly · cancel anytime'
+      : `Auto-renews every ${p.durationMonths} months · cancel anytime`;
+  }
+
+  planPaidLabel(): string {
+    return this.paymentChoice()?.provider === 'momo' ? 'Paid upfront' : 'Auto-renew subscription';
   }
 
   statusBadgeTone(status: string): string {
@@ -1682,9 +1718,9 @@ export class SuiteCheckoutComponent implements OnInit {
           next: (d) => this.suiteAccess.set(d.suiteAccess),
         });
       },
-      error: (err: Error) => {
+      error: (err: unknown) => {
         this.cancelAutoRenewBusy.set(false);
-        this.error.set(err?.message ?? 'Could not cancel auto-renew.');
+        this.error.set(this.apiErrorMessage(err, 'Could not cancel auto-renew.'));
       },
     });
   }
@@ -1864,5 +1900,17 @@ export class SuiteCheckoutComponent implements OnInit {
       month: 'short',
       year: 'numeric',
     });
+  }
+
+  private apiErrorMessage(err: unknown, fallback: string): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error as { detail?: string; title?: string; message?: string } | string | null;
+      if (typeof body === 'string' && body.trim()) return body;
+      if (body && typeof body === 'object') {
+        return body.detail ?? body.message ?? body.title ?? fallback;
+      }
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
   }
 }
