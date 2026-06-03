@@ -73,11 +73,9 @@ export interface OpsNavSection {
       </div>
 
       <nav class="nav-scroll" aria-label="Operations">
-        @for (section of navSections(); track section.id) {
+        @for (section of navSections(); track section.id; let last = $last) {
           @if (section.label) {
             <span class="nav-section">{{ section.label }}</span>
-          } @else if (section.id !== 'receiving') {
-            <span class="nav-divider" aria-hidden="true"></span>
           }
 
           @for (item of section.items; track item.path) {
@@ -94,6 +92,10 @@ export interface OpsNavSection {
                 <span class="nav-badge">{{ count }}</span>
               }
             </a>
+          }
+
+          @if (!last) {
+            <span class="nav-divider nav-divider-section" aria-hidden="true"></span>
           }
         }
       </nav>
@@ -197,11 +199,15 @@ export interface OpsNavSection {
     }
 
     .nav-divider {
-      display: block;
+      display: none;
       height: 1px;
       margin: 0.35rem 0.75rem;
       background: rgba(255, 255, 255, 0.12);
       flex-shrink: 0;
+    }
+
+    .sidebar:not(.sidebar-expanded) .nav-divider-section {
+      display: block;
     }
 
     .nav-item,
@@ -350,7 +356,7 @@ export interface OpsNavSection {
         display: block;
       }
 
-      .sidebar.sidebar-expanded .nav-divider {
+      .sidebar.sidebar-expanded .nav-divider-section {
         display: none;
       }
 
@@ -447,7 +453,7 @@ export interface OpsNavSection {
         display: block;
       }
 
-      .nav-divider {
+      .nav-divider-section {
         display: none;
       }
 
@@ -575,15 +581,65 @@ export class OpsSidebarComponent implements OnInit {
     },
   ];
 
-  readonly platformNav: OpsNavItem[] = [
-    { path: platformRoutes.dashboard, label: 'Platform Dashboard', icon: 'analytics', region: OPS_REGION.platform },
-    { path: accountRoutes.list, label: 'Accounts & Suites', icon: 'manage_accounts', region: OPS_REGION.platform },
-    { path: platformRoutes.suites, label: 'Suite Configuration', icon: 'home_work', region: OPS_REGION.platform },
-    { path: platformRoutes.plans, label: 'Suite Plans', icon: 'workspace_premium', region: OPS_REGION.platform },
-    { path: '/ops/onboarding', label: 'Onboarding Funnel', icon: 'tune', region: OPS_REGION.platform },
-    { path: '/ops/kyc', label: 'KYC Review', icon: 'verified_user', region: OPS_REGION.platform },
-    { path: '/ops/shipments', label: 'Shipment Status', icon: 'local_shipping', region: OPS_REGION.platform },
-    { path: '/ops/settings', label: 'Settings', icon: 'settings', region: OPS_REGION.platform, cap: OPS_CAP.teamManage },
+  readonly customersNav: OpsNavItem[] = [
+    {
+      path: accountRoutes.list,
+      label: 'Accounts & Suites',
+      icon: 'manage_accounts',
+      region: OPS_REGION.platform,
+    },
+    {
+      path: '/ops/kyc',
+      label: 'KYC Review',
+      icon: 'verified_user',
+      region: OPS_REGION.platform,
+    },
+    {
+      path: '/ops/onboarding',
+      label: 'Onboarding Funnel',
+      icon: 'tune',
+      region: OPS_REGION.platform,
+    },
+  ];
+
+  readonly shipmentsNav: OpsNavItem[] = [
+    {
+      path: '/ops/shipments',
+      label: 'Shipment Status',
+      icon: 'local_shipping',
+      region: OPS_REGION.platform,
+    },
+  ];
+
+  readonly suitePlatformNav: OpsNavItem[] = [
+    {
+      path: platformRoutes.dashboard,
+      label: 'Platform Dashboard',
+      icon: 'analytics',
+      region: OPS_REGION.platform,
+    },
+    {
+      path: platformRoutes.suites,
+      label: 'Suite Configuration',
+      icon: 'home_work',
+      region: OPS_REGION.platform,
+    },
+    {
+      path: platformRoutes.plans,
+      label: 'Suite Plans',
+      icon: 'workspace_premium',
+      region: OPS_REGION.platform,
+    },
+  ];
+
+  readonly adminNav: OpsNavItem[] = [
+    {
+      path: '/ops/settings',
+      label: 'Settings',
+      icon: 'settings',
+      region: OPS_REGION.platform,
+      cap: OPS_CAP.teamManage,
+    },
   ];
 
   navSections(): OpsNavSection[] {
@@ -591,20 +647,36 @@ export class OpsSidebarComponent implements OnInit {
       { id: 'receiving', label: 'Receiving', items: this.visiblePrimaryNav() },
     ];
 
-    const collection = this.visibleCollectionNav();
-    if (collection.length > 0) {
-      sections.push({ id: 'collection', label: 'Eswatini', items: collection });
-    }
-
     const warehouse = this.visibleWarehouseNav();
     if (warehouse.length > 0) {
       sections.push({ id: 'warehouse', label: 'Warehouse', items: warehouse });
     }
 
-    const platform = this.visiblePlatformNav();
-    if (platform.length > 0) {
-      sections.push({ id: 'platform', label: 'Platform', items: platform });
+    const collection = this.visibleCollectionNav();
+    if (collection.length > 0) {
+      sections.push({ id: 'collection', label: 'Collection', items: collection });
     }
+
+    const customers = this.visibleCustomersNav();
+    if (customers.length > 0) {
+      sections.push({ id: 'customers', label: 'Customers', items: customers });
+    }
+
+    const shipments = this.visibleShipmentsNav();
+    if (shipments.length > 0) {
+      sections.push({ id: 'shipments', label: 'Shipments', items: shipments });
+    }
+
+    const suitePlatform = this.visibleSuitePlatformNav();
+    if (suitePlatform.length > 0) {
+      sections.push({ id: 'suite-platform', label: 'Suite & billing', items: suitePlatform });
+    }
+
+    const admin = this.visibleAdminNav();
+    if (admin.length > 0) {
+      sections.push({ id: 'admin', label: 'Administration', items: admin });
+    }
+
     return sections.filter((s) => s.items.length > 0);
   }
 
@@ -624,8 +696,20 @@ export class OpsSidebarComponent implements OnInit {
     return this.primaryNav.filter((item) => this.isNavVisible(item));
   }
 
-  visiblePlatformNav(): OpsNavItem[] {
-    return this.platformNav.filter((item) => this.isNavVisible(item));
+  visibleCustomersNav(): OpsNavItem[] {
+    return this.customersNav.filter((item) => this.isNavVisible(item));
+  }
+
+  visibleShipmentsNav(): OpsNavItem[] {
+    return this.shipmentsNav.filter((item) => this.isNavVisible(item));
+  }
+
+  visibleSuitePlatformNav(): OpsNavItem[] {
+    return this.suitePlatformNav.filter((item) => this.isNavVisible(item));
+  }
+
+  visibleAdminNav(): OpsNavItem[] {
+    return this.adminNav.filter((item) => this.isNavVisible(item));
   }
 
   private isNavVisible(item: OpsNavItem): boolean {
