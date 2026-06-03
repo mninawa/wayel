@@ -30,6 +30,8 @@ server {
     # limit during ops uploads. Match the API's body limit.
     client_max_body_size 25m;
 
+    include /etc/nginx/security-headers.conf;
+
     root /usr/share/nginx/html;
     index index.html;
 
@@ -37,6 +39,7 @@ server {
     # All three target the same BFF process; YARP and the cookie auth
     # middleware decide what each path does internally.
     location /bff/ {
+        include /etc/nginx/security-headers.conf;
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
@@ -50,6 +53,7 @@ server {
     }
 
     location /api/ {
+        include /etc/nginx/security-headers.conf;
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
@@ -63,6 +67,7 @@ server {
     }
 
     location ~ ^/(signin-oidc|signout-callback-oidc)(/.*)?$ {
+        include /etc/nginx/security-headers.conf;
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
@@ -79,11 +84,13 @@ server {
     # so a sticky index.html would point browsers at chunks that no longer
     # exist (the classic "Failed to fetch dynamically imported module" bug).
     location = /index.html {
+        include /etc/nginx/security-headers.conf;
         add_header Cache-Control "no-store, no-cache, must-revalidate";
         try_files $uri =404;
     }
 
     location / {
+        include /etc/nginx/security-headers.conf;
         add_header Cache-Control "no-store, no-cache, must-revalidate";
         try_files $uri $uri/ /index.html;
     }
@@ -91,6 +98,7 @@ server {
     # Hashed JS / CSS bundles change every build; keep them validated each
     # navigation but allow disk cache so warm reloads are cheap.
     location ~* \.(js|css|mjs)$ {
+        include /etc/nginx/security-headers.conf;
         add_header Cache-Control "no-cache, must-revalidate";
         try_files $uri =404;
     }
@@ -98,6 +106,7 @@ server {
     # Static images / fonts can be cached aggressively — file names are
     # hashed by the Angular builder.
     location ~* \.(png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        include /etc/nginx/security-headers.conf;
         expires 7d;
         add_header Cache-Control "public, immutable";
         try_files $uri =404;

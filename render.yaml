@@ -312,6 +312,14 @@ services:
       - key: GoogleOidc__UseStaticMetadata
         value: "false"
 
+      # ─ Data Protection key ring (Mongo) ─────────────────────────────
+      # Paste the SAME Mongo__ConnectionString as wayel-api so BFF session
+      # cookies survive container restarts / redeploys.
+      - key: Mongo__ConnectionString
+        sync: false
+      - key: Mongo__DatabaseName
+        value: courier_platform
+
   # ─── Ops dashboard edge: SPA + nginx (no BFF) ─────────────────────────
   - type: web
     runtime: docker

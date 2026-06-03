@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.HttpOverrides;
 using Wayel.Bff.Shared.Composition;
 using Wayel.Bff.Shared.Configuration;
 using Wayel.Bff.Shared.Health;
@@ -24,13 +23,6 @@ try
     builder.Services.AddBffHealthChecks();
     builder.Services.AddBffOpenApi("Client");
 
-    builder.Services.Configure<ForwardedHeadersOptions>(o =>
-    {
-        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-        o.KnownIPNetworks.Clear();
-        o.KnownProxies.Clear();
-    });
-
     builder.Services.AddCors(options => options.AddDefaultPolicy(p =>
     {
         var spa = builder.Configuration[$"{BffOptions.SectionName}:SpaBaseUri"] ?? "http://localhost:4202";
@@ -43,7 +35,6 @@ try
     var app = builder.Build();
 
     app.UseSerilogRequestLogging();
-    app.UseForwardedHeaders();
 
     if (!app.Environment.IsDevelopment())
     {

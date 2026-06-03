@@ -40,6 +40,7 @@ public sealed class WayelBffCustomerFactory : WebApplicationFactory<BffCustomerP
                 ["Bff:RefreshIfExpiringWithinSeconds"] = "60",
                 ["GoogleOidc:ClientId"] = "test-client-id.apps.googleusercontent.com",
                 ["GoogleOidc:ClientSecret"] = "test-client-secret",
+                ["ForwardedHeaders:TrustAllProxies"] = "true",
             });
         });
 

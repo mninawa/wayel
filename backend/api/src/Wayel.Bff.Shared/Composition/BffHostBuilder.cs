@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Wayel.Bff.Shared.ApiClient;
 using Wayel.Bff.Shared.Configuration;
 using Wayel.Bff.Shared.Endpoints;
+using Wayel.Bff.Shared.Infrastructure;
 using Wayel.Bff.Shared.Middleware;
 using Wayel.Bff.Shared.Sessions;
 using Yarp.ReverseProxy.Configuration;
@@ -88,8 +88,10 @@ public static class BffHostBuilder
         var dataProtection = services.AddDataProtection()
             .SetApplicationName($"Wayel.Bff.{configuration[$"{BffOptions.SectionName}:Audience"] ?? "default"}");
 
-        var mongoConnection = configuration["MongoOptions:ConnectionString"];
-        var mongoDatabase = configuration["MongoOptions:DatabaseName"];
+        var mongoConnection = configuration["Mongo:ConnectionString"]
+            ?? configuration["MongoOptions:ConnectionString"];
+        var mongoDatabase = configuration["Mongo:DatabaseName"]
+            ?? configuration["MongoOptions:DatabaseName"];
         if (!string.IsNullOrWhiteSpace(mongoConnection)
             && !string.IsNullOrWhiteSpace(mongoDatabase))
         {
@@ -309,22 +311,16 @@ public static class BffHostBuilder
         services.AddReverseProxy()
             .LoadFromMemory(BuildProxyRoutes(configuration), BuildProxyClusters(configuration));
 
+        services.AddWayelForwardedHeaders(configuration);
+
         return services;
     }
 
     public static WebApplication UseBff(this WebApplication app)
     {
-        // Trust X-Forwarded-* from nginx/Caddy so OIDC redirect_uri uses the
-        // browser-facing host:port (e.g. http://localhost:8080/signin-oidc).
-        var forwarded = new ForwardedHeadersOptions
-        {
-            ForwardedHeaders = ForwardedHeaders.XForwardedFor
-                | ForwardedHeaders.XForwardedProto
-                | ForwardedHeaders.XForwardedHost,
-        };
-        forwarded.KnownIPNetworks.Clear();
-        forwarded.KnownProxies.Clear();
-        app.UseForwardedHeaders(forwarded);
+        // Trust X-Forwarded-* only from colocated nginx (see ForwardedHeaders
+        // config) so OIDC redirect_uri uses the browser-facing host.
+        app.UseWayelForwardedHeaders();
 
         app.UseAuthentication();
         app.UseAuthorization();

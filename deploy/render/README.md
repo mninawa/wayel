@@ -195,6 +195,39 @@ as the site URL (add `https://weyell.co.za` too if you serve the apex without re
 stays on `*.onrender.com` even after a custom domain is verified and
 will send users back to `wayel-customer.onrender.com` after Google sign-in.
 
+**BFF session persistence (Mongo Data Protection)**
+
+The customer BFF encrypts its session cookie with ASP.NET Data Protection keys
+stored in Mongo (`data_protection_keys` collection). Without this, every
+`wayel-customer` redeploy logs every signed-in customer out.
+
+On `wayel-customer`, paste the **same** values as `wayel-api`:
+
+| Env var | Notes |
+|---------|-------|
+| `Mongo__ConnectionString` | Atlas SRV URI (sync: false in Render) |
+| `Mongo__DatabaseName` | `courier_platform` (default in blueprint) |
+
+**Forwarded headers (rate-limit / IP trust)**
+
+Both `wayel-api` and the colocated BFF in `wayel-customer` honour
+`X-Forwarded-For` only from configured trusted proxies — not from arbitrary
+clients hitting `api.weyell.co.za` directly.
+
+| Service | Default trust | Config section |
+|---------|---------------|----------------|
+| `wayel-api` | Render internal LB ranges (`10/8`, `172.16/12`, `192.168/16`) | `ForwardedHeaders` in `appsettings.json` |
+| `wayel-customer` BFF | Colocated nginx (`127.0.0.1`, `::1`) | `ForwardedHeaders` in Bff appsettings |
+
+Local dev sets `ForwardedHeaders:TrustAllProxies=true` in Development overlays.
+
+**nginx security headers (customer edge)**
+
+The customer edge Docker image adds defensive headers on every response
+(CSP, `X-Frame-Options`, `Referrer-Policy`, etc.) via
+`deploy/render/nginx-security-headers.conf`. CSP allows Google Maps, GA4,
+and Google Fonts used by the Angular portal.
+
 ---
 
 ## 4. Local smoke test of the Render images
@@ -248,6 +281,7 @@ After any rotation, redeploy the service from the Render dashboard
 | `502 Bad Gateway` on `/api/*` from the ops dashboard | `API_UPSTREAM_HOST` is wrong, or the API container is restarting. Check `https://wayel-api.onrender.com/health/live`.                |
 | `OIDC redirect_uri does not match` from Google       | The customer service's URL changed but Google Cloud Console still has the old URI registered. Add the new URI in Authorized redirects.|
 | Cookie set but `/api/*` calls 401                    | `Jwt__SigningKey` on `wayel-customer` differs from `wayel-api`. Both services must share the exact same value.                       |
+| Every customer logged out after a redeploy           | `Mongo__ConnectionString` missing on `wayel-customer`. Paste the same Atlas URI as `wayel-api`.                                      |
 | `MTN MoMo: failed to acquire access token`           | Primary subscription key wrong on `Billing__MtnMomo__SubscriptionKey`, OR sandbox auto-provision is off and ApiUser/ApiKey are blank.|
 | Invoices `404` after restart                         | `MediaStorage__Provider` is still `in-memory` (i.e. S3 not configured). Set it to `s3` and provide the bucket + AWS credentials.     |
 

@@ -95,6 +95,7 @@ COPY --from=bff-build /out/publish /app/bff
 COPY --from=spa-build /spa/apps/customer-portal/dist/customer-portal/browser /usr/share/nginx/html
 
 COPY deploy/render/nginx.customer-edge.conf.template /etc/nginx/templates/nginx.conf.template
+COPY deploy/render/nginx-security-headers.conf /etc/nginx/security-headers.conf
 COPY deploy/render/start-customer-edge.sh /start-customer-edge.sh
 RUN chmod +x /start-customer-edge.sh
 
