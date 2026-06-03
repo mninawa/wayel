@@ -221,7 +221,7 @@ const PLAN_FEATURES = [
                       <span class="muted">{{ row.createdAtUtc | date:'HH:mm' }}</span>
                     </td>
                     <td data-label="Description">{{ row.planName }}</td>
-                    <td data-label="Plan">{{ planShortLabel(row.planDurationMonths) }}</td>
+                    <td data-label="Plan">{{ row.planName.replace(/ payment$/i, '') }}</td>
                     <td class="num" data-label="Amount">R{{ row.amountZar | number:'1.0-0' }}</td>
                     <td data-label="Method">
                       <span class="method-pill" aria-hidden="true">
@@ -499,7 +499,7 @@ const PLAN_FEATURES = [
           <div class="amount-block">
             <span class="amount-label">Amount Due</span>
             <p class="amount-value">R{{ amount() | number:'1.2-2' }}</p>
-            <span class="amount-note">Paid upfront</span>
+            <span class="amount-note">{{ planPaidLabel() }}</span>
           </div>
         </aside>
       </div>
@@ -1716,9 +1716,7 @@ export class SuiteCheckoutComponent implements OnInit {
   };
 
   planLabel(p: SuitePlanDto): string {
-    if (p.durationMonths === 3) return 'Quarterly';
-    if (p.durationMonths === 1) return 'Monthly';
-    return p.name.replace(/\s+suite\s+access$/i, '').trim() || p.name;
+    return p.name.trim() || 'Suite Access';
   }
 
   planShortLabel(durationMonths: number): string {

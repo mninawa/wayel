@@ -176,6 +176,7 @@ public static class DependencyInjection
         services.AddHostedService<BorderBoxPricingConfigSeeder>();
         services.AddHostedService<SuitePlatformConfigSeeder>();
         services.AddHostedService<SuitePlanSeeder>();
+        services.AddHostedService<SuitePlanCatalogAlignMigrator>();
         services.AddHostedService<PaystackPlanSyncSeeder>();
         services.AddHostedService<PickupBranchSeeder>();
         services.AddHostedService<PickupBranchLocationMigrator>();

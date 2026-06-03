@@ -32,7 +32,8 @@ public sealed record CreateSuitePlanCommand(
     string Name,
     int DurationMonths,
     decimal PriceZar,
-    bool IsRecommended) : ICommand<SuitePlanAdminDto>;
+    bool IsRecommended,
+    string? PaystackPlanCode = null) : ICommand<SuitePlanAdminDto>;
 
 internal sealed class CreateSuitePlanCommandHandler(ISuitePlanRepository plans)
     : ICommandHandler<CreateSuitePlanCommand, SuitePlanAdminDto>
@@ -45,6 +46,11 @@ internal sealed class CreateSuitePlanCommandHandler(ISuitePlanRepository plans)
         if (validation is not null) return validation;
 
         var plan = SuitePlan.Create(request.Name, request.DurationMonths, request.PriceZar, request.IsRecommended);
+        if (!string.IsNullOrWhiteSpace(request.PaystackPlanCode))
+        {
+            plan.BindPaystackPlan(request.PaystackPlanCode);
+        }
+
         await plans.AddAsync(plan, cancellationToken);
         return SuitePlanAdminDto.FromDomain(plan);
     }
@@ -75,7 +81,8 @@ public sealed record UpdateSuitePlanCommand(
     string Name,
     int DurationMonths,
     decimal PriceZar,
-    bool IsRecommended) : ICommand<SuitePlanAdminDto>;
+    bool IsRecommended,
+    string? PaystackPlanCode = null) : ICommand<SuitePlanAdminDto>;
 
 internal sealed class UpdateSuitePlanCommandHandler(ISuitePlanRepository plans)
     : ICommandHandler<UpdateSuitePlanCommand, SuitePlanAdminDto>
@@ -96,7 +103,20 @@ internal sealed class UpdateSuitePlanCommandHandler(ISuitePlanRepository plans)
             return Error.NotFound("plan.not_found", "Plan not found.");
         }
 
+        var pricingChanged = plan.PriceZar != request.PriceZar
+            || plan.DurationMonths != request.DurationMonths;
+
         plan.Update(request.Name, request.DurationMonths, request.PriceZar, request.IsRecommended);
+
+        if (!string.IsNullOrWhiteSpace(request.PaystackPlanCode))
+        {
+            plan.BindPaystackPlan(request.PaystackPlanCode);
+        }
+        else if (pricingChanged)
+        {
+            plan.ClearPaystackPlanBinding();
+        }
+
         await plans.UpdateAsync(plan, cancellationToken);
         return SuitePlanAdminDto.FromDomain(plan);
     }
@@ -134,8 +154,16 @@ public sealed record SuitePlanAdminDto(
     int DurationMonths,
     decimal PriceZar,
     bool IsRecommended,
-    bool IsActive)
+    bool IsActive,
+    string? PaystackPlanCode)
 {
     public static SuitePlanAdminDto FromDomain(SuitePlan plan) =>
-        new(plan.Id.Value, plan.Name, plan.DurationMonths, plan.PriceZar, plan.IsRecommended, plan.IsActive);
+        new(
+            plan.Id.Value,
+            plan.Name,
+            plan.DurationMonths,
+            plan.PriceZar,
+            plan.IsRecommended,
+            plan.IsActive,
+            plan.PaystackPlanCode);
 }

@@ -48,6 +48,103 @@ internal sealed class PaystackSubscriptionBilling(
         return body.Data.PlanCode.Trim();
     }
 
+    public async Task<IReadOnlyList<PaystackPlanSummary>> ListPlansAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var results = new List<PaystackPlanSummary>();
+        var page = 1;
+        const int perPage = 100;
+
+        using var client = CreateClient();
+        while (true)
+        {
+            using var response = await client.GetAsync($"plan?page={page}&perPage={perPage}", cancellationToken);
+            var body = await response.Content.ReadFromJsonAsync<PaystackEnvelope<List<PlanListData>>>(
+                PaystackJson.Options,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode || body?.Data is null)
+            {
+                break;
+            }
+
+            foreach (var item in body.Data)
+            {
+                if (string.IsNullOrWhiteSpace(item.PlanCode))
+                {
+                    continue;
+                }
+
+                results.Add(new PaystackPlanSummary(
+                    item.PlanCode.Trim(),
+                    item.Name ?? string.Empty,
+                    item.Amount,
+                    item.Interval ?? string.Empty,
+                    item.IsActive ?? true));
+            }
+
+            if (body.Data.Count < perPage)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return results;
+    }
+
+    public async Task<string?> ResolvePlanCodeAsync(
+        int durationMonths,
+        int amountMinorUnits,
+        string preferredName,
+        string? existingPlanCode = null,
+        CancellationToken cancellationToken = default)
+    {
+        var interval = MapInterval(durationMonths);
+        var paystackPlans = await ListPlansAsync(cancellationToken);
+        var matches = paystackPlans
+            .Where(p =>
+                p.AmountMinorUnits == amountMinorUnits
+                && string.Equals(p.Interval, interval, StringComparison.OrdinalIgnoreCase)
+                && p.IsActive)
+            .ToList();
+
+        if (matches.Count == 0)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(existingPlanCode))
+        {
+            var existing = matches.FirstOrDefault(p =>
+                string.Equals(p.PlanCode, existingPlanCode.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                return existing.PlanCode;
+            }
+        }
+
+        var preferred = preferredName.Trim();
+        var exactName = matches.FirstOrDefault(p =>
+            string.Equals(p.Name, preferred, StringComparison.OrdinalIgnoreCase));
+        if (exactName is not null)
+        {
+            return exactName.PlanCode;
+        }
+
+        var containsName = matches.FirstOrDefault(p =>
+            p.Name.Contains(preferred, StringComparison.OrdinalIgnoreCase)
+            || preferred.Contains(p.Name, StringComparison.OrdinalIgnoreCase));
+        if (containsName is not null)
+        {
+            return containsName.PlanCode;
+        }
+
+        return matches[0].PlanCode;
+    }
+
     public async Task<PaystackSubscriptionLink?> ResolveSubscriptionForCustomerAsync(
         string customerEmail,
         string paystackPlanCode,
@@ -288,6 +385,24 @@ internal sealed class PaystackSubscriptionBilling(
     {
         [JsonPropertyName("plan_code")]
         public string? PlanCode { get; init; }
+    }
+
+    private sealed class PlanListData
+    {
+        [JsonPropertyName("plan_code")]
+        public string? PlanCode { get; init; }
+
+        [JsonPropertyName("name")]
+        public string? Name { get; init; }
+
+        [JsonPropertyName("amount")]
+        public int Amount { get; init; }
+
+        [JsonPropertyName("interval")]
+        public string? Interval { get; init; }
+
+        [JsonPropertyName("is_active")]
+        public bool? IsActive { get; init; }
     }
 
     private sealed class CustomerData

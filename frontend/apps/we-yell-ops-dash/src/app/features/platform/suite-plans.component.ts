@@ -24,6 +24,7 @@ interface PlanForm {
   durationMonths: number;
   priceZar: number;
   isRecommended: boolean;
+  paystackPlanCode: string;
 }
 
 @Component({
@@ -42,6 +43,7 @@ export class SuitePlansComponent implements OnInit {
   readonly plans = signal<SuitePlanAdminDto[]>([]);
   readonly busy = signal(false);
   readonly saving = signal(false);
+  readonly syncing = signal(false);
   readonly editing = signal<PlanForm | null>(null);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -87,6 +89,7 @@ export class SuitePlansComponent implements OnInit {
       durationMonths: 1,
       priceZar: 100,
       isRecommended: false,
+      paystackPlanCode: '',
     });
   }
 
@@ -99,6 +102,7 @@ export class SuitePlansComponent implements OnInit {
       durationMonths: plan.durationMonths,
       priceZar: plan.priceZar,
       isRecommended: plan.isRecommended,
+      paystackPlanCode: plan.paystackPlanCode ?? '',
     });
   }
 
@@ -128,6 +132,7 @@ export class SuitePlansComponent implements OnInit {
       durationMonths: f.durationMonths,
       priceZar: f.priceZar,
       isRecommended: f.isRecommended,
+      paystackPlanCode: f.paystackPlanCode.trim() || null,
     };
     this.saving.set(true);
     this.error.set(null);
@@ -162,6 +167,26 @@ export class SuitePlansComponent implements OnInit {
 
   restore(plan: SuitePlanAdminDto): void {
     this.toggleActive(plan, true, `Restored "${plan.name}".`);
+  }
+
+  syncPaystack(): void {
+    this.syncing.set(true);
+    this.error.set(null);
+    this.api.syncPaystack().subscribe({
+      next: (result) => {
+        this.syncing.set(false);
+        this.message.set(
+          result.plansUpdated > 0
+            ? `Synced ${result.plansUpdated} plan(s) with Paystack.`
+            : 'All active plans are already linked to Paystack.',
+        );
+        this.load();
+      },
+      error: (err) => {
+        this.syncing.set(false);
+        this.error.set(this.formatError(err));
+      },
+    });
   }
 
   private toggleActive(plan: SuitePlanAdminDto, active: boolean, successMessage: string): void {

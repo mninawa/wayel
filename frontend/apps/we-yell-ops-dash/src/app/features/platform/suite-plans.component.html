@@ -7,12 +7,24 @@
       <h1>Suite Plans</h1>
       <p class="lead">
         Manage the suite subscription catalogue customers choose from at checkout.
+        Plan names and prices should match your Paystack subscription plans.
         Archived plans stay on existing subscriptions but are hidden from the customer-facing list.
       </p>
     </div>
-    <button type="button" class="ops-btn ops-btn-primary" (click)="startCreate()" [disabled]="busy() || editing()">
-      <span class="material-icons-outlined">add</span> Add plan
-    </button>
+    <div class="head-actions">
+      <button
+        type="button"
+        class="ops-btn ops-btn-outline"
+        (click)="syncPaystack()"
+        [disabled]="busy() || syncing() || !!editing()"
+      >
+        <span class="material-icons-outlined">sync</span>
+        {{ syncing() ? 'Syncing…' : 'Sync with Paystack' }}
+      </button>
+      <button type="button" class="ops-btn ops-btn-primary" (click)="startCreate()" [disabled]="busy() || editing()">
+        <span class="material-icons-outlined">add</span> Add plan
+      </button>
+    </div>
   </header>
 
   <div class="totals-strip">
@@ -91,6 +103,19 @@
             <small>Highlights this plan in the customer checkout flow.</small>
           </span>
         </label>
+
+        <label>
+          <span>Paystack plan code (optional)</span>
+          <input
+            type="text"
+            [ngModel]="form.paystackPlanCode"
+            (ngModelChange)="patch('paystackPlanCode', $event)"
+            name="paystackPlanCode"
+            placeholder="e.g. PLN_hopa5vbrxladmfe"
+            maxlength="40"
+          />
+          <small class="field-hint">Leave blank to auto-match by name, price, and interval on sync.</small>
+        </label>
       </div>
 
       <footer class="form-actions">
@@ -131,6 +156,7 @@
               <th>Duration</th>
               <th>Price</th>
               <th>Per month</th>
+              <th>Paystack</th>
               <th></th>
               <th></th>
             </tr>
@@ -147,6 +173,13 @@
                 <td>{{ plan.durationMonths }} month{{ plan.durationMonths === 1 ? '' : 's' }}</td>
                 <td>R{{ plan.priceZar | number:'1.0-2' }}</td>
                 <td>R{{ (plan.priceZar / plan.durationMonths) | number:'1.0-2' }}</td>
+                <td>
+                  @if (plan.paystackPlanCode) {
+                    <code class="plan-code">{{ plan.paystackPlanCode }}</code>
+                  } @else {
+                    <span class="hint-inline">Not linked</span>
+                  }
+                </td>
                 <td>
                   <button type="button" class="link-btn" (click)="startEdit(plan)" [disabled]="!!editing()">
                     Edit

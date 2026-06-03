@@ -7,6 +7,12 @@
   gap: 1rem;
   margin-bottom: 1rem;
 }
+.head-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .page-head h1 { margin: 0.5rem 0 0.25rem; font-size: 1.4rem; }
 .page-head .lead { margin: 0; color: #64748b; font-size: 0.84rem; line-height: 1.45; max-width: 720px; }
 .page-head .ops-btn { white-space: nowrap; }
@@ -185,3 +191,12 @@
 .banner-err { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
 .hint { color: #64748b; font-size: 0.85rem; padding: 0.5rem 0; }
+.hint-inline { color: #94a3b8; font-size: 0.78rem; font-style: italic; }
+.field-hint { display: block; margin-top: 0.15rem; }
+.plan-code {
+  font-size: 0.72rem;
+  background: #f1f5f9;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  color: #334155;
+}

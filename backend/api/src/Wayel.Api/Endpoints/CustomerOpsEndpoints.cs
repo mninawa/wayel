@@ -130,7 +130,12 @@ public sealed class SuitePlansOpsEndpoints : IEndpointGroup
 
         group.MapPost("/", async (CreatePlanRequest body, IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(
-                new CreateSuitePlanCommand(body.Name, body.DurationMonths, body.PriceZar, body.IsRecommended),
+                new CreateSuitePlanCommand(
+                    body.Name,
+                    body.DurationMonths,
+                    body.PriceZar,
+                    body.IsRecommended,
+                    body.PaystackPlanCode),
                 ct)).ToHttpResult())
             .WithName("CreateSuitePlanOps");
 
@@ -140,7 +145,13 @@ public sealed class SuitePlansOpsEndpoints : IEndpointGroup
             IMediator mediator,
             CancellationToken ct) =>
             (await mediator.Send(
-                new UpdateSuitePlanCommand(planId, body.Name, body.DurationMonths, body.PriceZar, body.IsRecommended),
+                new UpdateSuitePlanCommand(
+                    planId,
+                    body.Name,
+                    body.DurationMonths,
+                    body.PriceZar,
+                    body.IsRecommended,
+                    body.PaystackPlanCode),
                 ct)).ToHttpResult())
             .WithName("UpdateSuitePlanOps");
 
@@ -151,9 +162,24 @@ public sealed class SuitePlansOpsEndpoints : IEndpointGroup
         group.MapPost("/{planId:guid}/deactivate", async (Guid planId, IMediator mediator, CancellationToken ct) =>
             (await mediator.Send(new SetSuitePlanActiveCommand(planId, false), ct)).ToHttpResult())
             .WithName("DeactivateSuitePlanOps");
+
+        group.MapPost("/sync-paystack", async (IMediator mediator, CancellationToken ct) =>
+            (await mediator.Send(new ReconcileSuitePlansPaystackCommand(), ct)).ToHttpResult())
+            .WithName("ReconcileSuitePlansPaystackOps")
+            .WithSummary("Bind active suite plans to matching Paystack subscription plans");
     }
 
-    private sealed record CreatePlanRequest(string Name, int DurationMonths, decimal PriceZar, bool IsRecommended);
+    private sealed record CreatePlanRequest(
+        string Name,
+        int DurationMonths,
+        decimal PriceZar,
+        bool IsRecommended,
+        string? PaystackPlanCode = null);
 
-    private sealed record UpdatePlanRequest(string Name, int DurationMonths, decimal PriceZar, bool IsRecommended);
+    private sealed record UpdatePlanRequest(
+        string Name,
+        int DurationMonths,
+        decimal PriceZar,
+        bool IsRecommended,
+        string? PaystackPlanCode = null);
 }

@@ -240,13 +240,7 @@ internal static class SuitePaymentsOverviewProjector
             plan.DurationMonths,
             plan.PriceZar);
 
-    private static string PlanLabel(SuitePlan plan)
-    {
-        if (plan.DurationMonths == 1) return "Monthly Plan";
-        if (plan.DurationMonths == 3) return "Quarterly Suite Access";
-        if (plan.DurationMonths == 12) return "Annual Suite Access";
-        return plan.Name;
-    }
+    private static string PlanLabel(SuitePlan plan) => plan.Name;
 
     private static SuitePaymentsSubscriptionDto? BuildSubscription(
         Wayel.Domain.SuiteSubscriptions.SuiteSubscription? subscription,
@@ -293,7 +287,7 @@ internal static class SuitePaymentsOverviewProjector
         Dictionary<Guid, SuitePlan> plansById)
     {
         plansById.TryGetValue(payment.PlanId.Value, out var plan);
-        var planName = plan is null ? "Suite Access payment" : PlanLabel(plan) + " payment";
+        var planName = plan is null ? "Suite Access payment" : plan.Name + " payment";
         var durationMonths = plan?.DurationMonths ?? 0;
 
         return new SuitePaymentHistoryRowDto(

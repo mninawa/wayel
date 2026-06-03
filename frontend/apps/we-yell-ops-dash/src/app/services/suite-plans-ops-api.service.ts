@@ -11,6 +11,7 @@ export interface SuitePlanAdminDto {
   priceZar: number;
   isRecommended: boolean;
   isActive: boolean;
+  paystackPlanCode: string | null;
 }
 
 export interface CreateSuitePlanRequest {
@@ -18,9 +19,14 @@ export interface CreateSuitePlanRequest {
   durationMonths: number;
   priceZar: number;
   isRecommended: boolean;
+  paystackPlanCode?: string | null;
 }
 
 export type UpdateSuitePlanRequest = CreateSuitePlanRequest;
+
+export interface ReconcileSuitePlansPaystackResult {
+  plansUpdated: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SuitePlansOpsApiService {
@@ -52,6 +58,14 @@ export class SuitePlansOpsApiService {
   deactivate(planId: string): Observable<SuitePlanAdminDto> {
     return this.http.post<SuitePlanAdminDto>(
       `${this.base}/${planId}/deactivate`,
+      {},
+      { headers: buildOpsHeaders() },
+    );
+  }
+
+  syncPaystack(): Observable<ReconcileSuitePlansPaystackResult> {
+    return this.http.post<ReconcileSuitePlansPaystackResult>(
+      `${this.base}/sync-paystack`,
       {},
       { headers: buildOpsHeaders() },
     );

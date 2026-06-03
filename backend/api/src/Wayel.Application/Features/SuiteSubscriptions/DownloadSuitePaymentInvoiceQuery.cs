@@ -102,11 +102,14 @@ internal sealed class DownloadSuitePaymentInvoiceQueryHandler(
         return new QuotePaymentInvoiceFileDto(fileName, "text/html; charset=utf-8", stream);
     }
 
-    private static string ResolvePlanLabel(int durationMonths, string planName)
+    private static string ResolvePlanLabel(int durationMonths, string planName) =>
+        string.IsNullOrWhiteSpace(planName) ? FallbackPlanLabel(durationMonths) : planName.Trim();
+
+    private static string FallbackPlanLabel(int durationMonths)
     {
         if (durationMonths == 1) return "Monthly Suite Access";
         if (durationMonths == 3) return "Quarterly Suite Access";
         if (durationMonths == 12) return "Annual Suite Access";
-        return planName;
+        return "Suite Access";
     }
 }

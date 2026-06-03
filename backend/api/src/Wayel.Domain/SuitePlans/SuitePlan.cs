@@ -54,6 +54,8 @@ public sealed class SuitePlan : AggregateRoot<SuitePlanId>
         PaystackPlanCode = planCode.Trim();
     }
 
+    public void ClearPaystackPlanBinding() => PaystackPlanCode = null;
+
     public static SuitePlan Rehydrate(
         SuitePlanId id,
         string name,
