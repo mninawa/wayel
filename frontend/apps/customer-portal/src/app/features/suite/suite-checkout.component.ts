@@ -221,7 +221,7 @@ const PLAN_FEATURES = [
                       <span class="muted">{{ row.createdAtUtc | date:'HH:mm' }}</span>
                     </td>
                     <td data-label="Description">{{ row.planName }}</td>
-                    <td data-label="Plan">{{ row.planName.replace(/ payment$/i, '') }}</td>
+                    <td data-label="Plan">{{ historyPlanLabel(row.planName) }}</td>
                     <td class="num" data-label="Amount">R{{ row.amountZar | number:'1.0-0' }}</td>
                     <td data-label="Method">
                       <span class="method-pill" aria-hidden="true">
@@ -1717,6 +1717,10 @@ export class SuiteCheckoutComponent implements OnInit {
 
   planLabel(p: SuitePlanDto): string {
     return p.name.trim() || 'Suite Access';
+  }
+
+  historyPlanLabel(planName: string): string {
+    return planName.replace(/ payment$/i, '').trim() || planName;
   }
 
   planShortLabel(durationMonths: number): string {
