@@ -13,6 +13,13 @@ import type {
   IdDocumentType,
   UpdateProfileRequest,
 } from '../../models/customer-account.models';
+import {
+  CUSTOMER_PHONE_HINT,
+  isValidCustomerPhone,
+  normalizeCustomerPhone,
+  sanitizeCustomerPhoneInput,
+  validateCustomerPhone,
+} from '../../utils/customer-phone';
 
 @Component({
   selector: 'app-profile-form',
@@ -40,7 +47,22 @@ import type {
 
       <label>
         <span>Phone</span>
-        <input [(ngModel)]="phone" name="phone" required />
+        <input
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          [(ngModel)]="phone"
+          (ngModelChange)="onPhoneChange($event)"
+          name="phone"
+          required
+          maxlength="12"
+          placeholder="+27733039541"
+          [attr.aria-invalid]="phoneError() ? 'true' : null"
+        />
+        <small>{{ CUSTOMER_PHONE_HINT }}</small>
+        @if (phoneError()) {
+          <small class="field-err">{{ phoneError() }}</small>
+        }
       </label>
 
       <label>
@@ -96,6 +118,7 @@ import type {
     label { display: flex; flex-direction: column; gap: 0.3rem; }
     label span { font-size: 0.78rem; font-weight: 600; color: var(--bb-muted); }
     label small { font-size: 0.72rem; color: var(--bb-muted); }
+    label small.field-err { color: #b91c1c; font-weight: 600; }
     input, select {
       padding: 0.55rem 0.75rem;
       border: 1px solid var(--bb-border);
@@ -122,6 +145,8 @@ import type {
   `,
 })
 export class ProfileFormComponent {
+  readonly CUSTOMER_PHONE_HINT = CUSTOMER_PHONE_HINT;
+
   readonly profile = input.required<CustomerProfile>();
   readonly saving = input(false);
   readonly saveError = input<string | null>(null);
@@ -136,6 +161,7 @@ export class ProfileFormComponent {
   idDocumentType: IdDocumentType = 'NationalId';
   deliveryMethod: DeliveryMethod = 'PUDO';
   error = signal<string | null>(null);
+  phoneError = signal<string | null>(null);
 
   private snapshot = '';
 
@@ -144,7 +170,8 @@ export class ProfileFormComponent {
       const p = this.profile();
       this.firstName = p.firstName;
       this.lastName = p.lastName;
-      this.phone = p.phone;
+      this.phone = sanitizeCustomerPhoneInput(p.phone);
+      this.phoneError.set(validateCustomerPhone(this.phone));
       this.idNumber = p.idNumber;
       this.idDocumentType = p.idDocumentType;
       this.deliveryMethod = 'PUDO';
@@ -153,7 +180,12 @@ export class ProfileFormComponent {
   }
 
   canSave(): boolean {
-    return this.serialize() !== this.snapshot;
+    return this.serialize() !== this.snapshot && isValidCustomerPhone(this.phone);
+  }
+
+  onPhoneChange(value: string): void {
+    this.phone = sanitizeCustomerPhoneInput(value);
+    this.phoneError.set(validateCustomerPhone(this.phone));
   }
 
   submit(): void {
@@ -161,8 +193,15 @@ export class ProfileFormComponent {
       this.error.set('First and last name are required.');
       return;
     }
-    if (!this.phone.trim()) {
-      this.error.set('Phone number is required.');
+    const phoneValidation = validateCustomerPhone(this.phone);
+    if (phoneValidation) {
+      this.phoneError.set(phoneValidation);
+      this.error.set(null);
+      return;
+    }
+    const normalizedPhone = normalizeCustomerPhone(this.phone);
+    if (!normalizedPhone) {
+      this.phoneError.set(CUSTOMER_PHONE_HINT);
       return;
     }
     if (!this.idNumber.trim()) {
@@ -170,10 +209,12 @@ export class ProfileFormComponent {
       return;
     }
     this.error.set(null);
+    this.phoneError.set(null);
+    this.phone = normalizedPhone;
     this.saved.emit({
       firstName: this.firstName.trim(),
       lastName: this.lastName.trim(),
-      phone: this.phone.trim(),
+      phone: normalizedPhone,
       idNumber: this.idNumber.trim(),
       idDocumentType: this.idDocumentType,
       preferredDeliveryMethod: 'PUDO',

@@ -1,6 +1,7 @@
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.Abstractions.Security;
+using Wayel.Application.BorderBox;
 using Wayel.Domain.Common;
 using Wayel.Domain.Users;
 
@@ -46,10 +47,15 @@ internal sealed class UpdateCustomerProfileCommandHandler(
             return Error.Validation("account.profile_invalid", "All profile fields are required.");
         }
 
+        if (!CustomerPhoneRules.TryNormalize(request.Phone, out var normalizedPhone))
+        {
+            return Error.Validation("account.phone_invalid", CustomerPhoneRules.ValidationMessage);
+        }
+
         user.UpdateCustomerProfile(
             request.FirstName,
             request.LastName,
-            request.Phone,
+            normalizedPhone,
             request.IdNumber,
             request.IdDocumentType,
             request.PreferredDeliveryMethod);
