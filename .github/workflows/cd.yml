@@ -76,7 +76,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # ignore-error: cache export can 503 when GitHub's cache backend is unhealthy;
+          # the image push already succeeded — don't fail CD on a best-effort cache write.
+          cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
             PROJECT=${{ matrix.project }}
             ASSEMBLY=${{ matrix.assembly }}
