@@ -189,6 +189,7 @@ public static class DependencyInjection
         services.AddHostedService<MockParcelDataCleanupMigrator>();
         services.AddHostedService<SuiteNumberPoolBackfillMigrator>();
         services.AddHostedService<KycVerifiedSubmissionBackfillSeeder>();
+        services.AddHostedService<CustomerKycVerifiedBackfillMigrator>();
 
         services.AddScoped<IUserRepository, MongoUserRepository>();
         services.AddScoped<IExternalIdentityRepository, MongoExternalIdentityRepository>();

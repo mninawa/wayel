@@ -10,6 +10,8 @@ using Wayel.Domain.Users;
 namespace Wayel.Application.Features.Account;
 
 internal sealed class CustomerAccountResponseBuilder(
+    IUserRepository users,
+    IUnitOfWork unitOfWork,
     ICustomerAddressRepository addresses,
     IExternalIdentityRepository identities,
     IPickupBranchRepository pickupBranches,
@@ -23,6 +25,13 @@ internal sealed class CustomerAccountResponseBuilder(
 {
     public async Task<CustomerAccountResponse> BuildAsync(User user, CancellationToken cancellationToken)
     {
+        if (!kycOptions.Value.Enabled && user.KycStatus != KycStatus.Verified)
+        {
+            user.MarkKycVerified(clock.UtcNow);
+            await users.UpdateAsync(user, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         var suiteAddress = await addresses.GetSuiteForUserAsync(user.Id, cancellationToken);
         var allAddresses = await addresses.ListForUserAsync(user.Id, cancellationToken);
         var linked = await identities.GetForUserAsync(user.Id, cancellationToken);
