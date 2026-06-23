@@ -177,6 +177,7 @@ type NotifKey = keyof NotificationPreferences;
                 </ul>
               </div>
 
+              @if (kycEnabled()) {
               <div id="kyc" class="kyc-section">
               @if (kycIsPending(acc.profile.kycStatus)) {
                 <div class="kyc-banner kyc-pending" role="status">
@@ -212,7 +213,6 @@ type NotifKey = keyof NotificationPreferences;
                   </div>
                 </div>
               }
-              </div>
 
               @if (needsKycUpload(acc.profile.kycStatus)) {
                 @if (isProfileComplete(acc.profile)) {
@@ -253,6 +253,8 @@ type NotifKey = keyof NotificationPreferences;
                     <button type="button" class="bb-link-btn" (click)="startProfileEdit()">Edit profile</button>
                   </p>
                 }
+              }
+              </div>
               }
             }
           </section>
@@ -863,6 +865,7 @@ export class MyAddressComponent implements OnInit {
   readonly mapsApiKey = environment.googleMapsApiKey;
 
   readonly account = this.accountApi.account;
+  readonly kycEnabled = computed(() => this.account()?.kycEnabled !== false);
   readonly suiteAccess = computed(
     () =>
       this.parcelsApi.dashboard()?.suiteAccess ?? {

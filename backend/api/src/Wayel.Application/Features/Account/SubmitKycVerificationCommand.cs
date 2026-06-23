@@ -36,6 +36,12 @@ internal sealed class SubmitKycVerificationCommandHandler(
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
         }
 
+        var disabled = KycFeatureGate.RequireCustomerKycEnabled(kycOptions.Value);
+        if (disabled is not null)
+        {
+            return Result.Failure<CustomerAccountResponse>(disabled);
+        }
+
         var user = await users.GetByIdAsync(current.UserId.Value, cancellationToken);
         if (user is null)
         {

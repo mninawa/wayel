@@ -33,6 +33,7 @@ interface WireCustomerAccount {
   hasSuite: boolean;
   onboardingIntent: WireOnboardingIntent | null;
   suiteTrial: WireSuiteTrial | null;
+  kycEnabled: boolean;
 }
 
 interface WireSuiteTrial {
@@ -331,6 +332,7 @@ function mapWireAccount(w: WireCustomerAccount): CustomerAccount {
     hasSuite: w.hasSuite,
     onboardingIntent: w.onboardingIntent ? mapWireIntent(w.onboardingIntent) : null,
     suiteTrial: w.suiteTrial ? mapWireSuiteTrial(w.suiteTrial) : null,
+    kycEnabled: w.kycEnabled !== false,
   };
 }
 

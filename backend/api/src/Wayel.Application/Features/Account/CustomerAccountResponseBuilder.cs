@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Wayel.Application.Abstractions.Persistence;
 using Wayel.Application.BorderBox;
+using Wayel.Application.Configuration;
 using Wayel.Application.Features.Onboarding;
 using Wayel.Application.Features.SuitePlatform;
 using Wayel.Domain.Identities;
@@ -16,6 +18,7 @@ internal sealed class CustomerAccountResponseBuilder(
     ISuiteCheckoutPaymentRepository checkoutPayments,
     IPayLaterIntentRepository payLaterIntents,
     Microsoft.Extensions.Options.IOptions<Wayel.Application.Configuration.BorderBoxOptions> borderBoxOptions,
+    IOptions<KycOptions> kycOptions,
     Wayel.Application.Abstractions.Time.IClock clock)
 {
     public async Task<CustomerAccountResponse> BuildAsync(User user, CancellationToken cancellationToken)
@@ -56,6 +59,7 @@ internal sealed class CustomerAccountResponseBuilder(
             branches,
             platform.WarehouseName,
             intentDto,
-            suiteTrial);
+            suiteTrial,
+            kycOptions.Value.Enabled);
     }
 }

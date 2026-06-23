@@ -11,7 +11,8 @@ public sealed record CustomerAccountResponse(
     bool SuiteEligible,
     bool HasSuite,
     OnboardingIntentDto? OnboardingIntent = null,
-    SuiteTrialDto? SuiteTrial = null);
+    SuiteTrialDto? SuiteTrial = null,
+    bool KycEnabled = true);
 
 public sealed record SuiteTrialDto(
     bool FeatureEnabled,

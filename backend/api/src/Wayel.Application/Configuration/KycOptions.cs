@@ -9,6 +9,12 @@ public sealed class KycOptions
     public const string SectionName = "Kyc";
 
     /// <summary>
+    /// When false, customer KYC upload/submit is hidden and API endpoints reject new submissions.
+    /// Ops review endpoints stay available for existing pending rows.
+    /// </summary>
+    public bool Enabled { get; init; } = true;
+
+    /// <summary>
     /// When true, submitting KYC immediately marks the user as Verified (skip manual review).
     /// </summary>
     public bool AutoVerifyOnSubmit { get; init; }

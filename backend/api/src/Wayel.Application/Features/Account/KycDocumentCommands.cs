@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Wayel.Application.Abstractions.Kyc;
 using Wayel.Application.Abstractions.Messaging;
 using Wayel.Application.Abstractions.Persistence;
@@ -5,6 +6,7 @@ using Wayel.Application.Abstractions.Security;
 using Wayel.Application.Abstractions.Storage;
 using Wayel.Application.Abstractions.Time;
 using Wayel.Application.BorderBox;
+using Wayel.Application.Configuration;
 using Wayel.Domain.Common;
 using Wayel.Domain.Users;
 
@@ -22,7 +24,8 @@ internal sealed class CreateKycDocumentUploadTicketCommandHandler(
     IKycSubmissionRepository submissions,
     IInvoiceBlobStorage storage,
     IKycDocumentUploadSessionStore sessions,
-    IClock clock) : ICommandHandler<CreateKycDocumentUploadTicketCommand, KycDocumentUploadTicketDto>
+    IClock clock,
+    IOptions<KycOptions> kycOptions) : ICommandHandler<CreateKycDocumentUploadTicketCommand, KycDocumentUploadTicketDto>
 {
     public async Task<Result<KycDocumentUploadTicketDto>> Handle(
         CreateKycDocumentUploadTicketCommand request,
@@ -31,6 +34,12 @@ internal sealed class CreateKycDocumentUploadTicketCommandHandler(
         if (current.UserId is null)
         {
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
+        }
+
+        var disabled = KycFeatureGate.RequireCustomerKycEnabled(kycOptions.Value);
+        if (disabled is not null)
+        {
+            return disabled;
         }
 
         var user = await users.GetByIdAsync(current.UserId.Value, cancellationToken);
@@ -145,7 +154,8 @@ public sealed record UploadKycDocumentBytesCommand(Guid DocumentId, Stream FileC
 internal sealed class UploadKycDocumentBytesCommandHandler(
     IInvoiceBlobStorage storage,
     IKycDocumentUploadSessionStore sessions,
-    ICurrentUser current) : ICommandHandler<UploadKycDocumentBytesCommand, bool>
+    ICurrentUser current,
+    IOptions<KycOptions> kycOptions) : ICommandHandler<UploadKycDocumentBytesCommand, bool>
 {
     public async Task<Result<bool>> Handle(
         UploadKycDocumentBytesCommand request,
@@ -154,6 +164,12 @@ internal sealed class UploadKycDocumentBytesCommandHandler(
         if (current.UserId is null)
         {
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
+        }
+
+        var disabled = KycFeatureGate.RequireCustomerKycEnabled(kycOptions.Value);
+        if (disabled is not null)
+        {
+            return disabled;
         }
 
         var session = sessions.Get(request.DocumentId);
@@ -194,7 +210,8 @@ internal sealed class ConfirmKycDocumentUploadCommandHandler(
     IKycSubmissionRepository submissions,
     IInvoiceBlobStorage storage,
     IKycDocumentUploadSessionStore sessions,
-    IClock clock) : ICommandHandler<ConfirmKycDocumentUploadCommand, KycDocumentDto>
+    IClock clock,
+    IOptions<KycOptions> kycOptions) : ICommandHandler<ConfirmKycDocumentUploadCommand, KycDocumentDto>
 {
     public async Task<Result<KycDocumentDto>> Handle(
         ConfirmKycDocumentUploadCommand request,
@@ -203,6 +220,12 @@ internal sealed class ConfirmKycDocumentUploadCommandHandler(
         if (current.UserId is null)
         {
             return Error.Unauthorized("auth.unauthenticated", "Not authenticated.");
+        }
+
+        var disabled = KycFeatureGate.RequireCustomerKycEnabled(kycOptions.Value);
+        if (disabled is not null)
+        {
+            return disabled;
         }
 
         var session = sessions.Get(request.DocumentId);
@@ -283,7 +306,8 @@ internal sealed class GetCustomerKycStatusQueryHandler(
     ICurrentUser current,
     IUserRepository users,
     IKycSubmissionRepository submissions,
-    IInvoiceBlobStorage storage) : IQueryHandler<GetCustomerKycStatusQuery, CustomerKycStatusDto>
+    IInvoiceBlobStorage storage,
+    IOptions<KycOptions> kycOptions) : IQueryHandler<GetCustomerKycStatusQuery, CustomerKycStatusDto>
 {
     public async Task<Result<CustomerKycStatusDto>> Handle(
         GetCustomerKycStatusQuery request,
@@ -298,6 +322,23 @@ internal sealed class GetCustomerKycStatusQueryHandler(
         if (user is null)
         {
             return UserErrors.NotFound(current.UserId.Value);
+        }
+
+        var enabled = kycOptions.Value.Enabled;
+        if (!enabled)
+        {
+            return new CustomerKycStatusDto(
+                Enabled: false,
+                user.KycStatus.ToString(),
+                user.KycRejectionReason,
+                CanSubmit: false,
+                CanUploadDocuments: false,
+                RequiredSides: Array.Empty<string>(),
+                Documents: Array.Empty<KycDocumentDto>(),
+                Checks: Array.Empty<KycVerificationCheckDto>(),
+                SubmittedAtUtc: null,
+                FaceMatchScore: null,
+                IdDocumentExpiryUtc: null);
         }
 
         var submission = await submissions.GetForUserAsync(user.Id, cancellationToken);
@@ -316,6 +357,7 @@ internal sealed class GetCustomerKycStatusQueryHandler(
             c.CompletedAtUtc)).ToList() ?? [];
 
         return new CustomerKycStatusDto(
+            Enabled: true,
             user.KycStatus.ToString(),
             user.KycRejectionReason,
             CanSubmit: user.KycStatus is KycStatus.NotStarted or KycStatus.Rejected

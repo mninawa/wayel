@@ -1116,7 +1116,11 @@ export class PortalShellComponent implements OnInit {
   });
 
   readonly showKycTicker = computed(() => {
-    const status = this.accountApi.account()?.profile.kycStatus;
+    const acc = this.accountApi.account();
+    if (acc?.kycEnabled === false) {
+      return false;
+    }
+    const status = acc?.profile.kycStatus;
     return status != null && status !== 'Verified';
   });
 

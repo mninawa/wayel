@@ -14,6 +14,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Seed__TestParcels__Enabled: ${SEED_ALLOW_TEST_PARCELS:-true}
+      Kyc__Enabled: ${KYC_ENABLED:-false}
       Kyc__AutoVerifyOnSubmit: ${KYC_AUTO_VERIFY_ON_SUBMIT:-false}
       Kyc__AutoApproveOnProviderPass: ${KYC_AUTO_APPROVE_ON_PROVIDER_PASS:-false}
       Kyc__IdAnalyzerEnabled: ${KYC_IDANALYZER_ENABLED:-false}

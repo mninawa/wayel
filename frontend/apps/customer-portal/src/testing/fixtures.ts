@@ -121,6 +121,7 @@ export function accountFixture(
     hasSuite: true,
     onboardingIntent: null,
     suiteTrial: suiteTrialFixture(),
+    kycEnabled: true,
   };
 
   if (journey === 'profileIncomplete') {

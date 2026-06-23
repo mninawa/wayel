@@ -24,6 +24,7 @@ public sealed record KycVerificationCheckDto(
     DateTime? CompletedAtUtc);
 
 public sealed record CustomerKycStatusDto(
+    bool Enabled,
     string KycStatus,
     string? RejectionReason,
     bool CanSubmit,

@@ -130,6 +130,8 @@ export interface CustomerAccount {
   onboardingIntent: OnboardingIntent | null;
   /** Free-trial onboarding snapshot from the API (toggle + eligibility). */
   suiteTrial: SuiteTrial | null;
+  /** When false, customer KYC upload UI is hidden. */
+  kycEnabled: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -171,6 +173,7 @@ export interface KycDocumentInfo {
 }
 
 export interface CustomerKycStatus {
+  enabled: boolean;
   kycStatus: KycStatus;
   rejectionReason: string | null;
   canSubmit: boolean;

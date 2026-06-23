@@ -97,6 +97,7 @@ services:
       Billing__MtnMomo__AllowSimulatedPayments: ${MOMO_ALLOW_SIMULATED:-false}
       Billing__MtnMomo__AutoProvisionSandbox: ${MOMO_AUTO_PROVISION_SANDBOX:-true}
       Billing__MtnMomo__PerTransactionMinorUnitsLimit: ${MOMO_PER_TXN_MINOR_UNITS_LIMIT:-500000}
+      Kyc__Enabled: ${KYC_ENABLED:-true}
       Kyc__AutoVerifyOnSubmit: ${KYC_AUTO_VERIFY_ON_SUBMIT:-false}
       Kyc__AutoApproveOnProviderPass: ${KYC_AUTO_APPROVE_ON_PROVIDER_PASS:-false}
       Kyc__IdAnalyzerEnabled: ${KYC_IDANALYZER_ENABLED:-false}

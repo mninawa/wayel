@@ -143,6 +143,8 @@ services:
         value: "false"
 
       # ─ KYC ──────────────────────────────────────────────────────────
+      - key: Kyc__Enabled
+        value: "false"
       - key: Kyc__AutoVerifyOnSubmit
         value: "false"
       - key: Kyc__AutoApproveOnProviderPass
