@@ -792,12 +792,18 @@
       }
 
       @case ('profile') {
-        @if (d.account.profile.kycStatus === 'Pending') {
+        @if (d.account.profile.kycStatus !== 'Verified') {
           <div class="kyc-ops-banner">
-            <p>KYC submission pending review.</p>
+            @if (d.account.profile.kycStatus === 'Pending') {
+              <p>KYC submission pending review.</p>
+            } @else {
+              <p>Customer is not KYC verified. Verify manually if you have confirmed their identity offline.</p>
+            }
             <div class="actions">
-              <button type="button" class="ops-btn ops-btn-primary" [disabled]="actionBusy()" (click)="approveKyc()">Approve KYC</button>
-              <button type="button" class="ops-btn ops-btn-ghost danger" [disabled]="actionBusy()" (click)="rejectKyc()">Reject</button>
+              <button type="button" class="ops-btn ops-btn-primary" [disabled]="actionBusy()" (click)="approveKyc()">Verify KYC</button>
+              @if (d.account.profile.kycStatus === 'Pending' || d.account.profile.kycStatus === 'Rejected') {
+                <button type="button" class="ops-btn ops-btn-ghost danger" [disabled]="actionBusy()" (click)="rejectKyc()">Reject</button>
+              }
             </div>
           </div>
         }

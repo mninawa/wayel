@@ -318,11 +318,13 @@
             <span class="char-count">{{ reviewerNotes.length }}/1000</span>
           </div>
 
-          @if (detail.kycStatus === 'Pending') {
+          @if (detail.kycStatus !== 'Verified') {
             <div class="detail-actions">
-              <button type="button" class="ops-btn ops-btn-primary approve-btn" [disabled]="busy()" (click)="approveSelected()">Approve KYC</button>
-              <button type="button" class="ops-btn reject-btn" [disabled]="busy()" (click)="rejectSelected()">Reject</button>
-              <button type="button" class="ops-btn ops-btn-outline" [disabled]="busy()" (click)="requestMoreInfo()">Request more info</button>
+              <button type="button" class="ops-btn ops-btn-primary approve-btn" [disabled]="busy()" (click)="approveSelected()">Verify KYC</button>
+              @if (detail.kycStatus === 'Pending') {
+                <button type="button" class="ops-btn reject-btn" [disabled]="busy()" (click)="rejectSelected()">Reject</button>
+                <button type="button" class="ops-btn ops-btn-outline" [disabled]="busy()" (click)="requestMoreInfo()">Request more info</button>
+              }
             </div>
           } @else {
             <div class="detail-actions readonly-actions">

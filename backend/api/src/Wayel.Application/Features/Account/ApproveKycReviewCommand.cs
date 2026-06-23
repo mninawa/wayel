@@ -35,13 +35,6 @@ internal sealed class ApproveKycReviewCommandHandler(
             return new KycReviewActionResultDto(user.Id.Value, user.KycStatus.ToString(), "Already verified.");
         }
 
-        if (user.KycStatus != KycStatus.Pending)
-        {
-            return Error.Validation(
-                "kyc.not_pending",
-                $"Cannot approve KYC while status is {user.KycStatus}.");
-        }
-
         var now = clock.UtcNow;
         user.MarkKycVerified(now);
         await users.UpdateAsync(user, cancellationToken);
@@ -53,6 +46,7 @@ internal sealed class ApproveKycReviewCommandHandler(
             {
                 KycStatus = user.KycStatus.ToString(),
                 ReviewedAtUtc = now,
+                ReviewedBy = "ops-manual",
                 ReviewerNotes = string.IsNullOrWhiteSpace(request.ReviewerNotes)
                     ? submission.ReviewerNotes
                     : request.ReviewerNotes.Trim(),
@@ -70,9 +64,13 @@ internal sealed class ApproveKycReviewCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var message = submission is null
+            ? "Customer manually verified."
+            : "KYC approved. Customer can use all account features.";
+
         return new KycReviewActionResultDto(
             user.Id.Value,
             user.KycStatus.ToString(),
-            "KYC approved. Customer can use all account features.");
+            message);
     }
 }
